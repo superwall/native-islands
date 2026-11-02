@@ -49,11 +49,11 @@ extension NativeBridgeTests {
       let (host, scheduler) = host(webView)
       var seen: [NativeIslandsReadiness] = []
       host.onReady = { seen.append($0) }
-      #expect(webView.alpha == 0)
+      #expect(webView.isConcealed)
       #expect(host.isReady == false)
       #expect(scheduler.pending.map(\.delay) == [1])
       host.receive(["event_name": "native_islands_ready", "sequence": 1])
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
       #expect(host.isReady)
       #expect(seen == [.ready])
       host.receive(["event_name": "native_islands_ready", "sequence": 1])
@@ -68,7 +68,7 @@ extension NativeBridgeTests {
       var seen: [NativeIslandsReadiness] = []
       host.onReady = { seen.append($0) }
       scheduler.runAll()
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
       #expect(seen == [.timedOut])
     }
 
@@ -80,7 +80,7 @@ extension NativeBridgeTests {
       host.onReady = { seen.append($0) }
       host.receive(NativeIslandsHost.documentStartMarker)
       #expect(scheduler.pending.count == 2)
-      #expect(webView.alpha == 0)
+      #expect(webView.isConcealed)
       scheduler.pending.first?.work()
       #expect(host.isReady == false)
       host.receive(["event_name": "native_islands_ready", "sequence": 0])
@@ -88,31 +88,35 @@ extension NativeBridgeTests {
     }
 
     @Test
-    func restoresTheAlphaTheWebViewHadBeforeTheHold() {
+    func restoresTheMaskAndInteractionTheWebViewHadBeforeTheHold() {
       let webView = RecordingWebView()
-      webView.alpha = 0.5
+      let mask = CALayer()
+      webView.layer.mask = mask
+      webView.isUserInteractionEnabled = false
       let (host, _) = host(webView)
-      #expect(webView.alpha == 0)
+      #expect(webView.isConcealed)
+      #expect(webView.alpha == 1)
       host.receive(["event_name": "native_islands_ready", "sequence": 0])
-      #expect(webView.alpha == 0.5)
+      #expect(webView.layer.mask === mask)
+      #expect(webView.isUserInteractionEnabled == false)
     }
 
     @Test
     func showsAtOnceWhenAskedTo() {
       let webView = RecordingWebView()
       let (host, scheduler) = host(webView, reveal: .immediately)
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
       #expect(host.isReady)
       #expect(scheduler.pending.isEmpty)
       host.receive(NativeIslandsHost.documentStartMarker)
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
     }
 
     @Test
     func holdsNothingWhenItOffersNothing() {
       let webView = RecordingWebView()
       let (host, scheduler) = host(webView, registry: NativeComponentRegistry())
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
       #expect(host.isReady)
       #expect(scheduler.pending.isEmpty)
     }
@@ -125,7 +129,7 @@ extension NativeBridgeTests {
       host.onReady = { seen.append($0) }
       host.detach()
       scheduler.runAll()
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
       #expect(seen.isEmpty)
     }
 
@@ -156,7 +160,7 @@ extension NativeBridgeTests {
       defer { window.isHidden = true }
       var seen: [NativeIslandsReadiness] = []
       webView.islands?.onReady = { seen.append($0) }
-      #expect(webView.alpha == 0)
+      #expect(webView.isConcealed)
       webView.loadHTMLString(
         """
         <!doctype html><html><body><script>
@@ -172,7 +176,14 @@ extension NativeBridgeTests {
         try await Task.sleep(nanoseconds: 20_000_000)
       }
       #expect(seen == [.ready])
-      #expect(webView.alpha == 1)
+      #expect(!webView.isConcealed)
     }
+  }
+}
+
+private extension WKWebView {
+  var isConcealed: Bool {
+    guard let mask = layer.mask else { return false }
+    return mask.bounds.isEmpty && !isUserInteractionEnabled
   }
 }

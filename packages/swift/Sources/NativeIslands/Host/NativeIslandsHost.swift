@@ -19,7 +19,7 @@ public final class NativeIslandsHost {
   private let surface: WebViewSurface?
   private let schedule: NativeIslandsScheduler
   private var hold = 0
-  private var heldAlpha: CGFloat?
+  private var held: (mask: CALayer?, interactive: Bool)?
   private var router: NativeIslandsRouter?
   private var alignmentProbe: NativeAlignmentProbe?
 
@@ -140,9 +140,12 @@ public final class NativeIslandsHost {
     hold += 1
     let current = hold
     isReady = false
-    if heldAlpha == nil {
-      heldAlpha = webView.alpha
-      webView.alpha = 0
+    if held == nil {
+      // An empty mask hides the page without lowering alpha: WebKit stops running
+      // a fully transparent web view's page on some iOS versions.
+      held = (webView.layer.mask, webView.isUserInteractionEnabled)
+      webView.layer.mask = CALayer()
+      webView.isUserInteractionEnabled = false
     }
     schedule(timeout) { [weak self] in
       guard let self, self.hold == current else { return }
@@ -159,9 +162,10 @@ public final class NativeIslandsHost {
   private func release() {
     hold += 1
     isReady = true
-    guard let alpha = heldAlpha else { return }
-    heldAlpha = nil
-    webView?.alpha = alpha
+    guard let held else { return }
+    self.held = nil
+    webView?.layer.mask = held.mask
+    webView?.isUserInteractionEnabled = held.interactive
   }
 
   static let mainQueue: NativeIslandsScheduler = { delay, work in
