@@ -62,17 +62,17 @@ export type SimulatedIsland = {
   element: HTMLElement;
   /** The batch that mounted it, sent back on its events, sizes and errors. */
   sequence: number;
-  /** The scroller it is drawn in, for a `scroller` anchor. */
+  /** The scroller it is drawn in, for a `scroller` anchor. Default: none, for other anchors. */
   scroller?: HTMLElement;
-  /** Its frame as the page last sent it, unstuck. */
+  /** Its frame as the page last sent it, unstuck. Default: none until a frame arrives. */
   frame?: TNativeFrame;
-  /** The sticky box it follows, for a sticky island. */
+  /** The sticky box it follows, for a sticky island. Default: none, not sticky. */
   sticky?: TNativeSticky;
-  /** The part of it drawn, in its own coordinates. */
+  /** The part of it drawn, in its own coordinates. Default: none, all of it is drawn. */
   clip?: TNativeFrame;
-  /** How it is turned about its centre. */
+  /** How it is turned about its centre. Default: none, not turned. */
   transform?: TNativeTransform;
-  /** How opaque it is drawn. */
+  /** How opaque it is drawn, from 0 to 1. Default: none, fully opaque. */
   opacity?: number;
 };
 

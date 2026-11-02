@@ -23,8 +23,10 @@ final class NativeIsland {
   private(set) var shades: [NativeShade]?
   private(set) var transform: NativeTransform?
   private(set) var opacity: Double?
-  private(set) var shadeViews: [UIView] = []
-  private var shadeHost: UIView?
+  var shadeViews: [UIView] = []
+  var shadeHost: UIView?
+  /// The last silhouette drawn, with the size and props it was drawn for.
+  var silhouetteCache: NativeSilhouette?
   var reportedSize: CGSize?
   /// How much of the view's top scrolling has carried under the status bar,
   /// in its own points. That part is cut away, so the view slides under the
@@ -188,7 +190,7 @@ final class NativeIsland {
       )
     } else {
       container.layer.cornerRadius = 0
-      container.layer.mask = silhouette() ?? container.layer.mask
+      container.layer.mask = cachedSilhouette() ?? container.layer.mask
     }
     while shadeViews.count > wanted.count {
       shadeViews.removeLast().removeFromSuperview()
@@ -204,19 +206,6 @@ final class NativeIsland {
         UIColor(red: $0.red, green: $0.green, blue: $0.blue, alpha: $0.alpha)
       }
     }
-  }
-
-  /// Keeps the shades just above the view after the views around it moved.
-  func raiseShades() {
-    guard let shadeHost, let parent = view.superview, shadeHost.superview === parent else { return }
-    parent.insertSubview(shadeHost, aboveSubview: view)
-  }
-
-  /// Takes the shades off the page, as when the island is removed.
-  func removeShades() {
-    shadeHost?.removeFromSuperview()
-    shadeHost = nil
-    shadeViews.removeAll()
   }
 
   /// Cuts the view to its shape. Glass ignores a mask view, so glass is cut

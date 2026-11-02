@@ -669,6 +669,17 @@ describe("shadeOf", () => {
     overrideStyle(element, { backgroundColor: "rgba(1, 2, 3, 0.5)", backdropFilter: "blur(4px)" });
     expect(shadeOf(element)).toBeUndefined();
   });
+
+  it("fades the shade with the element's own opacity, as a backdrop fading in", () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    overrideStyle(element, { backgroundColor: "rgba(0, 0, 0, 0.4)", opacity: "0.5" });
+    expect(shadeOf(element)).toBe("rgba(0, 0, 0, 0.2)");
+    overrideStyle(element, { opacity: "0" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { opacity: "not a number" });
+    expect(shadeOf(element)).toBe("rgba(0, 0, 0, 0.4)");
+  });
 });
 
 describe("isEvenScale", () => {

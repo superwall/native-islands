@@ -247,15 +247,19 @@ const parseAlphaColor = (value: string): [number, number, number, number] | unde
 
 /**
  * The `rgba()` an element is filled with when it is see-through with nothing
- * else drawn on it, such as a backdrop; `undefined` otherwise.
+ * else drawn on it, such as a backdrop, faded by its own opacity so a
+ * backdrop fading in dims as much as it shows; `undefined` otherwise.
  */
 export const shadeOf = (element: Element): string | undefined => {
   const style = getComputedStyle(element);
   if (!isNone(style.backdropFilter) || !isNone(style.backgroundImage)) return undefined;
   const color = parseAlphaColor(style.backgroundColor);
   if (!color) return undefined;
-  const [red, green, blue, alpha] = color;
-  if (alpha <= 0 || alpha >= 1) return undefined;
+  const [red, green, blue, fill] = color;
+  if (fill <= 0 || fill >= 1) return undefined;
+  const faded = Number.parseFloat(style.opacity);
+  const alpha = fill * (Number.isFinite(faded) ? Math.min(1, Math.max(0, faded)) : 1);
+  if (alpha <= 0) return undefined;
   const round = (value: number) => Math.round(Math.min(255, Math.max(0, value)));
   return `rgba(${round(red)}, ${round(green)}, ${round(blue)}, ${Number(alpha.toFixed(3))})`;
 };

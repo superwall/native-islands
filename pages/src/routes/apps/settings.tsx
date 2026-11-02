@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Glass, Segments, Switch } from "../../components/controls";
 import { SFSymbol } from "../../components/icons";
+import { Sheet } from "../../components/Sheet";
 
 const ROWS = [
   { key: "notifications", symbol: "bell.fill", tint: "#ff3b30", title: "Notifications" },
@@ -62,41 +63,33 @@ export default function Settings() {
         />
       </section>
       <Glass block title="Sign out" prominence="prominent" tint="#ff3b30" />
-      {editing ? (
-        <div
-          className="overlay overlay--sheet"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Edit profile"
-        >
-          <div className="sheet sheet--bottom">
-            <div className="sheet-head">
-              <Glass title="Cancel" onPress={() => setEditing(false)} />
-              <strong>Edit profile</strong>
-              <Glass
-                title="Done"
-                prominence="prominent"
-                tint="var(--accent)"
-                onPress={() => setEditing(false)}
-              />
-            </div>
-            <input
-              className="field"
-              aria-label="Name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-            <div className="row">
-              <span className="row-title">Show my name on shared notes</span>
-              <Switch
-                label="Show my name"
-                isOn={values.shareName ?? true}
-                onChange={(isOn) => setValues({ ...values, shareName: isOn })}
-              />
-            </div>
-          </div>
+      <Sheet open={editing} label="Edit profile" onDismiss={() => setEditing(false)}>
+        <span className="sheet-grabber" aria-hidden="true" />
+        <div className="sheet-head">
+          <Glass title="Cancel" onPress={() => setEditing(false)} />
+          <strong>Edit profile</strong>
+          <Glass
+            title="Done"
+            prominence="prominent"
+            tint="var(--accent)"
+            onPress={() => setEditing(false)}
+          />
         </div>
-      ) : null}
+        <input
+          className="field"
+          aria-label="Name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <div className="row">
+          <span className="row-title">Show my name on shared notes</span>
+          <Switch
+            label="Show my name"
+            isOn={values.shareName ?? true}
+            onChange={(isOn) => setValues({ ...values, shareName: isOn })}
+          />
+        </div>
+      </Sheet>
     </main>
   );
 }

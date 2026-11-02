@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Glass } from "../components/controls";
 import { Scenario } from "../components/Scenario";
+import { Sheet } from "../components/Sheet";
 
 export default function Overlays() {
   const [sheet, setSheet] = React.useState(false);
@@ -17,8 +18,9 @@ export default function Overlays() {
     <main className="page">
       <h1>Overlays and clipping</h1>
       <p className="lede">
-        Native views live inside the page. A sheet on its own layer covers them by itself, and
-        anything else drawn over one, such as a toast, is cut out of it, so it stays native.
+        Native views live inside the page. A sheet drawn outside the page covers them by itself, as
+        it slides, and anything else drawn over one, such as a toast, is cut out of it, so it stays
+        native.
       </p>
       <Scenario id="S33" title="Covered by a sheet" expect="native">
         <Glass title="Open a sheet" onPress={() => setSheet(true)} />
@@ -38,15 +40,13 @@ export default function Overlays() {
         </div>
         <Glass title={hidden ? "Show it" : "Hide it"} onPress={() => setHidden(!hidden)} />
       </Scenario>
-      {sheet ? (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Sheet">
-          <div className="sheet" data-scenario="S36" data-expect="native">
-            <h2>A sheet</h2>
-            <p className="lede">The button below is native too, anchored to the screen.</p>
-            <Glass title="Close the sheet" prominence="prominent" onPress={() => setSheet(false)} />
-          </div>
+      <Sheet open={sheet} label="Sheet" placement="center" onDismiss={() => setSheet(false)}>
+        <div data-scenario="S36" data-expect="native">
+          <h2>A sheet</h2>
+          <p className="lede">The button below is native too, anchored to the screen.</p>
+          <Glass title="Close the sheet" prominence="prominent" onPress={() => setSheet(false)} />
         </div>
-      ) : null}
+      </Sheet>
     </main>
   );
 }

@@ -71,8 +71,6 @@ const MESSAGES: Partial<Record<Reason, string>> = {
   no_elements: "it has no element children to measure; wrap an element, not bare text",
 };
 
-/** Frames that must pass without movement before an island that moved is shown again. */
-
 const TOLERANCE = 0.5;
 
 let nextOrder = 0;
