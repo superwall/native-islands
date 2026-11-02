@@ -199,17 +199,14 @@ export const handoffOf = (
     if (carried) continue;
     if (element.hasAttribute("inert") || element.hasAttribute(ISLAND_PHASE_ATTRIBUTE))
       return "inactive";
-    if (isMoving(element)) {
-      if (
-        !(
-          clips &&
-          options.isRevealing?.(element) &&
-          CLIPPING.test(style.overflowY + style.overflowX)
-        )
-      )
-        return "moving";
-      if (options.out) options.out.revealing = true;
-    }
+    if (
+      isMoving(element) &&
+      clips &&
+      options.isRevealing?.(element) &&
+      CLIPPING.test(style.overflowY + style.overflowX) &&
+      options.out
+    )
+      options.out.revealing = true;
     if (Number.parseFloat(style.opacity) < 1) return "faded";
     if (
       !isTranslation(style.transform) ||

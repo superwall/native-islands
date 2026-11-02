@@ -75,7 +75,7 @@ describe("clipped islands", () => {
       handoffOf(wrapper, placement(), moving, true, { clip: true, isRevealing: moving, out }),
     ).toBeUndefined();
     expect(out.revealing).toBe(true);
-    expect(handoffOf(wrapper, placement(), moving, true, { clip: true })).toBe("moving");
+    expect(handoffOf(wrapper, placement(), moving, true, { clip: true })).toBe("clipped");
     expect(inTransition(wrapper, moving, route, moving)).toBe(false);
     expect(inTransition(wrapper, moving, route)).toBe(true);
     expect(inTransition(wrapper, moving, undefined, moving)).toBe(true);

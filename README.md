@@ -71,12 +71,15 @@ onPress runs      ◄──────────── event ──── use
 state, requests, commands both ways ◄────► typed text, "validate this", focus
 ```
 
-The page stays in charge of layout. The app only draws. When the page says an
-element is moving in a way a native view cannot follow, covered, faded or
-rotated, the web copy shows instead, and the native view comes back once it
-settles.
+The page stays in charge of layout. The app only draws. When an element moves
+or changes size, because the window resizes, a CTA shrinks, a box slides or
+anything else lays it out again, the page measures it again on every frame and
+the app moves the native view with it. The web copy only shows when the element
+is covered, faded, scaled or rotated, or hidden, and the native view comes back
+once that ends.
 
-Two kinds of motion stay native, because the app can follow them itself:
+Two kinds of motion need no message per frame, because the app follows them
+itself:
 
 - **Sticky boxes.** A `position: sticky` element inside a scrolling area is
   sent with its sticky box where it sits unstuck, its inset and how far it may
@@ -245,13 +248,10 @@ result bundle in `build/ui-tests/results.xcresult`.
 
 ## Known issues
 
-- **Fallbacks while a browser window is resized.** With the simulated host,
-  dragging the window edge moves every element on each frame, and an island
-  whose element moves hands back to its web copy until it has been still for
-  two frames (`SETTLE_FRAMES`). It is the same rule that hides islands during
-  animations a native view cannot follow. On a phone the web view only
-  resizes on rotation or when the keyboard opens, so it shows there only
-  then.
+- **A frame behind while something moves.** An element that moves by layout
+  (a resize, a width change, a slide) is followed by a message each frame, so
+  the native view can trail it by one frame while it moves. Islands inside a
+  page's scrolling area move with page changes without any message.
 
 - After a fast fling, the buttons in the carousel nested inside a list (S19)
   can sit about 0.52 pt above their web elements until the next layout pass.

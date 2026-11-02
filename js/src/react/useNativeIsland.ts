@@ -69,7 +69,6 @@ const MESSAGES: Partial<Record<Reason, string>> = {
 };
 
 /** Frames that must pass without movement before an island that moved is shown again. */
-export const SETTLE_FRAMES = 2;
 
 const TOLERANCE = 0.5;
 
@@ -142,9 +141,7 @@ export const useNativeIsland = (
     frame?: TNativeFrame;
     sticky?: TNativeSticky;
     revealing?: boolean;
-    moving: boolean;
-    still: number;
-  }>({ moving: false, still: 0 });
+  }>({});
 
   const evaluate = React.useCallback(
     (element: HTMLElement) => {
@@ -160,13 +157,11 @@ export const useNativeIsland = (
       const riding = layered && placement.kind === "scroller" ? placement.scroller : undefined;
       const watcher = layoutWatcherFor(element.ownerDocument);
       const out: { clip?: TNativeFrame; revealing?: boolean } = {};
-      const handoff = tracked.moving
-        ? "moving"
-        : handoffOf(element, placement, watcher.isMoving, layered, {
-            clip: supportsFeature(islands.capability, "clip"),
-            isRevealing: watcher.isRevealing,
-            out,
-          });
+      const handoff = handoffOf(element, placement, watcher.isMoving, layered, {
+        clip: supportsFeature(islands.capability, "clip"),
+        isRevealing: watcher.isRevealing,
+        out,
+      });
       tracked.revealing = out.revealing === true;
       const clip = localClip(out.clip, placement.rect, riding);
       const previous = sentAnchor.current;
@@ -223,8 +218,6 @@ export const useNativeIsland = (
     let stopWaiting: (() => void) | undefined;
     const tryMount = (): boolean => {
       sentAnchor.current = undefined;
-      motion.current.moving = false;
-      motion.current.still = 0;
       const spec = specOf(element);
       if (!spec) {
         if (!warned && boxElementsOf(element).length === 0) {
@@ -236,7 +229,6 @@ export const useNativeIsland = (
       }
       if (
         spec.handoff === "inactive" ||
-        spec.handoff === "moving" ||
         inTransition(
           element,
           layoutWatcherFor(element.ownerDocument).isMoving,
@@ -304,8 +296,6 @@ export const useNativeIsland = (
             ),
           refresh: () => {
             sentAnchor.current = undefined;
-            motion.current.moving = false;
-            motion.current.still = 0;
             const geometry = evaluate(element);
             return (
               geometry && {
@@ -394,24 +384,7 @@ export const useNativeIsland = (
         if (moved(frame, last)) relayout();
         return;
       }
-      if (moved(frame, last)) {
-        tracked.frame = frame;
-        tracked.sticky = undefined;
-        tracked.still = 0;
-        if (!tracked.moving) {
-          tracked.moving = true;
-          islands.update(id, { visible: false });
-          setState((previous) =>
-            previous.handoff === "moving" ? previous : { ...previous, handoff: "moving" },
-          );
-        }
-        return;
-      }
-      if (!tracked.moving) return;
-      tracked.still += 1;
-      if (tracked.still < SETTLE_FRAMES) return;
-      tracked.moving = false;
-      relayout();
+      if (moved(frame, last)) relayout();
     };
     const onPass = (pass: LayoutPass) => {
       follow();

@@ -102,9 +102,9 @@ describe("handoffOf", () => {
     expect(handoffOf(wrapper, placement(), still)).toBe("inactive");
   });
 
-  it("hands off while an ancestor moves", () => {
+  it("keeps an island native while an ancestor moves, so it follows frame by frame", () => {
     const { wrapper, card, placement } = setup();
-    expect(handoffOf(wrapper, placement(), (element) => element === card)).toBe("moving");
+    expect(handoffOf(wrapper, placement(), (element) => element === card)).toBeUndefined();
   });
 
   it("hands off under hidden, faded, transformed, filtered or clip-pathed ancestors", () => {
@@ -431,9 +431,9 @@ describe("layered hosts", () => {
     expect(handoffOf(wrapper, placement(), still)).toBe("inactive");
   });
 
-  it("still hands off for what happens inside the scroller, and when the scroller is hidden", () => {
+  it("still hands off for fades inside the scroller, and when the scroller is hidden", () => {
     const { wrapper, route, inner, placement } = routed();
-    expect(handoffOf(wrapper, placement(), (element) => element === inner, true)).toBe("moving");
+    expect(handoffOf(wrapper, placement(), (element) => element === inner, true)).toBeUndefined();
     overrideStyle(inner, { opacity: "0.5" });
     expect(handoffOf(wrapper, placement(), still, true)).toBe("faded");
     overrideStyle(inner, { opacity: "1" });

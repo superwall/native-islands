@@ -1,4 +1,4 @@
-import { act, waitFor } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GlassButton } from "../../src/react";
 import {
@@ -46,41 +46,32 @@ const Card = (_props: { list?: boolean }) => (
 );
 
 describe("hand-off to the web version", () => {
-  it("hides the island while an ancestor moves and shows it again, re-measured, after", async () => {
+  it("keeps the island native while an ancestor moves, following its frame", async () => {
     const view = renderNative(<Card />);
     await view.nextFrame();
     view.ackAll();
     const island = islandOf(view.container);
     expect(island.hasAttribute("data-island-shown")).toBe(true);
     const card = view.container.querySelector("#card") as HTMLElement;
+    const before = view.operations().length;
 
     transition("transitionrun", card, "transform");
-    await waitFor(() => expect(island.dataset.islandHandoff).toBe("moving"));
-    await view.nextFrame();
-    expect(view.operations().at(-1)).toEqual({
-      op: "update",
-      id: expect.any(String),
-      visible: false,
-    });
-    expect(island.hasAttribute("data-island-shown")).toBe(false);
-    expect(island.hasAttribute("aria-hidden")).toBe(false);
-
     (view.container.querySelector("button") as HTMLElement).dataset.rect = rectAttribute(
       10,
       170,
       100,
       40,
     );
-    transition("transitionend", card, "transform");
-    await waitFor(() => expect(island.hasAttribute("data-island-shown")).toBe(true));
     await view.nextFrame();
-    const updates = view.operations().filter((operation) => operation.op === "update");
-    expect(updates.at(-1)).toMatchObject({ visible: true });
+    await view.nextFrame();
+    const updates = view.operations().slice(before);
+    expect(updates).not.toContainEqual(expect.objectContaining({ visible: false }));
     expect(updates.findLast((operation) => "frame" in operation)).toMatchObject({
       frame: { x: 10, y: 170, width: 100, height: 40 },
     });
     expect(island.hasAttribute("data-island-shown")).toBe(true);
     expect(island.hasAttribute("data-island-handoff")).toBe(false);
+    transition("transitionend", card, "transform");
   });
 
   it("mounts hidden when the element starts out covered", async () => {
@@ -271,7 +262,7 @@ describe("anchors", () => {
 });
 
 describe("following motion frame by frame", () => {
-  it("hides an island whose element moves with no event at all, and shows it once still", async () => {
+  it("moves an island whose element moves with no event at all, without hiding it", async () => {
     const view = renderNative(<Card />);
     await view.nextFrame();
     view.ackAll();
@@ -284,19 +275,13 @@ describe("following motion frame by frame", () => {
       document.dispatchEvent(new Event("pointerdown"));
     });
     await view.nextFrame();
-    expect(view.operations().slice(before)).toContainEqual({
-      op: "update",
-      id: expect.any(String),
-      visible: false,
-    });
-    await view.nextFrame();
-    await view.nextFrame();
-    expect(island.hasAttribute("data-island-handoff")).toBe(false);
-    expect(view.operations().at(-1)).toMatchObject({
+    const updates = view.operations().slice(before);
+    expect(updates).not.toContainEqual(expect.objectContaining({ visible: false }));
+    expect(updates.at(-1)).toMatchObject({
       op: "update",
       frame: { x: 40, y: 150, width: 100, height: 40 },
-      visible: true,
     });
+    expect(island.hasAttribute("data-island-handoff")).toBe(false);
   });
 
   it("moves a sticky island with its element instead of hiding it", async () => {
@@ -330,8 +315,13 @@ describe("following motion frame by frame", () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
     });
     expect(island.hasAttribute("data-island-concealed")).toBe(true);
-    transition("transitionrun", view.container.querySelector("#card") as Element, "transform");
+    const card = view.container.querySelector("#card") as HTMLElement;
+    overrideStyle(card, { opacity: "0.5" });
+    act(() => {
+      card.setAttribute("style", "opacity: 0.5");
+    });
     await view.nextFrame();
+    expect(island.dataset.islandHandoff).toBe("faded");
     expect(island.hasAttribute("data-island-concealed")).toBe(false);
   });
 });

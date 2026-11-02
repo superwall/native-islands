@@ -12,10 +12,10 @@ export default function Motion() {
     <main className="page">
       <h1>Motion</h1>
       <p className="lede">
-        A native view cannot follow CSS motion frame by frame, so while something moves the web
-        version shows, and the native view returns where the element comes to rest.
+        Native views follow their element frame by frame while it moves or resizes. Only fading,
+        scaling and rotating show the web version, because a native view cannot be drawn that way.
       </p>
-      <Scenario id="S25" title="Slides when tapped" expect="web while it happens">
+      <Scenario id="S25" title="Slides when tapped" expect="native">
         <div className="mover" data-moved={moved}>
           <Glass title={moved ? "Slide back" : "Slide"} onPress={() => setMoved(!moved)} />
         </div>
