@@ -2,11 +2,51 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "categories": {
     "correctness": "error",
-    "suspicious": "warn"
+    "suspicious": "error",
+    "perf": "error"
   },
   "rules": {
     "unicorn/require-post-message-target-origin": "off",
-    "no-underscore-dangle": "off"
+    "no-underscore-dangle": "off",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-unnecessary-type-assertion": "off",
+    "eqeqeq": [
+      "error",
+      "smart"
+    ],
+    "no-console": [
+      "error",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ]
   },
-  "ignorePatterns": ["dist", "coverage", "node_modules", ".build"]
+  "ignorePatterns": [
+    "dist",
+    "coverage",
+    "node_modules",
+    ".build"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/test/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "scripts/**",
+        "examples/pages/src/perf.ts"
+      ],
+      "rules": {
+        "unicorn/consistent-function-scoping": "off",
+        "eslint/no-unmodified-loop-condition": "off",
+        "no-console": "off",
+        "eslint/no-await-in-loop": "off"
+      }
+    }
+  ]
 }

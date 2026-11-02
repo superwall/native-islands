@@ -8,8 +8,12 @@ let package = Package(
     .library(name: "NativeIslands", targets: ["NativeIslands"])
   ],
   targets: [
-    .target(name: "NativeIslands"),
-    .testTarget(name: "NativeIslandsTests", dependencies: ["NativeIslands"])
+    .target(name: "NativeIslands", path: "packages/swift/Sources/NativeIslands"),
+    .testTarget(
+      name: "NativeIslandsTests",
+      dependencies: ["NativeIslands"],
+      path: "packages/swift/Tests/NativeIslandsTests"
+    )
   ],
   swiftLanguageModes: [.v5]
 )

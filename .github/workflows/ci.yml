@@ -14,19 +14,19 @@ jobs:
         with:
           bun-version: 1.3.x
       - run: bun install --frozen-lockfile
-      - run: bunx oxlint js pages
-      - run: bunx oxfmt --check js pages contract
-      - run: bun run --cwd js typecheck
-      - run: bun run --cwd js test:coverage
+      - run: bunx oxlint --deny-warnings packages/web examples/pages scripts
+      - run: bunx oxfmt --check packages/web examples/pages contract scripts
+      - run: bun run --cwd packages/web typecheck
+      - run: bun run --cwd packages/web test:coverage
       - run: bun test scripts
-      - run: bun run --cwd pages build
+      - run: bun run --cwd examples/pages build
 
   swift:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - run: brew install swiftlint
-      - run: swiftlint lint --quiet --strict Sources Tests Example
+      - run: swiftlint lint --quiet --strict packages/swift examples/ios
       - name: Swift tests
         run: |
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in d.values() for x in r if x["name"].startswith("iPhone")))')
@@ -38,7 +38,7 @@ jobs:
       - name: Example app
         run: |
           bun install --frozen-lockfile
-          cd Example && xcodegen -q
+          cd examples/ios && xcodegen -q
           xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet
 
   alignment:

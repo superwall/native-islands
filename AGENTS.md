@@ -14,13 +14,13 @@ It has two sides that speak one contract:
 - **Host (Swift):** the `NativeIslands` package, iOS 15+ to build, iOS 26+ to
   draw. It works with any `WKWebView`; nothing in it knows about an app or a
   service.
-- **Page (JS):** `@superwall/native-islands` in `js/`, with `/react` bindings.
+- **Page (JS):** `@superwall/native-islands` in `packages/web/`, with `/react` bindings.
 
 ## The contract is the source of truth
 
 `contract/contract.json` holds every message in both directions and the
-capability. The zod schemas in `js/src/` and the Swift models in
-`Sources/NativeIslands/` both decode it in their tests, so a change to one side
+capability. The zod schemas in `packages/web/src/` and the Swift models in
+`packages/swift/Sources/NativeIslands/` both decode it in their tests, so a change to one side
 that the other cannot read fails a test.
 
 - Change the contract additively: add optional fields and new messages; never
@@ -32,8 +32,17 @@ that the other cannot read fails a test.
 
 ## Layout
 
+```
+contract/            the wire contract both sides decode
+packages/web/        @superwall/native-islands (page side)
+packages/swift/      NativeIslands (host side); Package.swift sits at the root
+examples/pages/      local test pages (Vite + React)
+examples/ios/        the iOS example app and its UI tests
+scripts/, perf/      simulator runs and performance baselines
+```
+
 - `contract/` — the shared fixture.
-- `js/` — the page package, tests in `test/`:
+- `packages/web/` — the page package, tests in `test/`:
   - `src/schemas.ts`, `src/messages.ts` — the contract in zod.
   - `src/capability.ts` — reads `window.__NATIVE_ISLANDS__` leniently.
   - `src/islands.ts` — the island controller: mounts, per-frame batching,
@@ -52,8 +61,8 @@ that the other cannot read fails a test.
     `Toggle`, `SegmentedControl`, `SystemSymbol`), `useNativeSupport` and
     `useNativeIslandsReady`, which turns true once no island is still on its
     way to native. The provider adds the island style rules to the document.
-- `Sources/NativeIslands/`, `Tests/NativeIslandsTests/` — the host package and
-  its Swift Testing suites. It mirrors `js/src/simulator.ts`:
+- `packages/swift/Sources/NativeIslands/`, `packages/swift/Tests/NativeIslandsTests/` — the host package and
+  its Swift Testing suites. It mirrors `packages/web/src/simulator.ts`:
   - `NativeIslandsHost.swift` — attaches to any `WKWebView`: adds the
     capability and document-start scripts and the `nativeIslands` handler,
     delivers replies through `window.__nativeIslands.accept64`, and clears
@@ -71,18 +80,18 @@ that the other cannot read fails a test.
   - `NativeFrameReporter.swift` — DEBUG only: the `nativeIslandsFrames`
     handler, and the `-NativeIslandsAlignmentLog YES` log of native frames
     beside DOM rects.
-  - `Tests/.swiftlint.yml` relaxes a few rules for tests only.
-- `pages/` — the local test pages (Vite + React): every scenario of the
+  - `packages/swift/Tests/.swiftlint.yml` relaxes a few rules for tests only.
+- `examples/pages/` — the local test pages (Vite + React): every scenario of the
   gallery, tagged `data-scenario` and `data-expect`, and the `flow-*` pages.
   `src/router.tsx` renders every page at once and parks the ones not showing
   off to the side, each at its own spot, so their islands are drawn before
   they slide in. `?native=simulate` installs the JS reference host.
-- `Example/` — the xcodegen iOS app that bundles `pages/dist` (a pre-build
-  script runs `bun run --cwd pages build`) and serves it from `islands://`.
-  It registers the gallery's app components in `Example/Components/`.
+- `examples/ios/` — the xcodegen iOS app that bundles `examples/pages/dist` (a pre-build
+  script runs `bun run --cwd examples/pages build`) and serves it from `islands://`.
+  It registers the gallery's app components in `examples/ios/Example/Components/`.
   `ExampleUITests/` holds the alignment, screenshot and performance tests;
   launched with `-UITestReport YES` the app exposes a JSON summary of its
-  islands (`Example/TestReport.swift`) that they read. `Baselines/` holds the
+  islands (`examples/ios/Example/TestReport.swift`) that they read. `Baselines/` holds the
   screenshots per simulator model and size.
 - `scripts/` — `ui-tests.sh` (parallel simulators), `perf.sh`,
   `perf-check.ts` and `perf-compare.ts` (tested with `bun test scripts`).
@@ -93,13 +102,13 @@ that the other cannot read fails a test.
 
 Run only what your change touches; never a whole suite by hand.
 
-- JS tests: `bun run --cwd js test:run test/<file>`
-- JS types: `bun run --cwd js typecheck`
-- JS lint and format: `bunx oxlint js`, `bunx oxfmt --check js contract`
+- JS tests: `bun run --cwd packages/web test:run test/<file>`
+- JS types: `bun run --cwd packages/web typecheck`
+- JS lint and format: `bunx oxlint --deny-warnings packages/web examples/pages scripts`, `bunx oxfmt --check packages/web examples/pages contract scripts`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
-- SwiftLint: `swiftlint lint --quiet --strict Sources Tests Example`
-- Pages: `bun run --cwd pages build`; in a browser `bun run --cwd pages dev`
-- Example app: `cd Example && xcodegen -q && xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet`
+- SwiftLint: `swiftlint lint --quiet --strict packages/swift examples/ios`
+- Pages: `bun run --cwd examples/pages build`; in a browser `bun run --cwd examples/pages dev`
+- Example app: `cd examples/ios && xcodegen -q && xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`; record screenshots with `--record` only after a deliberate visual change
 - Performance: `scripts/perf.sh`; its comparison: `bun test scripts`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
@@ -108,8 +117,12 @@ Run only what your change touches; never a whole suite by hand.
 
 - No code comments explaining a change; put that in the pull request. Doc
   comments on types and public API are fine.
+- JS: `tsconfig.base.json` is strict, with `noUncheckedIndexedAccess`,
+  `noImplicitReturns`, `noImplicitOverride` and `verbatimModuleSyntax`; oxlint
+  runs with `--deny-warnings`. No `any`, no non-null assertions, and no `as`
+  casts outside tests: narrow with a type guard, destructuring or a schema.
 - JS: every optional field of a public type states its default. Tests keep
-  `js/src` at 100% coverage.
+  `packages/web/src` at 100% coverage.
 - Swift: 2-space indentation, Swift Testing (not XCTest), `swiftlint --strict`
   clean.
 - Never require browser storage on the page side.

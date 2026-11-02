@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the example app's UI tests on several simulators at once: islands
 # within 0.5 pt of their web elements on every page, and screenshots against
-# Example/Baselines.
+# examples/ios/Baselines.
 #
 #   scripts/ui-tests.sh                       # iPhone 17 and iPhone Air
 #   scripts/ui-tests.sh --devices "iPhone 17,iPhone 17e,iPhone Air"
@@ -32,7 +32,7 @@ mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 DERIVED="$ROOT/build/DerivedData"
 
-(cd "$ROOT/Example" && xcodegen -q)
+(cd "$ROOT/examples/ios" && xcodegen -q)
 destinations=()
 IFS=',' read -ra names <<< "$DEVICES"
 for name in "${names[@]}"; do
@@ -41,15 +41,15 @@ for name in "${names[@]}"; do
 done
 
 xcodebuild build-for-testing \
-  -project "$ROOT/Example/Example.xcodeproj" -scheme Example \
+  -project "$ROOT/examples/ios/Example.xcodeproj" -scheme Example \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$DERIVED" -quiet
 
-TEST_RUNNER_BASELINES_DIR="$ROOT/Example/Baselines" \
+TEST_RUNNER_BASELINES_DIR="$ROOT/examples/ios/Baselines" \
 TEST_RUNNER_RECORD_BASELINES="$RECORD" \
 TEST_RUNNER_OUTPUT_DIR="$OUT/failures" \
 xcodebuild test-without-building \
-  -project "$ROOT/Example/Example.xcodeproj" -scheme Example \
+  -project "$ROOT/examples/ios/Example.xcodeproj" -scheme Example \
   "${destinations[@]}" \
   -maximum-concurrent-test-simulator-destinations "${#names[@]}" \
   -derivedDataPath "$DERIVED" \

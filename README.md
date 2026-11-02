@@ -125,8 +125,8 @@ check before saying it is the first.
 
 | Side       | Package                                 | Where                   |
 | ---------- | --------------------------------------- | ----------------------- |
-| Host (iOS) | `NativeIslands` (Swift Package Manager) | `Sources/NativeIslands` |
-| Page       | `@superwall/native-islands`             | `js/`                   |
+| Host (iOS) | `NativeIslands` (Swift Package Manager) | `packages/swift/Sources/NativeIslands` |
+| Page       | `@superwall/native-islands`             | `packages/web/`                   |
 
 Both sides speak the contract in `contract/contract.json`.
 
@@ -194,14 +194,14 @@ slides in, and need no swap to native when it arrives.
 
 ## Try it
 
-`pages/` is a set of local test pages covering every scenario, plus a
+`examples/pages/` is a set of local test pages covering every scenario, plus a
 three-page flow that shows islands sliding in with their page.
-`Example/` is an iOS 26+ app that bundles them; it needs no account or network.
+`examples/ios/` is an iOS 26+ app that bundles them; it needs no account or network.
 
 ```bash
 bun install
-bun run --cwd pages dev        # http://localhost:5173/?native=simulate in a browser
-cd Example && xcodegen && open Example.xcodeproj
+bun run --cwd examples/pages dev        # http://localhost:5173/?native=simulate in a browser
+cd examples/ios && xcodegen && open Example.xcodeproj
 ```
 
 In a browser, `?native=simulate` draws each native view as a magenta outline,
@@ -221,17 +221,17 @@ in the same place.
 ```bash
 scripts/ui-tests.sh                     # alignment and screenshots, iPhone 17 and iPhone Air at once
 scripts/ui-tests.sh --devices "iPhone 17,iPhone 17e,iPhone Air"
-scripts/ui-tests.sh --record            # rewrite Example/Baselines after a deliberate visual change
+scripts/ui-tests.sh --record            # rewrite examples/ios/Baselines after a deliberate visual change
 scripts/perf.sh                         # 10, 50 and 100 islands against perf/baseline.json
 scripts/perf.sh --device "iPhone Air" --record
 ```
 
-- **Alignment** (`Example/ExampleUITests/AlignmentUITests.swift`) opens every
+- **Alignment** (`examples/ios/ExampleUITests/AlignmentUITests.swift`) opens every
   page and fails when a drawn island is more than 0.5 pt from its web element,
   when an island has no web element, or when a scenario that expects native
   still shows its web version. It also scrolls, and pushes and pops the flow.
 - **Screenshots** (`ScreenshotUITests.swift`) compare each still page with
-  `Example/Baselines/<model>-<width>x<height>/`. A pixel counts as different
+  `examples/ios/Baselines/<model>-<width>x<height>/`. A pixel counts as different
   when a channel moves by more than 24 of 255; a page fails above 0.2%.
 - **Performance** (`PerformanceUITests.swift`) records, for 10, 50 and 100
   islands: the time until the page is shown with its islands drawn, the memory
@@ -264,8 +264,8 @@ result bundle in `build/ui-tests/results.xcresult`.
 
 ```bash
 bun install
-bun run --cwd js test:run
-bun run --cwd js typecheck
-bun run --cwd pages build
+bun run --cwd packages/web test:run
+bun run --cwd packages/web typecheck
+bun run --cwd examples/pages build
 xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

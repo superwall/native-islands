@@ -1,7 +1,8 @@
 excluded:
   - ${PWD}/.build
   - ${PWD}/node_modules
-  - ${PWD}/js
+  - ${PWD}/packages/web
+  - ${PWD}/examples/pages
 
 disabled_rules:
   - discarded_notification_center_observer
