@@ -1,0 +1,25 @@
+{
+  "iPhone18,3": [
+    {
+      "droppedFrames": 0,
+      "islands": 10,
+      "layoutMs": 7.857142857142857,
+      "memoryPerIslandBytes": 1248477.6,
+      "mountToVisibleMs": 2313.040541659575
+    },
+    {
+      "droppedFrames": 7,
+      "islands": 50,
+      "layoutMs": 18.61904761904762,
+      "memoryPerIslandBytes": 423366.88,
+      "mountToVisibleMs": 2523.0150833376683
+    },
+    {
+      "droppedFrames": 44,
+      "islands": 100,
+      "layoutMs": 14.142857142857142,
+      "memoryPerIslandBytes": 303761.76,
+      "mountToVisibleMs": 2601.793333364185
+    }
+  ]
+}
