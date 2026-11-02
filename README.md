@@ -103,6 +103,45 @@ others wait off to the side, each at its own spot: the host tells scrolling
 areas apart by size and position, so two pages of the same size must not wait
 in the same place.
 
+## Automated runs
+
+```bash
+scripts/ui-tests.sh                     # alignment and screenshots, iPhone 17 and iPhone Air at once
+scripts/ui-tests.sh --devices "iPhone 17,iPhone 17e,iPhone Air"
+scripts/ui-tests.sh --record            # rewrite Example/Baselines after a deliberate visual change
+scripts/perf.sh                         # 10, 50 and 100 islands against perf/baseline.json
+scripts/perf.sh --device "iPhone Air" --record
+```
+
+- **Alignment** (`Example/ExampleUITests/AlignmentUITests.swift`) opens every
+  page and fails when a drawn island is more than 0.5 pt from its web element,
+  when an island has no web element, or when a scenario that expects native
+  still shows its web version. It also scrolls, and pushes and pops the flow.
+- **Screenshots** (`ScreenshotUITests.swift`) compare each still page with
+  `Example/Baselines/<model>-<width>x<height>/`. A pixel counts as different
+  when a channel moves by more than 24 of 255; a page fails above 0.2%.
+- **Performance** (`PerformanceUITests.swift`) records, for 10, 50 and 100
+  islands: the time until the page is shown with its islands drawn, the memory
+  per island, frames dropped while the page scrolls top to bottom and back,
+  and the JS time of one layout pass. `scripts/perf-check.ts` fails when one
+  rises past its baseline by more than a share plus a fixed slack
+  (`scripts/perf-compare.ts`), and when one could not be measured. On a
+  shared simulator dropped frames and layout cost swing a lot between
+  identical runs, so those gates only catch large rises; measure scrolling on a device for anything finer.
+
+Simulators are slimmed with `simslim` when it is installed, booted in light
+mode and given a fixed status bar. Failing screenshots are attached to the
+result bundle in `build/ui-tests/results.xcresult`.
+
+## Known issues
+
+- After a fast fling, the buttons in the carousel nested inside a list (S19)
+  can sit about 0.52 pt above their web elements until the next layout pass.
+  The alignment test marks this one case as an expected failure.
+- WebKit builds an inner scrolling area's scroll view a few frames after the
+  page lays it out. The host holds a mount for such a scroller for up to a
+  second (20 tries) before answering `anchor_not_found`.
+
 ## Develop
 
 ```bash

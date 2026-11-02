@@ -102,7 +102,7 @@ describe("<Native> on a native host", () => {
     view.ackAll();
     expect(island.dataset.islandMode).toBe("native");
     expect(island.hasAttribute("data-island-shown")).toBe(true);
-    expect(island.getAttribute("aria-hidden")).toBe("true");
+    expect(island.hasAttribute("aria-hidden")).toBe(false);
   });
 
   it("keeps the web version and hides the native view while the host has not answered, then recovers", async () => {

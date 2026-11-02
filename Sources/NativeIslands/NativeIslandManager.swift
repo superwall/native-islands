@@ -10,7 +10,7 @@ import UIKit
 /// one meant for an earlier mount of the same id.
 @MainActor
 final class NativeIslandManager: NativeIslandMessaging {
-  private let registry: NativeComponentRegistry
+  let registry: NativeComponentRegistry
   private(set) weak var surface: NativeHostSurface?
   let send: @MainActor ([NativeReply]) -> Void
   let schedule: @MainActor (@escaping @MainActor () -> Void) -> Void
@@ -22,6 +22,12 @@ final class NativeIslandManager: NativeIslandMessaging {
   var requestCount = 0
   var pendingRequests: [String: PendingRequest] = [:]
   var scrollObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
+  /// Scroller mounts whose scroll view WebKit hasn't built yet, by id.
+  var parked: [String: ParkedMount] = [:]
+  /// Runs `work` again a little later, to look for a parked mount's scroll view.
+  let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
+  /// How many times a parked mount looks for its scroll view before it is refused.
+  static let parkingAttempts = 20
   /// How long a native view waits for the page to answer a request.
   var requestTimeoutNanoseconds: UInt64 = 10_000_000_000
 
@@ -36,12 +42,16 @@ final class NativeIslandManager: NativeIslandMessaging {
     send: @escaping @MainActor ([NativeReply]) -> Void,
     schedule: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
       DispatchQueue.main.async { MainActor.assumeIsolated { work() } }
+    },
+    retry: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
     }
   ) {
     self.registry = registry
     self.surface = surface
     self.send = send
     self.schedule = schedule
+    self.retry = retry
   }
 
   // MARK: - Batches
@@ -57,7 +67,9 @@ final class NativeIslandManager: NativeIslandMessaging {
       case .unmount(let id):
         remove(id)
       case .mount(let mount):
-        if let error = mountIsland(mount, sequence: batch.sequence) {
+        if shouldPark(mount) {
+          park(mount, sequence: batch.sequence)
+        } else if let error = mountIsland(mount, sequence: batch.sequence) {
           replies.append(error)
         } else if registry.entries[mount.component]?.waitsUntilReady == true {
           waiting.append(mount.id)
@@ -66,7 +78,9 @@ final class NativeIslandManager: NativeIslandMessaging {
           acknowledged.append(mount.id)
         }
       case .update(let update):
-        if let error = updateIsland(update) {
+        if parked[update.id] != nil {
+          parked[update.id]?.updates.append(update)
+        } else if let error = updateIsland(update) {
           replies.append(error)
         }
       case .invalid(let id):
@@ -111,14 +125,14 @@ final class NativeIslandManager: NativeIslandMessaging {
       .map(\.element)
   }
 
-  private func reportSizes(of ids: [String]) {
+  func reportSizes(of ids: [String]) {
     for id in ids {
       guard let island = islands[id], island.sizing == .native, let size = island.measure() else { continue }
       outbox.append(.size(id: id, size: size, sequence: island.context.sequence))
     }
   }
 
-  private func mountIsland(_ mount: NativeMount, sequence: Int) -> NativeReply? {
+  func mountIsland(_ mount: NativeMount, sequence: Int) -> NativeReply? {
     func failure(_ reason: NativeErrorReason, _ message: String) -> NativeReply {
       .error(id: mount.id, reason: reason, message: message, sequence: sequence)
     }
@@ -161,7 +175,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     return nil
   }
 
-  private func updateIsland(_ update: NativeUpdate) -> NativeReply? {
+  func updateIsland(_ update: NativeUpdate) -> NativeReply? {
     guard let island = islands[update.id] else { return nil }
     if let anchor = update.anchor, needsMove(island, to: anchor) {
       guard let surface, let container = container(for: anchor, in: surface) else {
@@ -225,7 +239,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     }
   }
 
-  private func container(for anchor: NativeAnchor, in surface: NativeHostSurface) -> UIView? {
+  func container(for anchor: NativeAnchor, in surface: NativeHostSurface) -> UIView? {
     switch anchor {
     case .page:
       return surface.pageScrollView
@@ -242,7 +256,8 @@ final class NativeIslandManager: NativeIslandMessaging {
 
   // MARK: - Removal
 
-  private func remove(_ id: String) {
+  func remove(_ id: String) {
+    parked[id] = nil
     guard let island = islands.removeValue(forKey: id) else { return }
     island.view.removeFromSuperview()
     pruneGroups(in: island.container)
@@ -252,6 +267,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   /// Removes every island. With `notifyPage`, the page is asked to mount
   /// them all again, for when the views went away but the page lives on.
   func clear(notifyPage: Bool) {
+    parked.removeAll()
     for id in Array(islands.keys) {
       remove(id)
     }
@@ -262,7 +278,11 @@ final class NativeIslandManager: NativeIslandMessaging {
       recoveredUnreadableBatch = false
     }
   }
+}
 
+// MARK: - Recovery
+
+extension NativeIslandManager {
   /// A batch arrived that the host couldn't read, so its mounts were neither
   /// drawn nor refused and the page would wait on them. Clears every island
   /// and asks the page to mount them all again, once per page, so a page

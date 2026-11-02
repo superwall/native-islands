@@ -115,10 +115,80 @@ extension NativeBridgeTests {
         )
       )
       #expect(harness.island("cta") == nil)
+      #expect(harness.sent.isEmpty)
+      for _ in 0..<NativeIslandManager.parkingAttempts {
+        harness.runRetries()
+      }
+      #expect(harness.retries.isEmpty)
+      #expect(harness.manager.parked.isEmpty)
       #expect(harness.sent.first?.first.map { reply in
         if case .error("cta", .anchorNotFound, _, 7) = reply { return true }
         return false
       } == true)
+    }
+
+    @Test
+    func drawsAParkedMountOnceWebKitBuildsItsScroller() {
+      let harness = NativeTestHarness()
+      let anchor = scroller(
+        frame: NativeFrame(x: 0, y: 0, width: 300, height: 200),
+        contentSize: NativeSize(width: 300, height: 600)
+      )
+      harness.manager.apply(batch(4, mountOp(anchor: anchor)))
+      harness.manager.apply(
+        batch(5, .update(NativeUpdate(id: "cta", frame: NativeFrame(x: 5, y: 6, width: 120, height: 44))))
+      )
+      #expect(harness.island("cta") == nil)
+      #expect(harness.sent.isEmpty)
+      harness.runRetries()
+      #expect(harness.sent.isEmpty)
+      let list = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 300, height: 200),
+        contentSize: CGSize(width: 300, height: 600)
+      )
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === list)
+      #expect(harness.island("cta")?.view.frame == CGRect(x: 5, y: 6, width: 120, height: 44))
+      #expect(harness.island("cta")?.context.isAcknowledged == true)
+      #expect(harness.sent.first?.first == .ack(sequence: 4, ids: ["cta"]))
+      #expect(harness.retries.isEmpty)
+    }
+
+    @Test
+    func forgetsAParkedMountThePageUnmountsOrClears() {
+      let harness = NativeTestHarness()
+      let anchor = scroller(
+        frame: NativeFrame(x: 0, y: 0, width: 300, height: 200),
+        contentSize: NativeSize(width: 300, height: 600)
+      )
+      harness.manager.apply(batch(1, mountOp(anchor: anchor)))
+      harness.manager.apply(batch(2, .unmount(id: "cta")))
+      harness.manager.apply(batch(3, mountOp("other", anchor: anchor)))
+      harness.manager.clear(notifyPage: false)
+      harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 300, height: 200),
+        contentSize: CGSize(width: 300, height: 600)
+      )
+      harness.runRetries()
+      #expect(harness.manager.islands.isEmpty)
+      #expect(harness.sent.isEmpty)
+    }
+
+    @Test
+    func ignoresARetryForAnEarlierMountOfTheSameId() {
+      let harness = NativeTestHarness()
+      let anchor = scroller(
+        frame: NativeFrame(x: 0, y: 0, width: 300, height: 200),
+        contentSize: NativeSize(width: 300, height: 600)
+      )
+      harness.manager.apply(batch(1, mountOp(anchor: anchor)))
+      harness.manager.apply(batch(2, mountOp(anchor: anchor)))
+      harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 300, height: 200),
+        contentSize: CGSize(width: 300, height: 600)
+      )
+      harness.runRetries()
+      #expect(harness.sent.flatMap { $0 } == [.ack(sequence: 2, ids: ["cta"])])
     }
 
     @Test

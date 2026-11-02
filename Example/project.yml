@@ -48,10 +48,28 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_USER_SCRIPT_SANDBOXING: NO
+  ExampleUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - ExampleUITests
+    dependencies:
+      - target: Example
+    settings:
+      base:
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   Example:
     build:
       targets:
         Example: all
+        ExampleUITests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - ExampleUITests

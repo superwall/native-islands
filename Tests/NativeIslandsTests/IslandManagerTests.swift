@@ -37,11 +37,13 @@ final class NativeTestHarness {
   let surface = FakeSurface()
   var sent: [[NativeReply]] = []
   var scheduled: [@MainActor () -> Void] = []
+  var retries: [@MainActor () -> Void] = []
   lazy var manager = NativeIslandManager(
     registry: registry,
     surface: surface,
     send: { [unowned self] replies in sent.append(replies) },
-    schedule: { [unowned self] work in scheduled.append(work) }
+    schedule: { [unowned self] work in scheduled.append(work) },
+    retry: { [unowned self] work in retries.append(work) }
   )
 
   var replies: [NativeReply] {
@@ -58,6 +60,13 @@ final class NativeTestHarness {
   func runScheduled() {
     let work = scheduled
     scheduled.removeAll()
+    work.forEach { $0() }
+  }
+
+  /// Runs the parked mounts' pending retries once each.
+  func runRetries() {
+    let work = retries
+    retries.removeAll()
     work.forEach { $0() }
   }
 

@@ -113,17 +113,32 @@ final class NativeAlignmentProbe {
 
   private func sample() {
     guard let webView, let islands, !islands.islands.isEmpty else { return }
+    Self.measure(webView: webView, islands: islands) { alignments in
+      for line in Self.lines(alignments) {
+        Self.log.notice("NATIVE-ISLANDS-ALIGN \(line, privacy: .public)")
+      }
+    }
+  }
+
+  /// Reads the page's element rects and pairs them with the native frames
+  /// taken at the same moment.
+  static func measure(
+    webView: WKWebView,
+    islands: NativeIslandManager,
+    completion: @escaping @MainActor ([NativeIslandAlignment]) -> Void
+  ) {
     let frames = islands.frames()
-    webView.evaluateJavaScript(Self.domScript) { result, _ in
+    webView.evaluateJavaScript(domScript) { result, _ in
       MainActor.assumeIsolated {
         guard
           let json = result as? String,
           let data = json.data(using: .utf8),
           let dom = (try? JSONSerialization.jsonObject(with: data)) as? [String: [String: Any]]
-        else { return }
-        for line in Self.compare(frames: frames, dom: dom) {
-          Self.log.notice("NATIVE-ISLANDS-ALIGN \(line, privacy: .public)")
+        else {
+          completion(NativeIslandAlignment.compare(frames: frames, dom: [:]))
+          return
         }
+        completion(NativeIslandAlignment.compare(frames: frames, dom: dom))
       }
     }
   }
@@ -131,29 +146,32 @@ final class NativeAlignmentProbe {
   /// One JSON line per island: its native and DOM frames, the difference,
   /// and whether a shown island is off by more than half a point.
   static func compare(frames: [NativeIslandFrame], dom: [String: [String: Any]]) -> [String] {
-    frames.compactMap { frame in
-      let web = dom[frame.id]
-      var entry: [String: Any] = frame.json
-      if let web,
-        let x = web["x"] as? Double,
-        let y = web["y"] as? Double,
-        let width = web["width"] as? Double,
-        let height = web["height"] as? Double {
-        let deltas = [
-          Double(frame.frame.minX) - x,
-          Double(frame.frame.minY) - y,
-          Double(frame.frame.width) - width,
-          Double(frame.frame.height) - height
-        ]
+    lines(NativeIslandAlignment.compare(frames: frames, dom: dom))
+  }
+
+  static func lines(_ alignments: [NativeIslandAlignment]) -> [String] {
+    alignments.compactMap { alignment in
+      var entry: [String: Any] = [
+        "id": alignment.id,
+        "component": alignment.component,
+        "x": Double(alignment.frame.minX),
+        "y": Double(alignment.frame.minY),
+        "width": Double(alignment.frame.width),
+        "height": Double(alignment.frame.height),
+        "visible": alignment.visible,
+        "acknowledged": alignment.acknowledged
+      ]
+      let deltas = alignment.deltas
+      if deltas.count == 4 {
         entry["dx"] = deltas[0]
         entry["dy"] = deltas[1]
         entry["dw"] = deltas[2]
         entry["dh"] = deltas[3]
-        entry["misaligned"] = frame.visible && deltas.contains { abs($0) > tolerance }
-        entry["scenario"] = web["scenario"] ?? NSNull()
-        entry["expect"] = web["expect"] ?? NSNull()
-        entry["shown"] = web["shown"] ?? false
-        entry["handoff"] = web["handoff"] ?? NSNull()
+        entry["misaligned"] = alignment.isMisaligned(tolerance: tolerance)
+        entry["scenario"] = alignment.scenario ?? NSNull()
+        entry["expect"] = alignment.expect ?? NSNull()
+        entry["shown"] = alignment.shown
+        entry["handoff"] = alignment.handoff ?? NSNull()
       } else {
         entry["missing"] = true
       }

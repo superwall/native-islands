@@ -256,6 +256,17 @@ describe("anchors", () => {
       op: "update",
       anchor: { type: "screen" },
     });
+    expect(islandOf(view.container).getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("leaves the web copy readable for an island drawn inside the web content", async () => {
+    const view = renderNative(<Card />);
+    await view.nextFrame();
+    view.ackAll();
+    await view.nextFrame();
+    const island = islandOf(view.container);
+    expect(island.hasAttribute("data-island-shown")).toBe(true);
+    expect(island.hasAttribute("aria-hidden")).toBe(false);
   });
 });
 

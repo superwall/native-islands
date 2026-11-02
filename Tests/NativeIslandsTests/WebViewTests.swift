@@ -26,8 +26,15 @@ extension NativeBridgeTests {
         "accessibility":{"label":"\(island.id)","traits":["button"]}}
         """
       }
+      let wrappers = builtIns.enumerated().map { index, island in
+        """
+        <span data-island-id="\(island.id)" style="display:contents">\
+        <div style="position:absolute;left:20px;top:\(20 + index * 60)px;width:200px;height:44px"></div></span>
+        """
+      }
       return """
         <!doctype html><html><body style="margin:0;height:2000px">
+        \(wrappers.joined())
         <script>
         window.received = [];
         window.__nativeIslands = { accept64: (b) => window.received.push(...JSON.parse(atob(b))) };
@@ -105,6 +112,15 @@ extension NativeBridgeTests {
       probe.start()
       try await Task.sleep(nanoseconds: 700_000_000)
       probe.stop()
+    }
+
+    @Test
+    func theHostReportsEveryIslandBesideItsElement() async throws {
+      let (webView, window) = try await loaded()
+      defer { window.isHidden = true }
+      let alignments = await webView.islands?.alignment() ?? []
+      #expect(Set(alignments.map(\.id)) == Set(Self.builtIns.map(\.id)))
+      #expect(alignments.allSatisfy { $0.web?.width == 200 && $0.web?.height == 44 })
     }
 
     @Test

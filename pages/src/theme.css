@@ -527,3 +527,9 @@ button:focus-visible {
   overflow-wrap: anywhere;
   color: var(--fg-muted);
 }
+
+.perf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

@@ -7,6 +7,9 @@ import SwiftUI
 /// Launch arguments:
 /// - `-route <name>` opens one page directly, such as `-route buttons`.
 /// - `-pagesURL http://<mac>:<port>/` loads the pages from `bun run --cwd pages dev` instead.
+/// - `-route perf -count 50` opens the performance page with 50 islands.
+/// - `-UITestReport YES` exposes a JSON summary of the page to the UI tests;
+///   `-perf YES` also runs the performance measurements.
 /// - `-NativeIslandsAlignmentLog YES` logs every native frame beside its DOM rect (Debug builds).
 @main
 struct ExampleApp: App {
@@ -37,6 +40,9 @@ enum PagesLocation {
     }
     if let route = arguments.string(forKey: "route"), !route.isEmpty {
       components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "route", value: route)]
+    }
+    if let count = arguments.string(forKey: "count"), !count.isEmpty {
+      components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "count", value: count)]
     }
     return components.url ?? URL(fileURLWithPath: "/")
   }

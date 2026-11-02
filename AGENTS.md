@@ -80,6 +80,13 @@ that the other cannot read fails a test.
 - `Example/` — the xcodegen iOS app that bundles `pages/dist` (a pre-build
   script runs `bun run --cwd pages build`) and serves it from `islands://`.
   It registers the gallery's app components in `Example/Components/`.
+  `ExampleUITests/` holds the alignment, screenshot and performance tests;
+  launched with `-UITestReport YES` the app exposes a JSON summary of its
+  islands (`Example/TestReport.swift`) that they read. `Baselines/` holds the
+  screenshots per simulator model and size.
+- `scripts/` — `ui-tests.sh` (parallel simulators), `perf.sh`,
+  `perf-check.ts` and `perf-compare.ts` (tested with `bun test scripts`).
+- `perf/baseline.json` — performance baselines per simulator model.
 - `.github/workflows/ci.yml` — CI.
 
 ## Commands
@@ -93,6 +100,8 @@ Run only what your change touches; never a whole suite by hand.
 - SwiftLint: `swiftlint lint --quiet --strict Sources Tests Example`
 - Pages: `bun run --cwd pages build`; in a browser `bun run --cwd pages dev`
 - Example app: `cd Example && xcodegen -q && xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet`
+- UI tests on several simulators: `scripts/ui-tests.sh`; record screenshots with `--record` only after a deliberate visual change
+- Performance: `scripts/perf.sh`; its comparison: `bun test scripts`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
 ## Conventions

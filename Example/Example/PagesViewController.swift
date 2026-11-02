@@ -8,6 +8,7 @@ import WebKit
 final class PagesViewController: UIViewController, WKNavigationDelegate {
   private let url: URL
   private var webView: IslandWebView?
+  private var report: TestReport?
 
   init(url: URL) {
     self.url = url
@@ -28,6 +29,9 @@ final class PagesViewController: UIViewController, WKNavigationDelegate {
     }
     let configuration = WKWebViewConfiguration()
     configuration.setURLSchemeHandler(BundledPagesHandler(), forURLScheme: PagesLocation.scheme)
+    if TestReport.isRequested("UITestReport") {
+      configuration.userContentController.addUserScript(TestReport.consoleScript)
+    }
     let webView = IslandWebView(frame: view.bounds, configuration: configuration)
     webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     webView.isOpaque = false
@@ -41,6 +45,9 @@ final class PagesViewController: UIViewController, WKNavigationDelegate {
     #endif
     view.addSubview(webView)
     self.webView = webView
+    if TestReport.isRequested("UITestReport") {
+      report = TestReport(in: view, webView: webView, measuresPerformance: TestReport.isRequested("perf"))
+    }
     webView.load(URLRequest(url: url))
   }
 

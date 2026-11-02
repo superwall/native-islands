@@ -118,6 +118,18 @@ public final class NativeIslandsHost {
     holdDocument()
   }
 
+  /// Where every island is drawn compared with its web element, read from
+  /// the page at one moment. Empty when nothing is offered or drawn. Meant
+  /// for tests and debugging: it runs a script in the page each time.
+  public func alignment() async -> [NativeIslandAlignment] {
+    guard let webView, let manager, !manager.islands.isEmpty else { return [] }
+    return await withCheckedContinuation { continuation in
+      NativeAlignmentProbe.measure(webView: webView, islands: manager) { alignments in
+        continuation.resume(returning: alignments)
+      }
+    }
+  }
+
   /// Whether the host offers any component to the page.
   public var isOffering: Bool {
     manager != nil

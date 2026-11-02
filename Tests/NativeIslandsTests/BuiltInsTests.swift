@@ -511,3 +511,41 @@ extension NativeBridgeTests {
     }
   }
 }
+
+extension NativeBridgeTests {
+  @Suite
+  @MainActor
+  struct AlignmentTests {
+    @Test
+    func pairsFramesWithTheirElementsAndMeasuresTheGap() {
+      let frames = [
+        NativeIslandFrame(id: "a", component: "glassButton", frame: CGRect(x: 10, y: 20, width: 100, height: 44), visible: true, acknowledged: true),
+        NativeIslandFrame(id: "b", component: "toggle", frame: CGRect(x: 0, y: 0, width: 51, height: 31), visible: false, acknowledged: false)
+      ]
+      let dom: [String: [String: Any]] = [
+        "a": ["x": 10.4, "y": 21.0, "width": 100.0, "height": 44.0, "scenario": "S01", "expect": "native", "shown": true, "handoff": "moving"]
+      ]
+      let alignments = NativeIslandAlignment.compare(frames: frames, dom: dom)
+      let first = alignments[0]
+      #expect(first.web == CGRect(x: 10.4, y: 21, width: 100, height: 44))
+      #expect(first.scenario == "S01")
+      #expect(first.expect == "native")
+      #expect(first.shown)
+      #expect(first.handoff == "moving")
+      #expect(first.acknowledged)
+      #expect(first.isMisaligned())
+      #expect(!first.isMisaligned(tolerance: 2))
+      let second = alignments[1]
+      #expect(second.web == nil)
+      #expect(second.deltas.isEmpty)
+      #expect(!second.isMisaligned())
+      #expect(!second.shown)
+    }
+
+    @Test
+    func reportsNothingWithoutIslands() async {
+      let webView = IslandWebView(frame: CGRect(x: 0, y: 0, width: 300, height: 600))
+      #expect(await webView.islands?.alignment().isEmpty == true)
+    }
+  }
+}

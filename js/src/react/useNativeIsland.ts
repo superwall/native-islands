@@ -44,6 +44,8 @@ export type NativeIslandState = {
   mode: NativeMode;
   size?: TNativeSize;
   handoff?: NativeHandoff;
+  /** Where the host draws the island, once it was sent. */
+  anchorType?: TNativeAnchor["type"];
   command: (name: string, args?: unknown, options?: { timeoutMs?: number }) => Promise<unknown>;
   state: () => Readonly<Record<string, unknown>> | undefined;
 };
@@ -143,9 +145,16 @@ export const useNativeIsland = (
     [evaluate],
   );
 
-  const setHandoff = React.useCallback((handoff: NativeHandoff | undefined) => {
-    setState((previous) => (previous.handoff === handoff ? previous : { ...previous, handoff }));
-  }, []);
+  const setPlacement = React.useCallback(
+    (handoff: NativeHandoff | undefined, anchorType: TNativeAnchor["type"]) => {
+      setState((previous) =>
+        previous.handoff === handoff && previous.anchorType === anchorType
+          ? previous
+          : { ...previous, handoff, anchorType },
+      );
+    },
+    [],
+  );
 
   const { component, version, sizing, enabled } = options;
 
@@ -251,7 +260,7 @@ export const useNativeIsland = (
       }
       live = true;
       mounted.current = true;
-      setState({ mode: "pending", handoff: spec.handoff });
+      setState({ mode: "pending", handoff: spec.handoff, anchorType: spec.anchor.type });
       return true;
     };
     const watcher = layoutWatcherFor(element.ownerDocument);
@@ -281,7 +290,7 @@ export const useNativeIsland = (
       props: spec.props,
       accessibility: spec.accessibility,
     });
-    setHandoff(spec.handoff);
+    setPlacement(spec.handoff, spec.anchor.type);
   });
 
   const active = state.mode !== "web";
@@ -293,7 +302,7 @@ export const useNativeIsland = (
       const geometry = evaluate(element);
       if (!geometry) return;
       islands.update(id, geometryPatch(geometry));
-      setHandoff(geometry.handoff);
+      setPlacement(geometry.handoff, geometry.anchor.type);
     };
     const follow = () => {
       const tracked = motion.current;
@@ -312,7 +321,9 @@ export const useNativeIsland = (
         if (!tracked.moving) {
           tracked.moving = true;
           islands.update(id, { visible: false });
-          setHandoff("moving");
+          setState((previous) =>
+            previous.handoff === "moving" ? previous : { ...previous, handoff: "moving" },
+          );
         }
         return;
       }
@@ -334,7 +345,7 @@ export const useNativeIsland = (
       unsubscribe();
       observer?.disconnect();
     };
-  }, [islands, id, active, evaluate, setHandoff, wrapper]);
+  }, [islands, id, active, evaluate, setPlacement, wrapper]);
 
   const command = React.useCallback<NativeIslandState["command"]>(
     (name, args, commandOptions) => islands.command(id, name, args, commandOptions),

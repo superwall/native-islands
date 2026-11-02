@@ -142,7 +142,7 @@ export const Native = ({
     (name: string, payload: unknown) => onEvent?.(name, payload),
     [onEvent],
   );
-  const { id, mode, size, handoff, command, state } = useNativeIsland(wrapper, {
+  const { id, mode, size, handoff, anchorType, command, state } = useNativeIsland(wrapper, {
     component,
     version,
     props,
@@ -162,6 +162,7 @@ export const Native = ({
   const nativeSize = sizing === "native" && mode !== "web" ? size : undefined;
   const shown = mode === "native" && handoff === undefined;
   const concealed = useConcealed(shown);
+  const hidden = shown && anchorType === "screen";
   return (
     <span
       ref={wrapper}
@@ -173,7 +174,7 @@ export const Native = ({
         [ISLAND_SHOWN_ATTRIBUTE]: shown ? "" : undefined,
         [ISLAND_CONCEALED_ATTRIBUTE]: concealed ? "" : undefined,
       }}
-      aria-hidden={shown ? true : undefined}
+      aria-hidden={hidden ? true : undefined}
       style={styleFor(nativeSize)}
     >
       {children}

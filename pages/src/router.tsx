@@ -14,6 +14,7 @@ export const ROUTES = [
   "flow-plans",
   "flow-details",
   "flow-done",
+  "perf",
 ] as const;
 
 export type RouteName = (typeof ROUTES)[number];
