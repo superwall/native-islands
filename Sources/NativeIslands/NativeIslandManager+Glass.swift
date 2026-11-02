@@ -41,6 +41,7 @@ extension NativeIslandManager {
       .sorted { $0.order < $1.order }
     for island in ordered {
       parent.bringSubviewToFront(island.view)
+      island.raiseShades()
     }
   }
 }
@@ -152,7 +153,7 @@ extension NativeIslandManager {
       ) { [weak self] scrolled, _ in
         MainActor.assumeIsolated {
           self?.followSticky(in: scrolled)
-          self?.updateObscured()
+          self?.updateObscured(in: scrolled)
         }
       }
     }
@@ -174,10 +175,14 @@ extension NativeIslandManager {
   /// that sits in the top inset at rest, such as a full-screen page's close
   /// button, is meant to be there and is left whole, as are islands on the
   /// screen layer.
-  func updateObscured() {
+  ///
+  /// With `scrollView`, only the islands it carries are looked at, so a
+  /// scroll costs nothing for islands on other pages.
+  func updateObscured(in scrollView: UIScrollView? = nil) {
     guard let viewport = surface?.viewport else { return }
     let top = viewport.safeAreaInsets.top
     for island in islands.values {
+      if let scrollView, !island.view.isDescendant(of: scrollView) { continue }
       var cut: CGFloat = 0
       if case .screen = island.anchor {
         cut = 0

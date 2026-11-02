@@ -4,6 +4,10 @@ import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
 /** Every page, in the order the index lists them. */
 export const ROUTES = [
   "index",
+  "app-player",
+  "app-paywall",
+  "app-settings",
+  "app-map",
   "buttons",
   "controls",
   "scrolling",

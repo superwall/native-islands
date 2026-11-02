@@ -3,6 +3,10 @@ import { NativeIslandsProvider } from "@superwall/native-islands/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Pages, type RouteName } from "./router";
+import MapScreen from "./routes/apps/map";
+import Paywall from "./routes/apps/paywall";
+import Player from "./routes/apps/player";
+import Settings from "./routes/apps/settings";
 import Buttons from "./routes/buttons";
 import Controls from "./routes/controls";
 import { FlowDetails, FlowDone, FlowPlans } from "./routes/flow";
@@ -20,6 +24,10 @@ import "./theme.css";
 
 const ALL_PAGES: Record<RouteName, React.ComponentType> = {
   index: Index,
+  "app-player": Player,
+  "app-paywall": Paywall,
+  "app-settings": Settings,
+  "app-map": MapScreen,
   buttons: Buttons,
   controls: Controls,
   scrolling: Scrolling,

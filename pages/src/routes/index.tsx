@@ -1,6 +1,40 @@
 import { useNativeSupport } from "@superwall/native-islands/react";
+import type * as React from "react";
 import { Glass } from "../components/controls";
 import { useRouter, type RouteName } from "../router";
+
+const APPS: ReadonlyArray<{ route: RouteName; title: string; detail: string; hue: string }> = [
+  {
+    route: "app-player",
+    title: "Music player",
+    detail: "Transport, scrubber, sticky toolbar",
+    hue: "#ff7a59",
+  },
+  {
+    route: "app-paywall",
+    title: "Paywall",
+    detail: "Symbols, plan picker, trial switch",
+    hue: "#7c5cff",
+  },
+  {
+    route: "app-settings",
+    title: "Settings",
+    detail: "Switches, appearance, a sheet on top",
+    hue: "#0a84ff",
+  },
+  {
+    route: "app-map",
+    title: "Trail map",
+    detail: "Floating glass over a map, toasts",
+    hue: "#34c759",
+  },
+  {
+    route: "onboarding",
+    title: "Onboarding",
+    detail: "Goals, reminders, a resizing button",
+    hue: "#46d7d4",
+  },
+];
 
 const GROUPS: ReadonlyArray<{ route: RouteName; title: string; range: string }> = [
   { route: "buttons", title: "Glass buttons", range: "S01–S08" },
@@ -11,7 +45,6 @@ const GROUPS: ReadonlyArray<{ route: RouteName; title: string; range: string }> 
   { route: "stress", title: "Stress", range: "S38–S40" },
   { route: "state", title: "State and callbacks", range: "S41–S45" },
   { route: "flow-plans", title: "Page transitions", range: "S46–S49" },
-  { route: "onboarding", title: "A real onboarding screen", range: "S50–S54" },
 ];
 
 export default function Index() {
@@ -33,6 +66,22 @@ export default function Index() {
         view would sit: a magenta outline over its web version. Add <code>?route=buttons</code> to
         open one page directly.
       </p>
+      <nav className="apps" aria-label="Apps">
+        {APPS.map((app) => (
+          <button
+            key={app.route}
+            type="button"
+            className="app-tile"
+            style={{ "--hue": app.hue } as React.CSSProperties}
+            onClick={() => router.push(app.route)}
+          >
+            <span className="app-tile-art" aria-hidden="true" />
+            <strong>{app.title}</strong>
+            <span>{app.detail}</span>
+          </button>
+        ))}
+      </nav>
+      <span className="micro">Every case, one at a time</span>
       <nav className="nav-list" aria-label="Scenarios">
         {GROUPS.map((group) => (
           <button

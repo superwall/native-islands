@@ -49,6 +49,8 @@ enum NativeFeature: String, Codable, CaseIterable, Sendable {
   case sticky
   /// Islands arrive with the part of them a clipping ancestor shows.
   case clip
+  /// Islands arrive turned and faded like the boxes around them.
+  case transform
 }
 
 extension NativeCapability {

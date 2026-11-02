@@ -1,6 +1,7 @@
 import * as React from "react";
 import { supportsFeature } from "../capability";
-import { handoffOf, inTransition, type NativeHandoff } from "../handoff";
+import { ISLAND_PHASE_ATTRIBUTE } from "../attributes";
+import { handoffOf, inTransition, type Linear, type NativeHandoff } from "../handoff";
 import type { NativeFallbackReason, NativeMountRefusal } from "../islands";
 import {
   boxElementsOf,
@@ -18,6 +19,7 @@ import type {
   TNativeAnchor,
   TNativeFrame,
   TNativeShade,
+  TNativeTransform,
   TNativeSize,
   TNativeSticky,
 } from "../schemas";
@@ -83,6 +85,8 @@ type Geometry = {
   clip?: TNativeFrame;
   holes?: TNativeFrame[];
   shades?: TNativeShade[];
+  transform?: TNativeTransform;
+  opacity?: number;
 };
 
 const geometryPatch = (geometry: Geometry) =>
@@ -95,8 +99,45 @@ const geometryPatch = (geometry: Geometry) =>
         ...(geometry.clip ? { clip: geometry.clip } : {}),
         ...(geometry.holes ? { holes: geometry.holes } : {}),
         ...(geometry.shades ? { shades: geometry.shades } : {}),
+        ...(geometry.transform ? { transform: geometry.transform } : {}),
+        ...(geometry.opacity === undefined ? {} : { opacity: geometry.opacity }),
       }
     : { visible: false };
+
+/**
+ * The element's box before it is turned, centred where the turned box is,
+ * since turning about any point keeps the centre of its bounds. The size is
+ * worked back from the bounds and the transform, which keeps fractions of a
+ * pixel; layout's whole-pixel size stands in near 45°, where that can't be
+ * solved.
+ */
+const untransformedFrame = (
+  element: HTMLElement,
+  bounds: TNativeFrame,
+  transform: TNativeTransform,
+): TNativeFrame => {
+  const a = Math.abs(transform.a);
+  const b = Math.abs(transform.b);
+  const c = Math.abs(transform.c);
+  const d = Math.abs(transform.d);
+  const determinant = a * d - c * b;
+  let width: number;
+  let height: number;
+  if (Math.abs(determinant) > 0.2) {
+    width = (bounds.width * d - bounds.height * c) / determinant;
+    height = (bounds.height * a - bounds.width * b) / determinant;
+  } else {
+    const box = boxElementsOf(element)[0] as HTMLElement | undefined;
+    width = box?.offsetWidth ?? bounds.width;
+    height = box?.offsetHeight ?? bounds.height;
+  }
+  return {
+    x: bounds.x + bounds.width / 2 - width / 2,
+    y: bounds.y + bounds.height / 2 - height / 2,
+    width,
+    height,
+  };
+};
 
 const localClip = (
   clip: TNativeFrame | undefined,
@@ -166,9 +207,12 @@ export const useNativeIsland = (
         holes?: TNativeFrame[];
         shades?: TNativeShade[];
         revealing?: boolean;
+        transform?: Linear;
+        opacity?: number;
       } = {};
       const handoff = handoffOf(element, placement, watcher.isMoving, layered, {
         clip: supportsFeature(islands.capability, "clip"),
+        transform: supportsFeature(islands.capability, "transform"),
         isRevealing: watcher.isRevealing,
         out,
       });
@@ -185,8 +229,18 @@ export const useNativeIsland = (
       const anchor =
         previous && sameAnchor(previous, placement.anchor) ? previous : placement.anchor;
       sentAnchor.current = anchor;
+      const transform = out.transform && {
+        a: out.transform[0],
+        b: out.transform[1],
+        c: out.transform[2],
+        d: out.transform[3],
+      };
       return {
-        frame: placement.frame,
+        frame: transform
+          ? untransformedFrame(element, placement.frame, transform)
+          : placement.frame,
+        ...(transform ? { transform } : {}),
+        ...(out.opacity === undefined ? {} : { opacity: out.opacity }),
         anchor,
         handoff,
         riding,
@@ -277,6 +331,8 @@ export const useNativeIsland = (
           ...(spec.clip ? { clip: spec.clip } : {}),
           ...(spec.holes ? { holes: spec.holes } : {}),
           ...(spec.shades ? { shades: spec.shades } : {}),
+          ...(spec.transform ? { transform: spec.transform } : {}),
+          ...(spec.opacity === undefined ? {} : { opacity: spec.opacity }),
         },
         {
           onReady: () => {
@@ -327,6 +383,8 @@ export const useNativeIsland = (
                 ...(geometry.clip ? { clip: geometry.clip } : {}),
                 ...(geometry.holes ? { holes: geometry.holes } : {}),
                 ...(geometry.shades ? { shades: geometry.shades } : {}),
+                ...(geometry.transform ? { transform: geometry.transform } : {}),
+                ...(geometry.opacity === undefined ? {} : { opacity: geometry.opacity }),
               }
             );
           },
@@ -409,7 +467,12 @@ export const useNativeIsland = (
       }
       if (moved(frame, last)) relayout();
     };
+    const offstage = `[inert], [${ISLAND_PHASE_ATTRIBUTE}]`;
     const onPass = (pass: LayoutPass) => {
+      // A page that isn't showing, or is sliding in or out, carries its
+      // islands itself; following them there would only stream frames. The
+      // page coming on stage is a layout change, which measures them again.
+      if (element.closest(offstage)) return;
       follow();
       if (pass === "layout" || motion.current.revealing) relayout();
     };

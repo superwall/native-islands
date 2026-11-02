@@ -132,10 +132,18 @@ struct ContractTests {
       batches[1].operations == [
         .update(NativeUpdate(id: "cta", frame: NativeFrame(x: 24, y: 700, width: 354, height: 52))),
         .update(Self.stuckToggle),
+        .update(Self.tilted),
         .unmount(id: "close")
       ]
     )
   }
+
+  private static let tilted = NativeUpdate(
+    id: "tilted",
+    frame: NativeFrame(x: 24, y: 300, width: 160, height: 44),
+    transform: NativeTransform(a: 0.9976, b: -0.0698, c: 0.0698, d: 0.9976),
+    opacity: 0.5
+  )
 
   private static let stuckToggle = NativeUpdate(
     id: "plans-annual",

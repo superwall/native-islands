@@ -9,7 +9,7 @@
       "symbol": 1
     },
     "anchors": ["page", "scroller", "screen"],
-    "features": ["state", "requests", "commands", "layered", "sticky", "clip"]
+    "features": ["state", "requests", "commands", "layered", "sticky", "clip", "transform"]
   },
   "toHost": [
     {
@@ -166,6 +166,23 @@
               "color": "rgba(0, 0, 0, 0.4)"
             }
           ]
+        },
+        {
+          "op": "update",
+          "id": "tilted",
+          "frame": {
+            "x": 24,
+            "y": 300,
+            "width": 160,
+            "height": 44
+          },
+          "transform": {
+            "a": 0.9976,
+            "b": -0.0698,
+            "c": 0.0698,
+            "d": 0.9976
+          },
+          "opacity": 0.5
         },
         {
           "op": "unmount",

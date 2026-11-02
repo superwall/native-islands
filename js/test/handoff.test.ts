@@ -3,13 +3,16 @@ import {
   contains,
   coveredAt,
   handoffOf,
+  type HandoffOptions,
   inTransition,
   intersect,
   shadeOf,
   isCovered,
   isEvenScale,
   isTranslation,
+  linearOf,
   MAX_HOLES,
+  multiply,
   type NativeShade,
   samplePoints,
 } from "../src/handoff";
@@ -131,6 +134,105 @@ describe("handoffOf", () => {
       vi.restoreAllMocks();
       document.body.replaceChildren();
     }
+  });
+
+  it("keeps native under faded, rotated and scaled ancestors when the host turns islands", () => {
+    const cases: Array<[Record<string, string>, { opacity?: number; rotated?: boolean }]> = [
+      [{ opacity: "0.5" }, { opacity: 0.5 }],
+      [{ rotate: "-4deg" }, { rotated: true }],
+      [
+        { transform: "matrix(0.996, -0.07, 0.07, 0.996, 0, 0)", opacity: "0.25" },
+        { opacity: 0.25, rotated: true },
+      ],
+      [{ scale: "1.1" }, { rotated: true }],
+    ];
+    for (const [style, expected] of cases) {
+      const { wrapper, card, placement } = setup();
+      overrideStyle(card, style);
+      const out: NonNullable<HandoffOptions["out"]> = {};
+      expect(
+        handoffOf(wrapper, placement(), still, false, { transform: true, out }),
+      ).toBeUndefined();
+      expect(out.opacity).toBe(expected.opacity);
+      expect(out.transform !== undefined).toBe(expected.rotated === true);
+      resetStyleOverrides();
+      vi.restoreAllMocks();
+      document.body.replaceChildren();
+    }
+  });
+
+  it("still hands off 3D transforms, filters and turned islands a box cuts", () => {
+    const cases: Array<[Record<string, string>, string]> = [
+      [
+        { transform: "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.002, 0, 0, 0, 1)" },
+        "transformed",
+      ],
+      [{ rotate: "x 30deg" }, "transformed"],
+      [{ filter: "blur(2px)" }, "transformed"],
+    ];
+    for (const [style, reason] of cases) {
+      const { wrapper, card, placement } = setup();
+      overrideStyle(card, style);
+      expect(handoffOf(wrapper, placement(), still, false, { transform: true, out: {} })).toBe(
+        reason,
+      );
+      resetStyleOverrides();
+      vi.restoreAllMocks();
+      document.body.replaceChildren();
+    }
+  });
+
+  it("reads the linear part of rotate, scale and transform in CSS order", () => {
+    const style = (values: Record<string, string>) =>
+      ({ rotate: "none", scale: "none", transform: "none", ...values }) as CSSStyleDeclaration;
+    expect(linearOf(style({}))).toEqual([1, 0, 0, 1]);
+    const turned = linearOf(style({ rotate: "90deg" })) as readonly number[];
+    expect(turned.map((value) => Math.round(value))).toEqual([0, 1, -1, 0]);
+    expect(linearOf(style({ rotate: "0.25turn" }))?.map((value) => Math.round(value))).toEqual([
+      0, 1, -1, 0,
+    ]);
+    expect(linearOf(style({ scale: "2 3" }))).toEqual([2, 0, 0, 3]);
+    expect(linearOf(style({ scale: "2 2 2" }))).toBeUndefined();
+    expect(linearOf(style({ rotate: "z 90deg" }))?.map((value) => Math.round(value))).toEqual([
+      0, 1, -1, 0,
+    ]);
+    expect(linearOf(style({ rotate: "0 0 1 90deg" }))?.map((value) => Math.round(value))).toEqual([
+      0, 1, -1, 0,
+    ]);
+    expect(linearOf(style({ rotate: "1 0 0 90deg" }))).toBeUndefined();
+    expect(linearOf(style({ rotate: "nonsense" }))).toBeUndefined();
+    expect(linearOf(style({ transform: "matrix(2, 0, 0, 2, 9, 9)" }))).toEqual([2, 0, 0, 2]);
+    expect(
+      linearOf(style({ transform: "matrix3d(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 4, 5, 0, 1)" })),
+    ).toEqual([2, 0, 0, 2]);
+    expect(linearOf(style({ transform: "matrix(1, nope, 0, 1, 0, 0)" }))).toBeUndefined();
+    expect(linearOf(style({ transform: "matrix(1, 0, 0)" }))).toBeUndefined();
+    expect(linearOf(style({ transform: "matrix3d(1, 0, 0)" }))).toBeUndefined();
+    expect(linearOf(style({ transform: "rotate(3deg)" }))).toBeUndefined();
+    expect(multiply([2, 0, 0, 2], [0, 1, -1, 0])).toEqual([0, 2, -2, 0]);
+  });
+
+  it("hands off a turned island a box cuts, and one made of several boxes", () => {
+    const { wrapper, card, placement } = setup(
+      `<div id="card"><div id="clip" style="overflow-x: hidden; overflow-y: hidden"><div data-island style="display: contents"><button data-rect="${rectAttribute(10, 10, 100, 40)}">Go</button></div></div></div>`,
+    );
+    const clip = card.querySelector("#clip") as HTMLElement;
+    clip.dataset.rect = rectAttribute(10, 10, 50, 40);
+    setScrollGeometry(clip, { clientWidth: 50, clientHeight: 40 });
+    overrideStyle(card, { rotate: "5deg" });
+    expect(handoffOf(wrapper, placement(), still, false, { transform: true, out: {} })).toBe(
+      "clipped",
+    );
+    resetStyleOverrides();
+    vi.restoreAllMocks();
+    document.body.replaceChildren();
+    const two = setup(
+      `<div id="card"><div data-island style="display: contents"><button data-rect="${rectAttribute(10, 10, 40, 40)}">A</button><button id="b" data-rect="${rectAttribute(60, 10, 40, 40)}">B</button></div></div>`,
+    );
+    overrideStyle(two.card.querySelector("#b") as Element, { rotate: "5deg" });
+    expect(
+      handoffOf(two.wrapper, two.placement(), still, false, { transform: true, out: {} }),
+    ).toBe("transformed");
   });
 
   it("keeps native under a translated ancestor", () => {

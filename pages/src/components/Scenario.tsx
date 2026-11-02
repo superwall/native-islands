@@ -25,7 +25,6 @@ export const Scenario = ({
       <h2>{title}</h2>
       <span className="micro">{id}</span>
     </div>
-    <p className="scenario-expect">Expect: {expect}</p>
     <div className="stage">{children}</div>
   </section>
 );

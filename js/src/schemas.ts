@@ -7,7 +7,7 @@ export const NATIVE_CAPABILITY_GLOBAL = "__NATIVE_ISLANDS__";
 export const NATIVE_MESSAGE_HANDLER = "nativeIslands";
 
 export const NativeComponentLimits = {
-  maxIslands: 128,
+  maxIslands: 256,
   maxOperationsPerBatch: 256,
   maxIdLength: 128,
   maxComponentNameLength: 64,
@@ -75,6 +75,19 @@ export const NativeShadeSchema = NativeFrameSchema.extend({
 
 export type TNativeShade = z.infer<typeof NativeShadeSchema>;
 
+/**
+ * The linear part of a 2D transform, as CSS `matrix(a, b, c, d, …)` writes it,
+ * applied about the frame's centre.
+ */
+export const NativeTransformSchema = z.object({
+  a: z.number().finite(),
+  b: z.number().finite(),
+  c: z.number().finite(),
+  d: z.number().finite(),
+});
+
+export type TNativeTransform = z.infer<typeof NativeTransformSchema>;
+
 export const NativeMountOperationSchema = z.object({
   op: z.literal("mount"),
   id: componentId,
@@ -91,6 +104,10 @@ export const NativeMountOperationSchema = z.object({
   holes: z.array(NativeFrameSchema).max(8).optional(),
   /** See-through parts of the page over the island, laid over it in their colour, in its own coordinates. Applies to the frame it comes with. */
   shades: z.array(NativeShadeSchema).max(8).optional(),
+  /** Rotates, scales or skews the island about its frame's centre; the frame is then its untransformed box. Applies to the frame it comes with. */
+  transform: NativeTransformSchema.optional(),
+  /** How opaque the page draws the island, from 0 to 1. Applies to the frame it comes with. */
+  opacity: z.number().min(0).max(1).optional(),
   visible: z.boolean(),
   order: z.number().int().nonnegative(),
   sizing: z.enum(["web", "native"]),
@@ -112,6 +129,10 @@ export const NativeUpdateOperationSchema = z.object({
   holes: z.array(NativeFrameSchema).max(8).optional(),
   /** See-through parts of the page over the island, laid over it in their colour, in its own coordinates. Applies to the frame it comes with. */
   shades: z.array(NativeShadeSchema).max(8).optional(),
+  /** Rotates, scales or skews the island about its frame's centre; the frame is then its untransformed box. Applies to the frame it comes with. */
+  transform: NativeTransformSchema.optional(),
+  /** How opaque the page draws the island, from 0 to 1. Applies to the frame it comes with. */
+  opacity: z.number().min(0).max(1).optional(),
   visible: z.boolean().optional(),
   order: z.number().int().nonnegative().optional(),
   accessibility: NativeAccessibilitySchema.optional(),
@@ -153,6 +174,7 @@ export const NATIVE_FEATURES = [
   "layered",
   "sticky",
   "clip",
+  "transform",
 ] as const;
 
 export const NativeStateValuesSchema = z.record(z.string(), z.unknown());

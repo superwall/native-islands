@@ -50,9 +50,12 @@ describe("clipped islands", () => {
     expect(out.clip).toEqual({ x: 10, y: 110, width: 100, height: 20 });
   });
 
-  it("shows the web version for a box that cuts an island at rest, even when the host clips", () => {
+  it("keeps an island native, cut to what the box shows, when the box cuts it at rest", () => {
     const { wrapper, placement } = accordion();
-    expect(handoffOf(wrapper, placement(), () => false, true, { clip: true })).toBe("clipped");
+    const out: NonNullable<HandoffOptions["out"]> = {};
+    expect(handoffOf(wrapper, placement(), () => false, true, { clip: true, out })).toBeUndefined();
+    expect(out.clip).toBeDefined();
+    expect(out.revealing).toBeUndefined();
   });
 
   it("shows the web version when the host cannot clip", () => {
@@ -75,7 +78,7 @@ describe("clipped islands", () => {
       handoffOf(wrapper, placement(), moving, true, { clip: true, isRevealing: moving, out }),
     ).toBeUndefined();
     expect(out.revealing).toBe(true);
-    expect(handoffOf(wrapper, placement(), moving, true, { clip: true })).toBe("clipped");
+    expect(handoffOf(wrapper, placement(), moving, true)).toBe("clipped");
     expect(inTransition(wrapper, moving, route, moving)).toBe(false);
     expect(inTransition(wrapper, moving, route)).toBe(true);
     expect(inTransition(wrapper, moving, undefined, moving)).toBe(true);

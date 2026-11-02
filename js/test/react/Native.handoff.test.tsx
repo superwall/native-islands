@@ -284,6 +284,76 @@ describe("following motion frame by frame", () => {
     expect(island.hasAttribute("data-island-handoff")).toBe(false);
   });
 
+  it("sends nothing for an island on a page that isn't showing, and measures it again on stage", async () => {
+    const view = renderNative(<Card />);
+    await view.nextFrame();
+    view.ackAll();
+    await view.nextFrame();
+    const card = view.container.querySelector("#card") as HTMLElement;
+    const button = view.container.querySelector("button") as HTMLElement;
+    act(() => {
+      card.setAttribute("inert", "");
+    });
+    await view.nextFrame();
+    const before = view.operations().length;
+    button.dataset.rect = rectAttribute(40, 150, 100, 40);
+    act(() => {
+      document.dispatchEvent(new Event("pointerdown"));
+    });
+    await view.nextFrame();
+    expect(view.operations().slice(before)).toEqual([]);
+    act(() => {
+      card.removeAttribute("inert");
+    });
+    await view.nextFrame();
+    expect(view.operations().slice(before).at(-1)).toMatchObject({
+      op: "update",
+      frame: { x: 40, y: 150, width: 100, height: 40 },
+    });
+  });
+
+  it("keeps an island in a rotated, faded box native, turned and faded like it", async () => {
+    installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "transform"] });
+    const view = renderNative(<Card />);
+    const card = view.container.querySelector("#card") as HTMLElement;
+    const button = view.container.querySelector("button") as HTMLElement;
+    Object.defineProperty(button, "offsetWidth", { value: 90, configurable: true });
+    Object.defineProperty(button, "offsetHeight", { value: 30, configurable: true });
+    overrideStyle(card, { rotate: "90deg", opacity: "0.5" });
+    view.rerender(<Card />);
+    await view.nextFrame();
+    const mount = view.operations()[0] as Record<string, unknown>;
+    expect(mount).toMatchObject({
+      op: "mount",
+      visible: true,
+      opacity: 0.5,
+      frame: {
+        x: expect.closeTo(40, 6),
+        y: expect.closeTo(120, 6),
+        width: expect.closeTo(40, 6),
+        height: expect.closeTo(100, 6),
+      },
+    });
+    const transform = mount.transform as Record<string, number>;
+    expect(Math.round(transform.a as number)).toBe(0);
+    expect(Math.round(transform.b as number)).toBe(1);
+    view.ackAll();
+    await view.nextFrame();
+    overrideStyle(card, { rotate: "none", opacity: "1" });
+    view.rerender(<Card />);
+    await view.nextFrame();
+    const last = view.operations().at(-1) as Record<string, unknown>;
+    expect(last).toMatchObject({ op: "update", frame: { x: 10, y: 150, width: 100, height: 40 } });
+    expect(last.transform).toBeUndefined();
+    overrideStyle(card, { rotate: "45deg" });
+    view.rerender(<Card />);
+    await view.nextFrame();
+    expect(view.operations().at(-1)).toMatchObject({
+      op: "update",
+      frame: { x: 15, y: 155, width: 90, height: 30 },
+    });
+  });
+
   it("moves a sticky island with its element instead of hiding it", async () => {
     const view = renderNative(<Card />);
     const button = view.container.querySelector("button") as HTMLElement;

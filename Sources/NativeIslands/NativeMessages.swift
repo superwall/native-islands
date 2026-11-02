@@ -7,7 +7,7 @@ import Foundation
 /// batch the page considers valid is never refused here.
 enum NativeComponentLimits {
   static let protocolVersion = 1
-  static let maxIslands = 128
+  static let maxIslands = 256
   static let maxOperationsPerBatch = 256
   static let maxIdLength = 128
   static let maxComponentNameLength = 64
@@ -109,6 +109,42 @@ struct NativeShade: Codable, Equatable, Sendable {
   var frame: NativeFrame { NativeFrame(x: x, y: y, width: width, height: height) }
 
   var isValid: Bool { frame.isValid && NativeComponentProps.rgba(color) != nil }
+}
+
+/// The linear part of a 2D transform, as CSS `matrix(a, b, c, d, …)` writes
+/// it. The host turns the island about its frame's centre by it.
+struct NativeTransform: Codable, Equatable, Sendable {
+  let scaleX: Double
+  let skewY: Double
+  let skewX: Double
+  let scaleY: Double
+
+  init(a scaleX: Double, b skewY: Double, c skewX: Double, d scaleY: Double) {
+    self.scaleX = scaleX
+    self.skewY = skewY
+    self.skewX = skewX
+    self.scaleY = scaleY
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case scaleX = "a"
+    case skewY = "b"
+    case skewX = "c"
+    case scaleY = "d"
+  }
+
+  var isValid: Bool { [scaleX, skewY, skewX, scaleY].allSatisfy(\.isFinite) }
+
+  var affine: CGAffineTransform {
+    CGAffineTransform(
+      a: CGFloat(scaleX),
+      b: CGFloat(skewY),
+      c: CGFloat(skewX),
+      d: CGFloat(scaleY),
+      tx: 0,
+      ty: 0
+    )
+  }
 }
 
 /// A `position: sticky` box inside a scroller. The host keeps the island

@@ -102,6 +102,19 @@ struct NativeAccessibilityModifier: ViewModifier {
 struct NativeGlassButtonView: View {
   @ObservedObject var component: NativeComponentContext
 
+  /// Dark ink on a light tint and white on a dark one, so the title always
+  /// reads on a prominent button.
+  static func ink(on tint: UIColor?) -> Color {
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    guard let tint, tint.getRed(&red, green: &green, blue: &blue, alpha: nil) else {
+      return .white
+    }
+    let luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    return luminance > 0.6 ? Color(white: 0.08) : .white
+  }
+
   var body: some View {
     let props = component.props
     let prominent = props.string("prominence") == "prominent"
@@ -119,6 +132,10 @@ struct NativeGlassButtonView: View {
               .lineLimit(1)
               .fixedSize(horizontal: true, vertical: false)
             Text(title)
+              .font(.subheadline.weight(.semibold))
+              .lineLimit(1)
+              .fixedSize(horizontal: true, vertical: false)
+            Text(title)
               .lineLimit(2)
               .multilineTextAlignment(.center)
               .minimumScaleFactor(0.8)
@@ -126,7 +143,7 @@ struct NativeGlassButtonView: View {
         }
       }
       .font(.body.weight(.semibold))
-      .foregroundStyle(prominent ? Color.white : Color.primary)
+      .foregroundStyle(prominent ? Self.ink(on: props.uiColor("tint")) : Color.primary)
       .padding(.horizontal, 12)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())

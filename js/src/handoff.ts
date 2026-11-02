@@ -66,6 +66,93 @@ const isEvenScaleProperty = (scale: string | undefined) => {
   );
 };
 
+/** The linear part of a 2D transform: `[a, b, c, d]` as CSS `matrix()` writes it. */
+export type Linear = readonly [number, number, number, number];
+
+export const IDENTITY: Linear = [1, 0, 0, 1];
+
+export const multiply = (outer: Linear, inner: Linear): Linear => [
+  outer[0] * inner[0] + outer[2] * inner[1],
+  outer[1] * inner[0] + outer[3] * inner[1],
+  outer[0] * inner[2] + outer[2] * inner[3],
+  outer[1] * inner[2] + outer[3] * inner[3],
+];
+
+export const isIdentity = (linear: Linear, epsilon = 1e-4) =>
+  IDENTITY.every((value, index) => Math.abs((linear[index] as number) - value) < epsilon);
+
+const ANGLE_UNITS: Record<string, number> = {
+  deg: Math.PI / 180,
+  rad: 1,
+  turn: Math.PI * 2,
+  grad: Math.PI / 200,
+};
+
+const angleOf = (value: string): number | undefined => {
+  const match = /^(-?[\d.]+(?:e-?\d+)?)(deg|rad|turn|grad)$/.exec(value);
+  if (!match) return undefined;
+  return Number.parseFloat(match[1] as string) * (ANGLE_UNITS[match[2] as string] as number);
+};
+
+const linearOfTransform = (transform: string): Linear | undefined => {
+  if (isNone(transform)) return IDENTITY;
+  const match = /^matrix(3d)?\((.*)\)$/.exec(transform.trim());
+  if (!match) return undefined;
+  const values = (match[2] as string).split(",").map((value) => Number.parseFloat(value));
+  if (values.some((value) => !Number.isFinite(value))) return undefined;
+  if (!match[1]) return values.length === 6 ? (values.slice(0, 4) as unknown as Linear) : undefined;
+  if (values.length !== 16) return undefined;
+  const flat = [2, 3, 6, 7, 8, 9, 11, 14].every((index) => values[index] === 0);
+  if (!flat || values[10] !== 1 || values[15] !== 1) return undefined;
+  return [values[0], values[1], values[4], values[5]] as unknown as Linear;
+};
+
+const linearOfRotate = (rotate: string | undefined): Linear | undefined => {
+  if (isNone(rotate)) return IDENTITY;
+  const parts = (rotate as string).trim().split(/\s+/);
+  const angle = angleOf(parts[parts.length - 1] as string);
+  if (angle === undefined) return undefined;
+  const axis = parts.slice(0, -1);
+  if (axis.length === 1 && axis[0] !== "z") return undefined;
+  if (axis.length === 3 && !(axis[0] === "0" && axis[1] === "0" && Number(axis[2]) > 0)) {
+    return undefined;
+  }
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return [cos, sin, -sin, cos];
+};
+
+const linearOfScale = (scale: string | undefined): Linear | undefined => {
+  if (isNone(scale)) return IDENTITY;
+  const parts = (scale as string)
+    .trim()
+    .split(/\s+/)
+    .map((part) => Number.parseFloat(part));
+  if (parts.some((part) => !Number.isFinite(part))) return undefined;
+  if (parts.length === 3 && parts[2] !== 1) return undefined;
+  const x = parts[0] as number;
+  const y = parts[1] ?? x;
+  return [x, 0, 0, y];
+};
+
+/**
+ * The linear part of everything an element's style transforms it by, in the
+ * order CSS applies it: `rotate`, then `scale`, then `transform`; `undefined`
+ * when any of it is 3D.
+ */
+export const linearOf = (style: CSSStyleDeclaration): Linear | undefined => {
+  const rotate = linearOfRotate(style.rotate);
+  const scale = linearOfScale(style.scale);
+  const transform = linearOfTransform(style.transform);
+  if (!rotate || !scale || !transform) return undefined;
+  return multiply(multiply(rotate, scale), transform);
+};
+
+const opacityOf = (style: CSSStyleDeclaration) => {
+  const value = Number.parseFloat(style.opacity);
+  return Number.isFinite(value) ? value : 1;
+};
+
 const isNone = (value: string | undefined) =>
   value === undefined || value === "" || value === "none";
 
@@ -276,6 +363,12 @@ export type HandoffOptions = {
    * the box grows or shrinks. Default: `false`.
    */
   clip?: boolean;
+  /**
+   * Whether the host turns and fades islands. An island inside a rotated,
+   * scaled or see-through box then stays native, drawn the same way, and
+   * `out` receives the transform and opacity. Default: `false`.
+   */
+  transform?: boolean;
   /** Whether everything moving about an element is its size. Default: nothing is. */
   isRevealing?: (element: Element) => boolean;
   /**
@@ -287,6 +380,8 @@ export type HandoffOptions = {
     holes?: TNativeFrame[];
     shades?: NativeShade[];
     revealing?: boolean;
+    transform?: Linear;
+    opacity?: number;
   };
 };
 
@@ -301,15 +396,29 @@ export const handoffOf = (
   const clips = riding !== undefined && options.clip === true;
   let visible: TNativeFrame = placement.rect;
   let carried = false;
+  const turns = options.transform === true;
   const follows = (style: CSSStyleDeclaration) =>
     clips
       ? isEvenScale(style.transform) && isEvenScaleProperty(style.scale) && isNone(style.rotate)
       : isTranslation(style.transform) && isNone(style.scale) && isNone(style.rotate);
   if (placement.rect.width <= 0 || placement.rect.height <= 0) return "hidden";
   const boxes = boxElementsOf(wrapper);
+  let linear: Linear = IDENTITY;
+  let opacity = 1;
   for (const box of boxes) {
     if (box === wrapper) continue;
     const style = getComputedStyle(box);
+    if (turns) {
+      const own = linearOf(style);
+      if (!own) return "transformed";
+      if (!isIdentity(own)) {
+        if (boxes.length > 1) return "transformed";
+        linear = own;
+      }
+      // The box's own opacity is the web copy's look, such as a dimmed
+      // disabled button; the native view draws its own.
+      continue;
+    }
     if (!follows(style)) return "transformed";
   }
   const firstPosition = getComputedStyle(boxes[0] as HTMLElement).position;
@@ -336,9 +445,16 @@ export const handoffOf = (
       options.out
     )
       options.out.revealing = true;
-    if (Number.parseFloat(style.opacity) < 1) return "faded";
-    if (!follows(style) || !isNone(style.filter) || !isNone(style.clipPath)) {
-      return "transformed";
+    if (turns) {
+      opacity *= opacityOf(style);
+      const own = linearOf(style);
+      if (!own || !isNone(style.filter) || !isNone(style.clipPath)) return "transformed";
+      if (!isIdentity(own)) linear = multiply(own, linear);
+    } else {
+      if (Number.parseFloat(style.opacity) < 1) return "faded";
+      if (!follows(style) || !isNone(style.filter) || !isNone(style.clipPath)) {
+        return "transformed";
+      }
     }
     if (element === placement.scroller) clipping = false;
     if (pending) {
@@ -356,12 +472,17 @@ export const handoffOf = (
       if (!clips) return "clipped";
       const shown = intersect(visible, contentBoxOf(element));
       if (!shown) return "hidden";
-      if (!(isMoving(element) && options.isRevealing?.(element))) return "clipped";
       visible = shown;
     }
   }
+  const turned = !isIdentity(linear);
+  if (turned && visible !== placement.rect) return "clipped";
+  if (options.out) {
+    if (turned) options.out.transform = linear;
+    if (opacity < 1) options.out.opacity = Math.max(0, opacity);
+  }
   if (visible !== placement.rect && options.out) options.out.clip = visible;
-  const cover = clips && options.out ? { holes: [], shades: [] } : undefined;
+  const cover = clips && options.out && !turned ? { holes: [], shades: [] } : undefined;
   const covered = sampleCover(wrapper, { ...placement, rect: visible }, riding, cover);
   if (cover && options.out) {
     if (cover.holes.length > 0) options.out.holes = cover.holes;

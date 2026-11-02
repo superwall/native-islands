@@ -11,6 +11,7 @@ import {
   type TNativeAnchor,
   type TNativeFrame,
   type TNativeSticky,
+  type TNativeTransform,
   type TNativeOperation,
   type TNativeScroller,
   type TNativeSize,
@@ -69,6 +70,10 @@ export type SimulatedIsland = {
   sticky?: TNativeSticky;
   /** The part of it drawn, in its own coordinates. */
   clip?: TNativeFrame;
+  /** How it is turned about its centre. */
+  transform?: TNativeTransform;
+  /** How opaque it is drawn. */
+  opacity?: number;
 };
 
 /** How far an island's drawn view sits from its web element, in CSS pixels. */
@@ -151,15 +156,19 @@ const place = (
   frame: TNativeFrame,
   sticky?: TNativeSticky,
   clip?: TNativeFrame,
+  transform?: TNativeTransform,
+  opacity?: number,
 ) => {
   island.frame = frame;
   island.sticky = sticky;
   island.clip = clip;
+  island.transform = transform;
+  island.opacity = opacity;
   relayOut(island);
 };
 
 const relayOut = (island: SimulatedIsland) => {
-  const { scroller, frame, sticky, clip } = island;
+  const { scroller, frame, sticky, clip, transform } = island;
   if (!frame) return;
   let x = frame.x;
   let y = frame.y;
@@ -177,7 +186,12 @@ const relayOut = (island: SimulatedIsland) => {
     clipPath: clip
       ? `inset(${clip.y}px ${frame.width - clip.x - clip.width}px ${frame.height - clip.y - clip.height}px ${clip.x}px)`
       : "",
+    transformOrigin: "50% 50%",
+    transform: transform
+      ? `matrix(${transform.a}, ${transform.b}, ${transform.c}, ${transform.d}, 0, 0)`
+      : "",
   });
+  if (island.visible) island.element.style.opacity = String(island.opacity ?? 1);
 };
 
 /**
@@ -285,7 +299,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
   };
 
   const show = (island: SimulatedIsland) => {
-    island.element.style.opacity = island.visible ? "1" : "0";
+    island.element.style.opacity = island.visible ? String(island.opacity ?? 1) : "0";
     island.element.textContent = labelOf(island.component, island.props);
   };
 
@@ -354,7 +368,14 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         return;
       }
       islands.set(operation.id, island);
-      place(island, operation.frame, operation.sticky, operation.clip);
+      place(
+        island,
+        operation.frame,
+        operation.sticky,
+        operation.clip,
+        operation.transform,
+        operation.opacity,
+      );
       show(island);
       const size = operation.sizing === "native" ? sizes[operation.component] : undefined;
       if (size) send({ event_name: "native_component_size", id: operation.id, size, sequence });
@@ -374,7 +395,16 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
       return;
     }
     if (operation.anchor) island.anchor = operation.anchor.type;
-    if (operation.frame) place(island, operation.frame, operation.sticky, operation.clip);
+    if (operation.frame) {
+      place(
+        island,
+        operation.frame,
+        operation.sticky,
+        operation.clip,
+        operation.transform,
+        operation.opacity,
+      );
+    }
     const echoed = operation.state_revision;
     const stale = echoed !== undefined && echoed < (revisions.get(operation.id) ?? 0);
     if (operation.props && !stale) island.props = operation.props;
@@ -451,7 +481,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     protocol: NATIVE_PROTOCOL_VERSION,
     components: { ...components },
     anchors: ["page", "scroller", "screen"],
-    features: ["state", "requests", "commands", "layered", "sticky", "clip"],
+    features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform"],
   };
 
   return {

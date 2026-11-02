@@ -74,9 +74,9 @@ state, requests, commands both ways ◄────► typed text, "validate thi
 The page stays in charge of layout. The app only draws. When an element moves
 or changes size, because the window resizes, a CTA shrinks, a box slides or
 anything else lays it out again, the page measures it again on every frame and
-the app moves the native view with it. The web copy only shows when the element
-is covered, faded, scaled or rotated, or hidden, and the native view comes back
-once that ends.
+the app moves the native view with it. Covers are cut out of the native view
+and see-through ones, such as a sheet's dimmed backdrop, are laid over it in
+their colour, so it stays native under them too.
 
 Two kinds of motion need no message per frame, because the app follows them
 itself:
@@ -91,10 +91,10 @@ itself:
   it, so the island is revealed as the box opens instead of swapping in when
   it is done (the `clip` feature).
 
-Faded and rotated containers still show the web copy. A Liquid Glass view
-cannot be drawn half transparent: UIKit's glass breaks when its view has an
-alpha below 1. And islands are placed by frame, so the app has no rotation to
-apply; sending the element's transform is possible, but not built yet.
+- **Turned and faded boxes.** An element inside a rotated, scaled or
+  see-through box is sent with the box's 2D transform and opacity, and the app
+  draws the native view turned and faded the same way (the `transform`
+  feature). A 3D transform, a filter or a clip path still shows the web copy.
 
 ### Never a flash
 

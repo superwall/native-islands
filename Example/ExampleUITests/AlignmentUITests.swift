@@ -19,6 +19,10 @@ final class AlignmentUITests: XCTestCase {
   func testState() { check("state") }
   func testFlow() { check("flow-plans") }
   func testOnboarding() { check("onboarding") }
+  func testPlayer() { check("app-player") }
+  func testPaywall() { check("app-paywall") }
+  func testSettings() { check("app-settings") }
+  func testMap() { check("app-map") }
 
   func testScrollingStaysAlignedAfterScrolling() {
     let app = XCUIApplication.pages(route: "scrolling")

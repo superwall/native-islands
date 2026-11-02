@@ -446,13 +446,48 @@ extension NativeBridgeTests {
       #expect(cta?.view.mask is NativeIslandMask)
       #expect(cta?.shadeLayers.count == 1)
       #expect(cta?.shadeLayers.first?.frame == CGRect(x: 0, y: 0, width: 100, height: 30))
-      #expect(cta?.shadeLayers.first?.superview?.superview === cta?.host.view)
+      let shadeHost = cta?.shadeLayers.first?.superview
+      let parent = cta?.view.superview
+      #expect(shadeHost?.superview === parent)
+      #expect(shadeHost?.frame == cta?.view.frame)
+      if let parent, let shadeHost, let view = cta?.view {
+        #expect(parent.subviews.firstIndex(of: shadeHost) == parent.subviews.firstIndex(of: view).map { $0 + 1 })
+      }
       manager.apply(
         batch(2, .update(NativeUpdate(id: "cta", frame: NativeFrame(x: 10, y: 300, width: 100, height: 44))))
       )
       #expect(cta?.drawnShape == nil)
       #expect(cta?.view.mask == nil)
       #expect(cta?.shadeLayers.isEmpty == true)
+      #expect(shadeHost?.superview == nil)
+    }
+
+    @Test
+    func turnsAndFadesAnIslandLikeItsElementAndUndoesIt() {
+      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      registry.register("glassButton") { _ in Color.clear }
+      let surface = NotchedSurface()
+      let manager = NativeIslandManager(registry: registry, surface: surface, send: { _ in }, schedule: { _ in })
+      var mount = mountOp("tilted", frame: NativeFrame(x: 10, y: 300, width: 100, height: 40))
+      if case .mount(var value) = mount {
+        value.transform = NativeTransform(a: 0, b: 1, c: -1, d: 0)
+        value.opacity = 0.5
+        mount = .mount(value)
+      }
+      manager.apply(batch(1, mount))
+      let island = try? #require(manager.islands["tilted"])
+      #expect(island?.view.bounds.size == CGSize(width: 100, height: 40))
+      #expect(island?.view.center == CGPoint(x: 60, y: 320))
+      #expect(island?.view.transform == CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 0, ty: 0))
+      #expect(island?.view.alpha == 0.5)
+      manager.apply(
+        batch(2, .update(NativeUpdate(id: "tilted", frame: NativeFrame(x: 10, y: 300, width: 100, height: 40))))
+      )
+      #expect(island?.view.transform == .identity)
+      #expect(island?.view.frame == CGRect(x: 10, y: 300, width: 100, height: 40))
+      #expect(island?.view.alpha == 1)
+      manager.apply(batch(3, .update(NativeUpdate(id: "tilted", visible: false))))
+      #expect(island?.shownAlpha == 0)
     }
 
     @Test
@@ -579,6 +614,19 @@ extension NativeBridgeTests {
     func reportsNothingWithoutIslands() async {
       let webView = IslandWebView(frame: CGRect(x: 0, y: 0, width: 300, height: 600))
       #expect(await webView.islands?.alignment().isEmpty == true)
+    }
+  }
+}
+
+@MainActor
+@Suite
+struct GlassInkTests {
+  @Test
+  func picksDarkInkOnALightTintAndWhiteOnADarkOne() {
+    if #available(iOS 26.0, *) {
+      #expect(NativeGlassButtonView.ink(on: UIColor(red: 0.96, green: 0.95, blue: 0.92, alpha: 1)) == Color(white: 0.08))
+      #expect(NativeGlassButtonView.ink(on: UIColor(red: 0.1, green: 0.2, blue: 0.6, alpha: 1)) == .white)
+      #expect(NativeGlassButtonView.ink(on: nil) == .white)
     }
   }
 }

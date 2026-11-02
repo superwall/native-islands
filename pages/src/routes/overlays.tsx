@@ -27,7 +27,7 @@ export default function Overlays() {
         {toast ? <div className="toast">Saved</div> : null}
         <Glass title="Show a toast" onPress={() => setToast(true)} />
       </Scenario>
-      <Scenario id="S35" title="Cut by a container" expect="web">
+      <Scenario id="S35" title="Cut by a container" expect="native">
         <div className="clip" style={{ whiteSpace: "nowrap" }}>
           <Glass title="Too wide for its box" />
         </div>

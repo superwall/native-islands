@@ -21,6 +21,8 @@ final class NativeIsland {
   private(set) var clip: NativeFrame?
   private(set) var holes: [NativeFrame]?
   private(set) var shades: [NativeShade]?
+  private(set) var transform: NativeTransform?
+  private(set) var opacity: Double?
   private var shadeViews: [UIView] = []
   private var shadeHost: UIView?
   var reportedSize: CGSize?
@@ -62,6 +64,8 @@ final class NativeIsland {
     clip = mount.clip
     holes = mount.holes
     shades = mount.shades
+    transform = mount.transform
+    opacity = mount.opacity
     order = mount.order
     if let initial = glass?(context.props), NativeGlassView.effect(for: initial) != nil {
       glassView = NativeGlassView(glass: initial, content: host.view)
@@ -84,13 +88,30 @@ final class NativeIsland {
     sticky: NativeSticky? = nil,
     clip: NativeFrame? = nil,
     holes: [NativeFrame]? = nil,
-    shades: [NativeShade]? = nil
+    shades: [NativeShade]? = nil,
+    transform: NativeTransform? = nil,
+    opacity: Double? = nil
   ) {
     self.frame = frame
     self.sticky = sticky
     self.clip = clip
     self.holes = holes
     self.shades = shades
+    self.transform = transform
+    self.opacity = opacity
+  }
+
+  /// Places the island at `frame` with the geometry `update` brings with it.
+  func place(_ frame: NativeFrame, geometryOf update: NativeUpdate) {
+    place(
+      frame,
+      sticky: update.sticky,
+      clip: update.clip,
+      holes: update.holes,
+      shades: update.shades,
+      transform: update.transform,
+      opacity: update.opacity
+    )
   }
 
   /// The part of the view to draw, in its own points, with the covered
@@ -119,31 +140,49 @@ final class NativeIsland {
       )
     }
     UIView.performWithoutAnimation {
+      // A turned view is placed by centre and bounds, since UIKit's frame
+      // is its turned bounding box.
+      view.transform = .identity
       view.frame = rect
+      if let transform {
+        view.transform = transform.affine
+      }
       applyShape()
       applyShades()
     }
   }
 
   /// Lays the page's see-through covers over the view in their colour,
-  /// rounded like its glass.
+  /// rounded like its glass. They sit beside the view, just above it, so they
+  /// dim the glass's own highlights too, as the page dims its web copy.
   private func applyShades() {
     let wanted = shades ?? []
     guard !wanted.isEmpty || shadeHost != nil else { return }
+    if wanted.isEmpty {
+      removeShades()
+      return
+    }
+    guard let parent = view.superview else { return }
     let container = shadeHost ?? {
       let container = UIView()
       container.isUserInteractionEnabled = false
       container.clipsToBounds = true
-      host.view.addSubview(container)
+      container.layer.cornerCurve = .continuous
       shadeHost = container
       return container
     }()
-    container.frame = view.convert(view.bounds, to: host.view)
+    if container.superview !== parent {
+      container.removeFromSuperview()
+      parent.insertSubview(container, aboveSubview: view)
+    } else if let index = parent.subviews.firstIndex(of: view),
+              parent.subviews.firstIndex(of: container) != index + 1 {
+      parent.insertSubview(container, aboveSubview: view)
+    }
+    container.frame = view.frame
+    container.alpha = view.alpha
     container.layer.cornerRadius = glassView.map {
       NativeGlassView.cornerRadius(for: $0.glass.shape, in: view.bounds.size)
     } ?? 0
-    container.layer.cornerCurve = .continuous
-    host.view.bringSubviewToFront(container)
     while shadeViews.count > wanted.count {
       shadeViews.removeLast().removeFromSuperview()
     }
@@ -158,6 +197,19 @@ final class NativeIsland {
         UIColor(red: $0.red, green: $0.green, blue: $0.blue, alpha: $0.alpha)
       }
     }
+  }
+
+  /// Keeps the shades just above the view after the views around it moved.
+  func raiseShades() {
+    guard let shadeHost, let parent = view.superview, shadeHost.superview === parent else { return }
+    parent.insertSubview(shadeHost, aboveSubview: view)
+  }
+
+  /// Takes the shades off the page, as when the island is removed.
+  func removeShades() {
+    shadeHost?.removeFromSuperview()
+    shadeHost = nil
+    shadeViews.removeAll()
   }
 
   /// The colour views laid over the view, for tests.
@@ -196,10 +248,20 @@ final class NativeIsland {
     return true
   }
 
+  /// How opaque the view is drawn while shown: as opaque as the page draws
+  /// its element.
+  var shownAlpha: CGFloat {
+    isShown ? CGFloat(opacity ?? 1) : 0
+  }
+
   func applyVisibility(animated: Bool) {
     let visible = isShown
+    let alpha = shownAlpha
     view.isUserInteractionEnabled = visible
-    let change = { [view] in view.alpha = visible ? 1 : 0 }
+    let change = { [view, shadeHost] in
+      view.alpha = alpha
+      shadeHost?.alpha = view.alpha
+    }
     if animated {
       UIView.animate(
         withDuration: Self.fadeDuration,

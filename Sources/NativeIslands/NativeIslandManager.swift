@@ -193,27 +193,23 @@ final class NativeIslandManager: NativeIslandMessaging {
     } else if let anchor = update.anchor {
       island.move(to: anchor)
     }
+    var refade = false
     if let frame = update.frame {
-      island.place(
-        frame,
-        sticky: update.sticky,
-        clip: update.clip,
-        holes: update.holes,
-        shades: update.shades
-      )
+      refade = island.opacity != update.opacity
+      island.place(frame, geometryOf: update)
       island.layOut()
     }
     if let order = update.order {
       island.reorder(order)
     }
-    apply(update, to: island)
+    apply(update, to: island, refade: refade)
     if update.props != nil, island.sizing == .native, let size = island.measure() {
       post(.size(id: update.id, size: size, sequence: island.context.sequence))
     }
     return nil
   }
 
-  private func apply(_ update: NativeUpdate, to island: NativeIsland) {
+  private func apply(_ update: NativeUpdate, to island: NativeIsland, refade: Bool) {
     let wasVisible = island.context.isVisible
     let wasGroup = island.glassGroup
     island.context.apply(update)
@@ -222,6 +218,8 @@ final class NativeIslandManager: NativeIslandMessaging {
     }
     if island.context.isVisible != wasVisible {
       island.applyVisibility(animated: true)
+    } else if refade {
+      island.applyVisibility(animated: false)
     }
     if update.accessibility != nil {
       island.applyAccessibility()
@@ -264,6 +262,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     parked[id] = nil
     guard let island = islands.removeValue(forKey: id) else { return }
     island.view.removeFromSuperview()
+    island.removeShades()
     pruneGroups(in: island.container)
     failRequests(for: id)
   }

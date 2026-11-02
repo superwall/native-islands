@@ -22,6 +22,10 @@ struct NativeMount: Equatable, Sendable {
   var holes: [NativeFrame]?
   /// See-through parts of the page laid over the island.
   var shades: [NativeShade]?
+  /// Turns the island about its frame's centre.
+  var transform: NativeTransform?
+  /// How opaque the page draws the island.
+  var opacity: Double?
 }
 
 /// Only the fields that changed since the last batch.
@@ -42,6 +46,10 @@ struct NativeUpdate: Equatable, Sendable {
   var holes: [NativeFrame]?
   /// Comes with `frame`: an update with a frame and no `shades` clears them.
   var shades: [NativeShade]?
+  /// Comes with `frame`: an update with a frame and no `transform` unturns it.
+  var transform: NativeTransform?
+  /// Comes with `frame`: an update with a frame and no `opacity` makes it opaque.
+  var opacity: Double?
 }
 
 /// One step of a `native_component_batch`.
@@ -76,6 +84,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     case clip
     case holes
     case shades
+    case transform
+    case opacity
   }
 
   var id: String? {
@@ -142,7 +152,9 @@ enum NativeOperation: Decodable, Equatable, Sendable {
           sticky: try geometry(in: container).sticky,
           clip: try geometry(in: container).clip,
           holes: try geometry(in: container).holes,
-          shades: try geometry(in: container).shades
+          shades: try geometry(in: container).shades,
+          transform: try geometry(in: container).transform,
+          opacity: try geometry(in: container).opacity
         )
       )
     case .update:
@@ -175,7 +187,9 @@ enum NativeOperation: Decodable, Equatable, Sendable {
         sticky: try geometry(in: container).sticky,
         clip: try geometry(in: container).clip,
         holes: try geometry(in: container).holes,
-        shades: try geometry(in: container).shades
+        shades: try geometry(in: container).shades,
+        transform: try geometry(in: container).transform,
+        opacity: try geometry(in: container).opacity
       )
     )
   }
@@ -185,6 +199,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     let clip: NativeFrame?
     let holes: [NativeFrame]?
     let shades: [NativeShade]?
+    let transform: NativeTransform?
+    let opacity: Double?
   }
 
   /// Mirrors the page's `max(8)` on `holes`.
@@ -209,7 +225,22 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     if let shades, shades.count > maxHoles || shades.contains(where: { !$0.isValid }) {
       throw DecodingError.dataCorruptedError(forKey: .shades, in: container, debugDescription: "shades")
     }
-    return NativeGeometry(sticky: sticky, clip: clip, holes: holes, shades: shades)
+    let transform = try container.decodeIfPresent(NativeTransform.self, forKey: .transform)
+    if let transform, !transform.isValid {
+      throw DecodingError.dataCorruptedError(forKey: .transform, in: container, debugDescription: "transform")
+    }
+    let opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+    if let opacity, !(0...1).contains(opacity) {
+      throw DecodingError.dataCorruptedError(forKey: .opacity, in: container, debugDescription: "opacity")
+    }
+    return NativeGeometry(
+      sticky: sticky,
+      clip: clip,
+      holes: holes,
+      shades: shades,
+      transform: transform,
+      opacity: opacity
+    )
   }
 
   private static func revision(in container: KeyedDecodingContainer<CodingKeys>) throws -> Int? {

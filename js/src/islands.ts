@@ -7,6 +7,7 @@ import {
   type TNativeErrorReason,
   type TNativeFrame,
   type TNativeShade,
+  type TNativeTransform,
   type TNativeSticky,
   type TNativeOperation,
   type TNativeProps,
@@ -72,6 +73,10 @@ export type NativeIslandSpec = {
   holes?: TNativeFrame[];
   /** See-through parts of the page laid over the island, in its own coordinates. Travels with `frame`. Default: none. */
   shades?: TNativeShade[];
+  /** Turns the island about its frame's centre. Travels with `frame`. Default: not turned. */
+  transform?: TNativeTransform;
+  /** How opaque the island is drawn. Travels with `frame`. Default: `1`. */
+  opacity?: number;
 };
 
 /**
@@ -92,6 +97,8 @@ export type NativeIslandPatch = Partial<
     | "clip"
     | "holes"
     | "shades"
+    | "transform"
+    | "opacity"
   >
 >;
 
@@ -342,7 +349,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       const revision = island.revision > 0 ? { state_revision: island.revision } : {};
       if (!sent) {
-        const { accessibility, sticky, clip, holes, shades, ...rest } = spec;
+        const { accessibility, sticky, clip, holes, shades, transform, opacity, ...rest } = spec;
         const operation: TNativeOperation = {
           op: "mount",
           id,
@@ -352,6 +359,8 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
           ...(clip === undefined ? {} : { clip }),
           ...(holes === undefined ? {} : { holes }),
           ...(shades === undefined ? {} : { shades }),
+          ...(transform === undefined ? {} : { transform }),
+          ...(opacity === undefined ? {} : { opacity }),
           ...revision,
         };
         if (!validOperation(operation)) {
@@ -369,7 +378,9 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
         !same(spec.sticky, sent.sticky) ||
         !same(spec.clip, sent.clip) ||
         !same(spec.holes, sent.holes) ||
-        !same(spec.shades, sent.shades)
+        !same(spec.shades, sent.shades) ||
+        !same(spec.transform, sent.transform) ||
+        spec.opacity !== sent.opacity
       ) {
         changes.frame = spec.frame;
       }
@@ -378,6 +389,8 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
         if (spec.clip !== undefined) changes.clip = spec.clip;
         if (spec.holes !== undefined) changes.holes = spec.holes;
         if (spec.shades !== undefined) changes.shades = spec.shades;
+        if (spec.transform !== undefined) changes.transform = spec.transform;
+        if (spec.opacity !== undefined) changes.opacity = spec.opacity;
       }
       if (Object.keys(changes).length === 0) continue;
       const operation = {
@@ -473,7 +486,14 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     const geometry =
       patch.frame === undefined
         ? {}
-        : { sticky: patch.sticky, clip: patch.clip, holes: patch.holes, shades: patch.shades };
+        : {
+            sticky: patch.sticky,
+            clip: patch.clip,
+            holes: patch.holes,
+            shades: patch.shades,
+            transform: patch.transform,
+            opacity: patch.opacity,
+          };
     island.spec = { ...island.spec, ...rest, ...geometry, props };
     return true;
   };
