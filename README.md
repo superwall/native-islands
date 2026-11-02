@@ -8,6 +8,99 @@ version shows.
 
 Private while it takes shape.
 
+## How it works
+
+### The short version
+
+A `WKWebView` is not one flat picture. WebKit builds the page out of real
+UIKit views: the page itself scrolls inside a `UIScrollView`, and every
+`overflow: auto` area on the page gets its own native scroll view
+(`WKChildScrollView`). NativeIslands puts your native views **inside those
+scroll views**, at the exact spot of the web element they replace. They are
+not floating above the web view, guessing where to be. They live in the same
+view tree as the page's own layers.
+
+### What the view tree looks like
+
+This is the real hierarchy on a running page (Xcode's view debugger shows the
+same thing):
+
+```text
+IslandWebView                         the WKWebView
+└─ WKScrollView                       the page's own scroll view
+   ├─ WKContentView                   the page's content layers
+   │  └─ … WKChildScrollView          a scrolling route or list
+   │        ├─ (WebKit's layers for that area)
+   │        └─ native view            ← a glass button, in place
+   └─ native view                     ← an island on the page itself
+NativeIslands screen layer            ← only for position: fixed elements
+```
+
+### Why that matters
+
+Because a native view is a child of the scroll view its element is in, UIKit
+moves it for free:
+
+- **Scrolling:** it scrolls with the page, frame for frame, with no JavaScript
+  following it. Rubber-banding and momentum included.
+- **Page changes:** when a route slides, fades or scales, WebKit animates that
+  route's scroll view with Core Animation, and the native view rides along.
+  No flash of the web copy.
+- **Stacking:** web content WebKit draws above that scroll view (a footer, a
+  sheet, the next page) covers the native view the way it would cover the web
+  element. A plan card half behind the footer stays glass, cut by the footer.
+- **Real glass:** Liquid Glass samples what is drawn behind it. Here that is
+  the actual web content, so a glass button bends the page's own gradients,
+  images and video.
+
+An overlay can do none of this. It sits on top of everything, has to be moved
+by script on every scroll frame (always a frame late), and covers sheets and
+footers it should sit under.
+
+### What travels between page and app
+
+```text
+page (React)                               app (Swift)
+────────────                               ───────────
+<GlassButton> renders its web children
+measures them, picks the anchor ─ mount ─► NativeIslandsHost
+  (page, scroller or screen)               finds the matching scroll view,
+                                           adds the native view, answers
+web copy fades out ◄──────────── ack ─────
+onPress runs      ◄──────────── event ──── user taps the native button
+state, requests, commands both ways ◄────► typed text, "validate this", focus
+```
+
+The page stays in charge of layout. The app only draws. When the page says an
+element is moving in a way a native view cannot follow, covered, clipped or
+faded, the web copy shows instead, and the native view comes back once it
+settles.
+
+### Never a flash
+
+The app keeps a new page's web view hidden until the page reports that every
+island on its first frame is drawn (`native_islands_ready`), with a timeout so
+a page without islands still shows. Pages that are rendered but not on screen
+yet get their islands up front, so a page that slides in already has them.
+
+### Only public API
+
+Everything uses public UIKit and WebKit: `UIScrollView`, `hitTest`,
+`WKUserScript`, `WKScriptMessageHandler`, `UIGlassEffect`. The one thing
+WebKit does not promise is its view layout: the host finds a scrolling area's
+`WKChildScrollView` by matching its size and scroll offset. If a future iOS
+changes that layout, no match is found and the element simply stays web.
+
+### Has this been done before?
+
+Parts of it. Map plugins for Cordova and Capacitor draw one native map behind
+a transparent web view. Hotwire Native lets the page drive native bars and
+toolbars. One Expo app placed a fixed set of native controls in the web
+view's main scroll view. As far as we know, nothing else puts **any**
+app-registered view inside WebKit's own scroll views, moves it with page
+transitions, and passes values both ways. We have not done a full search, so
+check before saying it is the first.
+
 ## Packages
 
 | Side       | Package                                 | Where                   |
@@ -134,6 +227,14 @@ mode and given a fixed status bar. Failing screenshots are attached to the
 result bundle in `build/ui-tests/results.xcresult`.
 
 ## Known issues
+
+- **Fallbacks while a browser window is resized.** With the simulated host,
+  dragging the window edge moves every element on each frame, and an island
+  whose element moves hands back to its web copy until it has been still for
+  two frames (`SETTLE_FRAMES`). It is the same rule that hides islands during
+  animations a native view cannot follow. On a phone the web view only
+  resizes on rotation or when the keyboard opens, so it shows there only
+  then.
 
 - After a fast fling, the buttons in the carousel nested inside a list (S19)
   can sit about 0.52 pt above their web elements until the next layout pass.
