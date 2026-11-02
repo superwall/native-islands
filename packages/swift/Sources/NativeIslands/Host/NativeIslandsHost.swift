@@ -19,7 +19,7 @@ public final class NativeIslandsHost {
   private let surface: WebViewSurface?
   private let schedule: NativeIslandsScheduler
   private var hold = 0
-  private var held: (mask: CALayer?, interactive: Bool)?
+  private var held: (cover: NativeIslandsCover, interactive: Bool)?
   private var router: NativeIslandsRouter?
   private var alignmentProbe: NativeAlignmentProbe?
 
@@ -141,10 +141,12 @@ public final class NativeIslandsHost {
     let current = hold
     isReady = false
     if held == nil {
-      // An empty mask hides the page without lowering alpha: WebKit stops running
-      // a fully transparent web view's page on some iOS versions.
-      held = (webView.layer.mask, webView.isUserInteractionEnabled)
-      webView.layer.mask = CALayer()
+      // A cover above the page hides it without touching the web view: WebKit stops
+      // running a page whose web view is transparent or masked on some iOS versions.
+      let cover = NativeIslandsCover(frame: webView.bounds)
+      webView.addSubview(cover)
+      surface?.cover = cover
+      held = (cover, webView.isUserInteractionEnabled)
       webView.isUserInteractionEnabled = false
     }
     schedule(timeout) { [weak self] in
@@ -164,7 +166,8 @@ public final class NativeIslandsHost {
     isReady = true
     guard let held else { return }
     self.held = nil
-    webView?.layer.mask = held.mask
+    held.cover.removeFromSuperview()
+    surface?.cover = nil
     webView?.isUserInteractionEnabled = held.interactive
   }
 
@@ -221,8 +224,11 @@ final class WebViewSurface: NativeHostSurface {
     webView?.scrollView ?? fallbackScrollView
   }
 
+  weak var cover: UIView?
+
   var screenLayer: UIView {
     webView?.bringSubviewToFront(layer)
+    if let cover { webView?.bringSubviewToFront(cover) }
     return layer
   }
 

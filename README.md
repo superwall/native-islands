@@ -179,8 +179,8 @@ so islands in inner scrolling areas take their taps.
 
 ## No web flash
 
-The host keeps each new document hidden until the page says its islands are
-drawn, so a native element never shows its web copy first. The provider sends
+The host keeps each new document covered, with the colour behind the web view,
+until the page says its islands are drawn, so a native element never shows its web copy first. The provider sends
 that signal once every island of the first frame is drawn (or settled on its
 web version); a page without React calls `islands.announceReady()` itself. A
 page that never announces is shown after the timeout, two seconds by default:

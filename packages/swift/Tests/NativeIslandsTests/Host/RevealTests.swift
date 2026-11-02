@@ -88,7 +88,7 @@ extension NativeBridgeTests {
     }
 
     @Test
-    func restoresTheMaskAndInteractionTheWebViewHadBeforeTheHold() {
+    func coversThePageWithoutTouchingTheWebViewAndRestoresInteraction() {
       let webView = RecordingWebView()
       let mask = CALayer()
       webView.layer.mask = mask
@@ -96,9 +96,41 @@ extension NativeBridgeTests {
       let (host, _) = host(webView)
       #expect(webView.isConcealed)
       #expect(webView.alpha == 1)
+      #expect(webView.layer.mask === mask)
       host.receive(["event_name": "native_islands_ready", "sequence": 0])
       #expect(webView.layer.mask === mask)
       #expect(webView.isUserInteractionEnabled == false)
+      #expect(!webView.isConcealed)
+    }
+
+    @Test
+    func takesTheColourBehindATransparentWebView() {
+      let container = UIView()
+      container.backgroundColor = .systemTeal
+      let webView = RecordingWebView()
+      webView.backgroundColor = .clear
+      container.addSubview(webView)
+      let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+      window.addSubview(container)
+      window.isHidden = false
+      defer { window.isHidden = true }
+      let (host, _) = host(webView)
+      let cover = webView.subviews.compactMap { $0 as? NativeIslandsCover }.first
+      #expect(cover?.backgroundColor == .systemTeal)
+      #expect(NativeIslandsCover.colorBehind(UIView()) == nil)
+      host.detach()
+    }
+
+    @Test
+    func keepsTheCoverAboveTheScreenLayer() throws {
+      let webView = RecordingWebView()
+      let (host, _) = host(webView)
+      let screen = try #require(host.manager?.surface?.screenLayer)
+      #expect(webView.subviews.last is NativeIslandsCover)
+      #expect(webView.subviews.contains(screen))
+      host.receive(["event_name": "native_islands_ready", "sequence": 0])
+      _ = host.manager?.surface?.screenLayer
+      #expect(webView.subviews.last === screen)
     }
 
     @Test
@@ -183,7 +215,6 @@ extension NativeBridgeTests {
 
 private extension WKWebView {
   var isConcealed: Bool {
-    guard let mask = layer.mask else { return false }
-    return mask.bounds.isEmpty && !isUserInteractionEnabled
+    subviews.last is NativeIslandsCover && !isUserInteractionEnabled
   }
 }
