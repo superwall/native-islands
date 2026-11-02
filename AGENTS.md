@@ -47,6 +47,11 @@ that the other cannot read fails a test.
     draws islands as outlines in a browser. The Swift host mirrors it.
   - `src/attributes.ts` — the DOM attributes: pages set `data-island-phase`
     on content that is entering or leaving.
+  - `src/react/` (the `/react` entry) — `NativeIslandsProvider`, `<Native>`,
+    `defineNativeComponent`, the built-ins (`GlassButton`, `CloseButton`,
+    `Toggle`, `SegmentedControl`, `SystemSymbol`), `useNativeSupport` and
+    `useNativeIslandsReady`, which turns true once no island is still on its
+    way to native. The provider adds the island style rules to the document.
 - `Sources/NativeIslands/`, `Tests/NativeIslandsTests/` — the host package and
   its Swift Testing suites.
 - `.github/workflows/ci.yml` — CI.

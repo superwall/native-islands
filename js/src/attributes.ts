@@ -16,3 +16,21 @@ export const SIMULATOR_LAYER_ATTRIBUTE = "data-island-simulator-layer";
 
 /** Marks an outline the simulated host drew, holding the island's id. */
 export const SIMULATED_ISLAND_ATTRIBUTE = "data-island-simulated";
+
+/** Set by the React bindings on each island's wrapper, holding the component's name. */
+export const ISLAND_COMPONENT_ATTRIBUTE = "data-island";
+
+/** Set on an island's wrapper: `web`, `pending` or `native`. */
+export const ISLAND_MODE_ATTRIBUTE = "data-island-mode";
+
+/** Set on an island's wrapper while it shows its web version for a moment, holding why. */
+export const ISLAND_HANDOFF_ATTRIBUTE = "data-island-handoff";
+
+/** Set on an island's wrapper while the native view is shown, so the web children fade out. */
+export const ISLAND_SHOWN_ATTRIBUTE = "data-island-shown";
+
+/** Set on an island's wrapper once its web children have faded, hiding them from taps, focus and VoiceOver. */
+export const ISLAND_CONCEALED_ATTRIBUTE = "data-island-concealed";
+
+/** Marks the style element the React bindings add to the document. */
+export const ISLAND_STYLE_ATTRIBUTE = "data-island-styles";

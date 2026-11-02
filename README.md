@@ -10,12 +10,27 @@ Private while it takes shape.
 
 ## Packages
 
-| Side | Package | Where |
-| --- | --- | --- |
+| Side       | Package                                 | Where                   |
+| ---------- | --------------------------------------- | ----------------------- |
 | Host (iOS) | `NativeIslands` (Swift Package Manager) | `Sources/NativeIslands` |
-| Page | `@superwall/native-islands` | `js/` |
+| Page       | `@superwall/native-islands`             | `js/`                   |
 
 Both sides speak the contract in `contract/contract.json`.
+
+## Use it on the page
+
+```tsx
+import { GlassButton, NativeIslandsProvider } from "@superwall/native-islands/react";
+
+<NativeIslandsProvider>
+  <GlassButton title="Continue" prominence="prominent" onPress={purchase}>
+    <button>Continue</button>
+  </GlassButton>
+</NativeIslandsProvider>;
+```
+
+The children are the web version. The host draws the native button over them
+when it offers `glassButton`, and the children show everywhere else.
 
 ## Develop
 
