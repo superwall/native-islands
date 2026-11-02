@@ -45,7 +45,7 @@ public final class NativeIslandsHost {
   private let schedule: NativeIslandsScheduler
   private var hold = 0
   private var heldAlpha: CGFloat?
-  private var userContentController: WKUserContentController?
+  private var router: NativeIslandsRouter?
   private var alignmentProbe: NativeAlignmentProbe?
 
   /// Sent by the host's own document-start script, so islands of an old
@@ -94,20 +94,9 @@ public final class NativeIslandsHost {
     deliver = { [weak self] replies in
       self?.deliver(replies)
     }
-    let controller = webView.configuration.userContentController
-    userContentController = controller
-    controller.addUserScript(
-      WKUserScript(source: preload, injectionTime: .atDocumentStart, forMainFrameOnly: true)
-    )
-    controller.addUserScript(
-      WKUserScript(
-        source: Self.documentStartScript,
-        injectionTime: .atDocumentStart,
-        forMainFrameOnly: true
-      )
-    )
-    controller.add(ScriptHandler(host: self), contentWorld: .page, name: NativeHostMessage.handlerName)
-    NativeFrameReporter.install(in: controller, islands: manager)
+    let router = NativeIslandsRouter.of(webView.configuration.userContentController)
+    self.router = router
+    router.join(self, webView: webView, scripts: [preload, Self.documentStartScript])
     #if DEBUG
     if NativeAlignmentProbe.isRequested() {
       let probe = NativeAlignmentProbe(webView: webView, islands: manager)
@@ -135,19 +124,17 @@ public final class NativeIslandsHost {
     manager != nil
   }
 
-  /// Stops drawing and removes the host's message handlers. The scripts it
-  /// added stay in the configuration; pages they start show web versions
-  /// once the handler is gone.
+  /// Stops drawing and stops listening to this web view. Web views sharing
+  /// its configuration keep their hosts; once none is left the message
+  /// handlers are removed. The scripts stay in the configuration, as WebKit
+  /// can't remove one alone, and pages they start show web versions.
   public func detach() {
     release()
     alignmentProbe?.stop()
     alignmentProbe = nil
     manager?.clear(notifyPage: false)
-    userContentController?.removeScriptMessageHandler(forName: NativeHostMessage.handlerName, contentWorld: .page)
-    #if DEBUG
-    userContentController?.removeScriptMessageHandler(forName: NativeFrameReporter.name, contentWorld: .page)
-    #endif
-    userContentController = nil
+    router?.leave(self, webView: webView)
+    router = nil
   }
 
   /// Clears every island once the page's process is gone. The reloaded page
@@ -247,8 +234,11 @@ public final class NativeIslandsHost {
     return "window.__nativeIslands && window.__nativeIslands.accept64(\"\(base64)\");"
   }
 
+  /// Posts the document-start marker, and does nothing once the handler is
+  /// gone, since the script outlives a detached host.
   static var documentStartScript: String {
-    "window.webkit.messageHandlers.\(NativeHostMessage.handlerName).postMessage(\"\(documentStartMarker)\");"
+    let handler = "window.webkit && window.webkit.messageHandlers.\(NativeHostMessage.handlerName)"
+    return "\(handler) && \(handler).postMessage(\"\(documentStartMarker)\");"
   }
 }
 
@@ -273,23 +263,6 @@ public enum NativeIslandsReadiness: Equatable, Sendable {
 }
 
 typealias NativeIslandsScheduler = @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> Void
-
-/// Forwards script messages without retaining the host, since the user content
-/// controller keeps its handlers alive.
-private final class ScriptHandler: NSObject, WKScriptMessageHandler {
-  weak var host: NativeIslandsHost?
-
-  init(host: NativeIslandsHost) {
-    self.host = host
-  }
-
-  func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-    let body = message.body
-    MainActor.assumeIsolated {
-      host?.receive(body)
-    }
-  }
-}
 
 /// The three spaces a page measures in, for any `WKWebView`.
 @MainActor

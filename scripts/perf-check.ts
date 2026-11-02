@@ -6,6 +6,7 @@ import {
   compare,
   missingMeasurements,
   record,
+  unmatchedRuns,
   type PerfBaselines,
   type PerfResult,
 } from "./perf-compare";
@@ -43,10 +44,16 @@ if (!regressions) {
   console.error(`No baseline for ${result.device}. Record one with scripts/perf.sh --record.`);
   process.exit(1);
 }
+const unmatched = unmatchedRuns(result, baselines);
+for (const gap of unmatched) {
+  console.error(
+    `${gap}. Run every count, or record the baseline again with scripts/perf.sh --record.`,
+  );
+}
 for (const regression of regressions) {
   console.error(
     `Regression at ${regression.islands} islands: ${regression.metric} ${regression.actual.toFixed(2)} ` +
       `> ${regression.limit.toFixed(2)} (baseline ${regression.baseline.toFixed(2)})`,
   );
 }
-process.exit(regressions.length > 0 ? 1 : 0);
+process.exit(regressions.length > 0 || unmatched.length > 0 ? 1 : 0);

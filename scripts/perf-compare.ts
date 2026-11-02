@@ -65,6 +65,27 @@ export const compare = (result: PerfResult, baselines: PerfBaselines): Regressio
   return regressions;
 };
 
+/**
+ * The island counts the run and the device's baseline don't share: a count
+ * the run dropped, or one the baseline has never seen. `compare` only judges
+ * the counts both have, so either gap would otherwise pass unseen. Empty when
+ * the device has no baseline.
+ */
+export const unmatchedRuns = (result: PerfResult, baselines: PerfBaselines): string[] => {
+  const baseline = baselines[result.device];
+  if (!baseline) return [];
+  const measured = new Set(result.runs.map((run) => run.islands));
+  const recorded = new Set(baseline.map((run) => run.islands));
+  return [
+    ...[...recorded]
+      .filter((islands) => !measured.has(islands))
+      .map((islands) => `${islands} islands: in the baseline but not measured`),
+    ...[...measured]
+      .filter((islands) => !recorded.has(islands))
+      .map((islands) => `${islands} islands: measured but not in the baseline`),
+  ];
+};
+
 /** Every run must have measured something: the app reports -1 when it could not. */
 export const missingMeasurements = (result: PerfResult): string[] =>
   result.runs.flatMap((run) =>

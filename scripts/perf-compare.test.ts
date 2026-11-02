@@ -1,5 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { compare, LIMITS, missingMeasurements, record, type PerfRun } from "./perf-compare";
+import {
+  compare,
+  LIMITS,
+  missingMeasurements,
+  record,
+  unmatchedRuns,
+  type PerfRun,
+} from "./perf-compare";
 
 const run = (islands: number, overrides: Partial<PerfRun> = {}): PerfRun => ({
   islands,
@@ -47,6 +54,29 @@ describe("compare", () => {
 
   it("says there is no baseline for an unknown device", () => {
     expect(compare({ device: "iPhone19,1", runs: [run(10)] }, baselines)).toBeUndefined();
+  });
+});
+
+describe("unmatchedRuns", () => {
+  const baselines = { "iPhone18,3": [run(10), run(50), run(100)] };
+
+  it("is empty when the run measured exactly the baseline's counts", () => {
+    expect(
+      unmatchedRuns({ device: "iPhone18,3", runs: [run(10), run(50), run(100)] }, baselines),
+    ).toEqual([]);
+  });
+
+  it("names a count the run dropped and one the baseline lacks", () => {
+    expect(
+      unmatchedRuns({ device: "iPhone18,3", runs: [run(10), run(50), run(200)] }, baselines),
+    ).toEqual([
+      "100 islands: in the baseline but not measured",
+      "200 islands: measured but not in the baseline",
+    ]);
+  });
+
+  it("leaves a device with no baseline to compare", () => {
+    expect(unmatchedRuns({ device: "iPhone19,1", runs: [run(10)] }, baselines)).toEqual([]);
   });
 });
 

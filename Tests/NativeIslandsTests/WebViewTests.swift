@@ -93,6 +93,49 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func webViewsSharingOneConfigurationEachDrawTheirOwnIslands() async throws {
+      let configuration = WKWebViewConfiguration()
+      let first = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), configuration: configuration)
+      let second = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), configuration: configuration)
+      #expect(first.configuration.userContentController === second.configuration.userContentController)
+      let scripts = first.configuration.userContentController.userScripts.map(\.source)
+      #expect(scripts.filter { $0 == NativeIslandsHost.documentStartScript }.count == 1)
+      let window = UIWindow(frame: first.frame)
+      window.addSubview(first)
+      window.addSubview(second)
+      window.isHidden = false
+      defer { window.isHidden = true }
+      first.loadHTMLString(Self.page(), baseURL: nil)
+      try await until { first.islands?.manager?.islands.count == Self.builtIns.count }
+      #expect(second.islands?.manager?.islands.isEmpty == true)
+      second.loadHTMLString(Self.page(), baseURL: nil)
+      try await until { second.islands?.manager?.islands.count == Self.builtIns.count }
+      let frames = try await evaluate(
+        second,
+        "return await window.webkit.messageHandlers.nativeIslandsFrames.postMessage(null)"
+      )
+      #expect((frames as? [[String: Any]])?.count == Self.builtIns.count)
+      first.islands?.detach()
+      let router = NativeIslandsRouter.of(configuration.userContentController)
+      #expect(router.isListening)
+      #expect(second.islands?.manager?.islands.count == Self.builtIns.count)
+      second.islands?.detach()
+      #expect(!router.isListening)
+    }
+
+    @Test
+    func aDetachedHostsScriptsRunWithoutErrors() async throws {
+      let (webView, window) = try await loaded()
+      defer { window.isHidden = true }
+      webView.islands?.detach()
+      let posted = try await evaluate(
+        webView,
+        "try { \(NativeIslandsHost.documentStartScript) return 'ok' } catch (error) { return String(error) }"
+      )
+      #expect(posted as? String == "ok")
+    }
+
+    @Test
     func theFrameReporterAnswersThePage() async throws {
       let (webView, window) = try await loaded()
       defer { window.isHidden = true }

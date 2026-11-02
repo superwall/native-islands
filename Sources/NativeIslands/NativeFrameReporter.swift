@@ -15,24 +15,20 @@ import WebKit
 final class NativeFrameReporter: NSObject, WKScriptMessageHandlerWithReply {
   static let name = "nativeIslandsFrames"
 
-  weak var islands: NativeIslandManager?
+  private let islands: @MainActor (WKWebView?) -> NativeIslandManager?
 
-  init(islands: NativeIslandManager) {
+  /// Reports the islands of the web view each message comes from.
+  init(islands: @escaping @MainActor (WKWebView?) -> NativeIslandManager?) {
     self.islands = islands
   }
 
-  static func install(in controller: WKUserContentController, islands: NativeIslandManager) {
-    #if DEBUG
-    controller.addScriptMessageHandler(
-      NativeFrameReporter(islands: islands),
-      contentWorld: .page,
-      name: name
-    )
-    #endif
+  /// Reports `islands`, whichever web view asks.
+  convenience init(islands: NativeIslandManager) {
+    self.init { [weak islands] _ in islands }
   }
 
-  func report() -> [[String: Any]] {
-    islands?.frames().map(\.json) ?? []
+  func report(for webView: WKWebView? = nil) -> [[String: Any]] {
+    islands(webView)?.frames().map(\.json) ?? []
   }
 
   func userContentController(
@@ -40,7 +36,7 @@ final class NativeFrameReporter: NSObject, WKScriptMessageHandlerWithReply {
     didReceive message: WKScriptMessage,
     replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void
   ) {
-    replyHandler(report(), nil)
+    replyHandler(report(for: message.webView), nil)
   }
 }
 
