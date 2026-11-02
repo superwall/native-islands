@@ -76,7 +76,7 @@ const drawn = (id = "cta") =>
   document.querySelector(`[data-island-simulated="${id}"]`) as HTMLElement;
 
 describe("installNativeSimulator", () => {
-  it("advertises every built-in and refuses to run beside a real host", () => {
+  it("advertises every default component and refuses to run beside a real host", () => {
     simulator = installNativeSimulator();
     expect(global.__NATIVE_ISLANDS__).toEqual({
       protocol: 1,

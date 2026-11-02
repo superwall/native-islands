@@ -15,7 +15,7 @@ jobs:
           bun-version: 1.3.x
       - run: bun install --frozen-lockfile
       - run: bunx oxlint --deny-warnings packages/web examples/pages performance
-      - run: bunx oxfmt --check packages/web examples/pages contract performance
+      - run: bunx oxfmt --check packages/web examples/pages tests performance
       - run: bun run --cwd packages/web typecheck
       - run: bun run --cwd packages/web test:coverage
       - run: bun test performance

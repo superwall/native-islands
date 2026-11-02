@@ -181,7 +181,7 @@ describe("isNativeValue", () => {
   });
 });
 
-describe("built-in components", () => {
+describe("default components", () => {
   it("use the names the host registers", () => {
     expect(
       [GlassButton, CloseButton, Toggle, SegmentedControl, SystemSymbol].map(

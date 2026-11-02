@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum NativeBuiltIns {
+enum NativeDefaultComponents {
   static let names = ["glassButton", "closeButton", "toggle", "segmentedControl", "symbol"]
 
   @MainActor

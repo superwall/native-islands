@@ -5,7 +5,7 @@ import Testing
 enum ContractFixture {
   static let url = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
-    .appendingPathComponent("../../../../../contract/contract.json")
+    .appendingPathComponent("../../../../../tests/fixtures/messages.json")
     .standardizedFileURL
 
   static func json() throws -> [String: Any] {

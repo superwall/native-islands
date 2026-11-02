@@ -20,7 +20,7 @@ extension NativeBridgeTests {
   @MainActor
   struct HostTests {
     private func registry() -> NativeComponentRegistry {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("glassButton") { _ in Color.clear }
       return registry
     }
@@ -71,7 +71,7 @@ extension NativeBridgeTests {
     @Test
     func offersNothingWithAnEmptyRegistry() {
       let webView = RecordingWebView()
-      let host = NativeIslandsHost(webView: webView, registry: NativeComponentRegistry(includingBuiltIns: false))
+      let host = NativeIslandsHost(webView: webView, registry: NativeComponentRegistry(includingDefaults: false))
       #expect(!host.isOffering)
       #expect(webView.configuration.userContentController.userScripts.isEmpty)
       host.receive(pageMount())
@@ -219,7 +219,7 @@ extension NativeBridgeTests {
   struct RegistryTests {
     @Test
     func ignoresInvalidNamesAndVersions() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("") { _ in Color.clear }
       registry.register(String(repeating: "a", count: NativeComponentLimits.maxComponentNameLength + 1)) { _ in Color.clear }
       registry.register("rating", version: 0) { _ in Color.clear }
@@ -229,7 +229,7 @@ extension NativeBridgeTests {
 
     @Test
     func offersWhatIsRegistered() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("rating", version: 2) { _ in Color.clear }
       #expect(registry.capability == NativeCapability(components: ["rating": 2]))
     }

@@ -4,7 +4,7 @@ export {
   SegmentedControl,
   SystemSymbol,
   Toggle,
-} from "./components/builtins";
+} from "./components/defaults";
 export {
   NativeIslandsProvider,
   useNativeIslands,

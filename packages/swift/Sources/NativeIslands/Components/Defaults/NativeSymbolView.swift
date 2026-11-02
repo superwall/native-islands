@@ -7,7 +7,7 @@ struct NativeSymbolView: View {
 
   var body: some View {
     let props = component.props
-    let weight = props.string("weight").flatMap { NativeBuiltIns.weights[$0] } ?? .regular
+    let weight = props.string("weight").flatMap { NativeDefaultComponents.weights[$0] } ?? .regular
     Group {
       if let size = props.double("pointSize") {
         Image(systemName: props.string("name") ?? "questionmark")

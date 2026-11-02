@@ -5,28 +5,28 @@ import WebKit
 @testable import NativeIslands
 
 @MainActor
-private func builtInHarness() -> NativeTestHarness {
+private func defaultsHarness() -> NativeTestHarness {
   let harness = NativeTestHarness()
-  NativeBuiltIns.register(in: harness.registry)
+  NativeDefaultComponents.register(in: harness.registry)
   return harness
 }
 
 extension NativeBridgeTests {
   @Suite
   @MainActor
-  struct BuiltInTests {
+  struct DefaultComponentTests {
     @Test
-    func theSharedRegistryOffersEveryBuiltInAtVersionOne() {
+    func theSharedRegistryOffersEveryDefaultAtVersionOne() {
       let shared = NativeComponentRegistry.shared.registeredComponents
-      for name in NativeBuiltIns.names {
+      for name in NativeDefaultComponents.names {
         #expect(shared[name] == 1)
       }
       #expect(NativeComponentRegistry().registeredComponents == shared)
-      #expect(NativeComponentRegistry(includingBuiltIns: false).registeredComponents.isEmpty)
+      #expect(NativeComponentRegistry(includingDefaults: false).registeredComponents.isEmpty)
     }
 
     @Test
-    func aBuiltInCanBeReplacedOrRemoved() {
+    func aDefaultCanBeReplacedOrRemoved() {
       let registry = NativeComponentRegistry()
       registry.register("toggle", version: 2) { _ in Color.clear }
       registry.unregister("symbol")
@@ -36,12 +36,12 @@ extension NativeBridgeTests {
 
     @Test
     func glassButtonsChooseTheirGlassFromTheirProps() {
-      let regular = NativeBuiltIns.glassButtonGlass(NativeComponentProps(["title": .string("Go")]))
+      let regular = NativeDefaultComponents.glassButtonGlass(NativeComponentProps(["title": .string("Go")]))
       #expect(regular.shape == .capsule)
       #expect(regular.tint == nil)
       #expect(regular.isInteractive)
 
-      let prominent = NativeBuiltIns.glassButtonGlass(
+      let prominent = NativeDefaultComponents.glassButtonGlass(
         NativeComponentProps([
           "title": .string("Go"),
           "prominence": .string("prominent"),
@@ -50,19 +50,19 @@ extension NativeBridgeTests {
       )
       #expect(prominent.tint == UIColor(red: 1, green: 0, blue: 0, alpha: 1))
 
-      let icon = NativeBuiltIns.glassButtonGlass(
+      let icon = NativeDefaultComponents.glassButtonGlass(
         NativeComponentProps(["systemImage": .string("heart"), "disabled": .bool(true)])
       )
       #expect(icon.shape == .circle)
       #expect(!icon.isInteractive)
 
-      let close = NativeBuiltIns.closeButtonGlass(NativeComponentProps())
+      let close = NativeDefaultComponents.closeButtonGlass(NativeComponentProps())
       #expect(close.shape == .circle)
     }
 
     @Test
     func glassComponentsAreDrawnOnUIKitGlass() {
-      let harness = builtInHarness()
+      let harness = defaultsHarness()
       harness.manager.apply(batch(1, mountOp("cta", props: ["title": .string("Go")])))
       let island = harness.island("cta")
       #expect(island?.view is NativeGlassView)
@@ -72,7 +72,7 @@ extension NativeBridgeTests {
 
     @Test
     func islandsSharingAGlassGroupMergeInOneContainerEffect() {
-      let harness = builtInHarness()
+      let harness = defaultsHarness()
       let grouped: [String: NativeValue] = ["title": .string("A"), "glassGroup": .string("chrome")]
       harness.manager.apply(
         batch(
@@ -94,7 +94,7 @@ extension NativeBridgeTests {
 
     @Test
     func leavingAGroupMovesTheIslandOutAndEmptyGroupsGoAway() {
-      let harness = builtInHarness()
+      let harness = defaultsHarness()
       harness.manager.apply(
         batch(1, mountOp("a", props: ["title": .string("A"), "glassGroup": .string("g")]))
       )
@@ -124,7 +124,7 @@ extension NativeBridgeTests {
 
     @Test
     func glassFollowsTintChanges() {
-      let harness = builtInHarness()
+      let harness = defaultsHarness()
       harness.manager.apply(
         batch(1, mountOp("cta", props: ["title": .string("Go"), "prominence": .string("prominent")]))
       )
@@ -157,8 +157,8 @@ extension NativeBridgeTests {
     }
 
     @Test
-    func everyBuiltInRendersFromItsProps() {
-      let harness = builtInHarness()
+    func everyDefaultRendersFromItsProps() {
+      let harness = defaultsHarness()
       harness.manager.apply(
         batch(
           1,
@@ -215,7 +215,7 @@ extension NativeBridgeTests {
   struct FrameReporterTests {
     @Test
     func reportsEveryIslandInViewportCoordinates() {
-      let harness = builtInHarness()
+      let harness = defaultsHarness()
       harness.surface.pageScrollView.contentOffset = CGPoint(x: 0, y: 100)
       let list = harness.surface.addScroller(
         frame: CGRect(x: 20, y: 300, width: 360, height: 200),
@@ -260,7 +260,7 @@ extension NativeBridgeTests {
 
     @Test
     func reportsNothingOnceTheManagerIsGone() {
-      var harness: NativeTestHarness? = builtInHarness()
+      var harness: NativeTestHarness? = defaultsHarness()
       let reporter = NativeFrameReporter(islands: harness!.manager)
       harness = nil
       #expect(reporter.report().isEmpty)
@@ -396,7 +396,7 @@ extension NativeBridgeTests {
   struct StatusBarTests {
     @Test
     func cutsAwayThePartOfAPageIslandUnderTheStatusBarAndKeepsTheRestShown() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("glassButton") { _ in Color.clear }
       let surface = NotchedSurface()
       let manager = NativeIslandManager(registry: registry, surface: surface, send: { _ in }, schedule: { _ in })
@@ -429,7 +429,7 @@ extension NativeBridgeTests {
 
     @Test
     func cutsHolesWherePageContentCoversAnIsland() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("glassButton") { _ in Color.clear }
       let surface = NotchedSurface()
       let manager = NativeIslandManager(registry: registry, surface: surface, send: { _ in }, schedule: { _ in })
@@ -464,7 +464,7 @@ extension NativeBridgeTests {
 
     @Test
     func turnsAndFadesAnIslandLikeItsElementAndUndoesIt() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("glassButton") { _ in Color.clear }
       let surface = NotchedSurface()
       let manager = NativeIslandManager(registry: registry, surface: surface, send: { _ in }, schedule: { _ in })
@@ -492,7 +492,7 @@ extension NativeBridgeTests {
 
     @Test
     func keepsAnIslandThatRestsInTheTopInsetShown() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("closeButton") { _ in Color.clear }
       let surface = NotchedSurface()
       let manager = NativeIslandManager(registry: registry, surface: surface, send: { _ in }, schedule: { _ in })
@@ -513,7 +513,7 @@ extension NativeBridgeTests {
 
     @Test
     func followsInnerScrollers() {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("glassButton") { _ in Color.clear }
       let surface = NotchedSurface()
       let list = UIScrollView(frame: CGRect(x: 0, y: 100, width: 400, height: 300))

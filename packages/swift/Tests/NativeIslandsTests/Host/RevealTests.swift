@@ -23,7 +23,7 @@ extension NativeBridgeTests {
   @MainActor
   struct RevealTests {
     private func registry() -> NativeComponentRegistry {
-      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      let registry = NativeComponentRegistry(includingDefaults: false)
       registry.register("glassButton") { _ in Color.clear }
       return registry
     }
@@ -111,7 +111,7 @@ extension NativeBridgeTests {
     @Test
     func holdsNothingWhenItOffersNothing() {
       let webView = RecordingWebView()
-      let (host, scheduler) = host(webView, registry: NativeComponentRegistry(includingBuiltIns: false))
+      let (host, scheduler) = host(webView, registry: NativeComponentRegistry(includingDefaults: false))
       #expect(webView.alpha == 1)
       #expect(host.isReady)
       #expect(scheduler.pending.isEmpty)

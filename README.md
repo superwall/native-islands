@@ -123,12 +123,12 @@ check before saying it is the first.
 
 ## Packages
 
-| Side       | Package                                 | Where                   |
-| ---------- | --------------------------------------- | ----------------------- |
+| Side       | Package                                 | Where                                  |
+| ---------- | --------------------------------------- | -------------------------------------- |
 | Host (iOS) | `NativeIslands` (Swift Package Manager) | `packages/swift/Sources/NativeIslands` |
-| Page       | `@superwall/native-islands`             | `packages/web/`                   |
+| Page       | `@superwall/native-islands`             | `packages/web/`                        |
 
-Both sides speak the contract in `contract/contract.json`.
+Both sides speak one contract. `tests/fixtures/messages.json` holds an example of every message, and the tests of both packages decode it.
 
 ## Use it on the page
 
@@ -155,7 +155,7 @@ webView.load(URLRequest(url: pageURL))
 ```
 
 `IslandWebView` is a `WKWebView` with a `NativeIslandsHost` attached. It offers
-the built-ins and anything you register on `NativeComponentRegistry.shared`
+the default components and anything you register on `NativeComponentRegistry.shared`
 before it loads a page:
 
 ```swift

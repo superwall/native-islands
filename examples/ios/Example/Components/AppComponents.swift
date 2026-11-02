@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The app's own components, which the gallery defines with
 /// `defineNativeComponent` in `examples/pages/src/components/custom.tsx`
-/// and `examples/pages/src/components/stateful.tsx`. The built-ins (`glassButton`,
+/// and `examples/pages/src/components/stateful.tsx`. The default components (`glassButton`,
 /// `toggle` and the rest) come with the package.
 enum AppComponents {
   @MainActor

@@ -8,7 +8,7 @@ import {
   ToHostMessageSchema,
   ToPageMessageSchema,
 } from "../../src";
-import contract from "../../../../contract/contract.json";
+import contract from "../../../../tests/fixtures/messages.json";
 
 const mount = {
   op: "mount",

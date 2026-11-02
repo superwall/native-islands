@@ -15,9 +15,9 @@ public final class NativeComponentRegistry {
 
   private(set) var entries: [String: Entry] = [:]
 
-  public init(includingBuiltIns: Bool = true) {
-    if includingBuiltIns {
-      NativeBuiltIns.register(in: self)
+  public init(includingDefaults: Bool = true) {
+    if includingDefaults {
+      NativeDefaultComponents.register(in: self)
     }
   }
 

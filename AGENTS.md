@@ -18,8 +18,8 @@ It has two sides that speak one contract:
 
 ## The contract is the source of truth
 
-`contract/contract.json` holds every message in both directions and the
-capability. The zod schemas in `packages/web/src/protocol/` and the Swift models in
+`tests/fixtures/messages.json` is a test fixture shared by both packages: one
+example of every message in both directions, and of the capability. The zod schemas in `packages/web/src/protocol/` and the Swift models in
 `packages/swift/Sources/NativeIslands/Protocol/` both decode it in their tests, so a change to one side
 that the other cannot read fails a test.
 
@@ -33,8 +33,8 @@ that the other cannot read fails a test.
 ## Layout
 
 ```
-contract/contract.json  every wire message and the capability, as examples
-                        both sides decode in their tests
+tests/fixtures/         messages.json: one example of every wire message,
+                        decoded by the tests of both packages
 packages/web/           @superwall/native-islands (page side)
   src/protocol/         zod schemas, message types, capability reader
   src/bridge/           WebKit transport and connectNativeIslands
@@ -52,7 +52,7 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Protocol/           contract models, decoding, replies, capability
     Islands/            the island manager and the island view
     Components/         registry, context, props, glass, accessibility;
-                        BuiltIns/ holds one file per built-in view
+                        Defaults/ holds one file per default view
     Debug/              frame reporter and alignment
     Extensions/, Support/
   Tests/NativeIslandsTests/  mirrors Sources/
@@ -74,7 +74,7 @@ Run only what your change touches; never a whole suite by hand.
 
 - JS tests: `bun run --cwd packages/web test:run test/<file>`
 - JS types: `bun run --cwd packages/web typecheck`
-- JS lint and format: `bunx oxlint --deny-warnings packages/web examples/pages performance`, `bunx oxfmt --check packages/web examples/pages contract performance`
+- JS lint and format: `bunx oxlint --deny-warnings packages/web examples/pages performance`, `bunx oxfmt --check packages/web examples/pages tests performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift examples/ios`
 - Pages: `bun run --cwd examples/pages build`; in a browser `bun run --cwd examples/pages dev`
