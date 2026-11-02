@@ -122,7 +122,7 @@ type UntypedOptions = {
 const isHandler = (value: unknown): value is (payload: unknown) => unknown =>
   typeof value === "function";
 
-export const isNativeValue = (value: unknown): value is NativeValue => {
+const isNativeValueWithin = (value: unknown, ancestors: Set<object>): boolean => {
   if (value === null) return true;
   switch (typeof value) {
     case "string":
@@ -131,17 +131,27 @@ export const isNativeValue = (value: unknown): value is NativeValue => {
     case "number":
       return Number.isFinite(value);
     case "object": {
-      if (Array.isArray(value)) return value.every(isNativeValue);
+      if (ancestors.has(value)) return false;
       const prototype: unknown = Object.getPrototypeOf(value);
-      return (
-        (prototype === Object.prototype || prototype === null) &&
-        Object.values(value).every((entry) => entry === undefined || isNativeValue(entry))
+      if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+        return false;
+      }
+      ancestors.add(value);
+      const entries: unknown[] = Array.isArray(value) ? value : Object.values(value);
+      const valid = entries.every(
+        (entry) =>
+          (entry === undefined && !Array.isArray(value)) || isNativeValueWithin(entry, ancestors),
       );
+      ancestors.delete(value);
+      return valid;
     }
     default:
       return false;
   }
 };
+
+export const isNativeValue = (value: unknown): value is NativeValue =>
+  isNativeValueWithin(value, new Set());
 
 /**
  * Defines a typed React component for a component the app registered with the

@@ -7,6 +7,7 @@ import {
   SegmentedControl,
   SystemSymbol,
   Toggle,
+  type NativeValue,
   useNativeSupport,
 } from "../../src/react";
 import { eventNameOf, isNativeValue } from "../../src/react/define";
@@ -110,6 +111,22 @@ describe("defineNativeComponent", () => {
     expect(view.batches()).toEqual([]);
     expect(error).toHaveBeenCalledWith("<custom> is showing its web version: value is not JSON.");
   });
+
+  it("keeps the web version, without throwing, when a prop refers to itself", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const Card = defineNativeComponent<{ props: { data: NativeValue } }>("custom", { version: 2 });
+    const data: Record<string, unknown> = { a: 1 };
+    data.self = data;
+    const view = renderNative(
+      <Card data={data as unknown as NativeValue}>
+        <span data-rect={rectAttribute(0, 0, 10, 10)}>web</span>
+      </Card>,
+    );
+    await view.nextFrame();
+    expect(view.getByText("web")).toBeTruthy();
+    expect(view.batches()).toEqual([]);
+    expect(error).toHaveBeenCalledWith("<custom> is showing its web version: data is not JSON.");
+  });
 });
 
 describe("isNativeValue", () => {
@@ -121,6 +138,13 @@ describe("isNativeValue", () => {
     ["an array of values", [1, "a", null, [true]]],
     ["a plain object", { a: 1, b: undefined, c: { d: ["e"] } }],
     ["an object with no prototype", Object.assign(Object.create(null), { a: 1 })],
+    [
+      "the same object twice",
+      (() => {
+        const shared = { a: 1 };
+        return [shared, { b: shared }];
+      })(),
+    ],
   ])("accepts %s", (_, value) => {
     expect(isNativeValue(value)).toBe(true);
   });
@@ -136,6 +160,22 @@ describe("isNativeValue", () => {
     ["a map", new Map()],
     ["an array holding a function", [() => {}]],
     ["an object holding NaN", { a: Number.NaN }],
+    [
+      "an object that refers to itself",
+      (() => {
+        const cycle: Record<string, unknown> = {};
+        cycle.self = cycle;
+        return cycle;
+      })(),
+    ],
+    [
+      "an array that holds itself",
+      (() => {
+        const cycle: unknown[] = [];
+        cycle.push([cycle]);
+        return cycle;
+      })(),
+    ],
   ])("refuses %s", (_, value) => {
     expect(isNativeValue(value)).toBe(false);
   });
