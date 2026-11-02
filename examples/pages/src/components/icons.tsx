@@ -1,5 +1,5 @@
 import { GlassButton, SystemSymbol } from "@superwall/native-islands/react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 const PATHS: Record<string, ReactNode> = {
   "backward.fill": <path d="M11 6 3 12l8 6V6Zm10 0-8 6 8 6V6Z" fill="currentColor" />,
@@ -163,7 +163,7 @@ export const IconGlass = ({
       style={{
         width: size,
         minHeight: size,
-        ...(tint ? ({ "--tint": tint } as CSSProperties) : {}),
+        ...(tint ? { "--tint": tint } : {}),
       }}
       onClick={onPress}
     >

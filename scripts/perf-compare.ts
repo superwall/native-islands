@@ -13,7 +13,14 @@ export type PerfResult = { device: string; runs: PerfRun[] };
 /** Baselines by device model, such as `iPhone18,3`. */
 export type PerfBaselines = Record<string, PerfRun[]>;
 
-type Metric = Exclude<keyof PerfRun, "islands">;
+const METRICS = [
+  "mountToVisibleMs",
+  "memoryPerIslandBytes",
+  "droppedFrames",
+  "layoutMs",
+] as const satisfies readonly Exclude<keyof PerfRun, "islands">[];
+
+type Metric = (typeof METRICS)[number];
 
 /**
  * How far each metric may rise over its baseline before the run fails: a
@@ -48,7 +55,7 @@ export const compare = (result: PerfResult, baselines: PerfBaselines): Regressio
   for (const run of result.runs) {
     const before = baseline.find((entry) => entry.islands === run.islands);
     if (!before) continue;
-    for (const metric of Object.keys(LIMITS) as Metric[]) {
+    for (const metric of METRICS) {
       const { share, slack } = LIMITS[metric];
       const limit = before[metric] * (1 + share) + slack;
       if (!(run[metric] <= limit)) {
@@ -89,9 +96,9 @@ export const unmatchedRuns = (result: PerfResult, baselines: PerfBaselines): str
 /** Every run must have measured something: the app reports -1 when it could not. */
 export const missingMeasurements = (result: PerfResult): string[] =>
   result.runs.flatMap((run) =>
-    (Object.keys(LIMITS) as Metric[])
-      .filter((metric) => !(run[metric] >= 0))
-      .map((metric) => `${run.islands} islands: no ${metric}`),
+    METRICS.filter((metric) => !(run[metric] >= 0)).map(
+      (metric) => `${run.islands} islands: no ${metric}`,
+    ),
   );
 
 /** Writes `result` as its device's baseline. */
@@ -99,3 +106,50 @@ export const record = (result: PerfResult, baselines: PerfBaselines): PerfBaseli
   ...baselines,
   [result.device]: result.runs,
 });
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const runOf = (value: unknown): PerfRun | undefined => {
+  if (!isRecord(value)) return undefined;
+  const { islands, mountToVisibleMs, memoryPerIslandBytes, droppedFrames, layoutMs } = value;
+  return typeof islands === "number" &&
+    typeof mountToVisibleMs === "number" &&
+    typeof memoryPerIslandBytes === "number" &&
+    typeof droppedFrames === "number" &&
+    typeof layoutMs === "number"
+    ? { islands, mountToVisibleMs, memoryPerIslandBytes, droppedFrames, layoutMs }
+    : undefined;
+};
+
+const runsOf = (value: unknown): PerfRun[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const runs: PerfRun[] = [];
+  for (const entry of value) {
+    const run = runOf(entry);
+    if (!run) return undefined;
+    runs.push(run);
+  }
+  return runs;
+};
+
+/** Reads what `PerformanceUITests` wrote, or throws when it is not a run. */
+export const parseResult = (value: unknown): PerfResult => {
+  const runs = isRecord(value) ? runsOf(value.runs) : undefined;
+  if (!isRecord(value) || typeof value.device !== "string" || !runs) {
+    throw new Error("The result is not a performance run: it needs a device and its runs.");
+  }
+  return { device: value.device, runs };
+};
+
+/** Reads `perf/baseline.json`, or throws when a device's entry is not a list of runs. */
+export const parseBaselines = (value: unknown): PerfBaselines => {
+  if (!isRecord(value)) throw new Error("The baseline is not an object of devices.");
+  const baselines: PerfBaselines = {};
+  for (const [device, entry] of Object.entries(value)) {
+    const runs = runsOf(entry);
+    if (!runs) throw new Error(`The baseline for ${device} is not a list of runs.`);
+    baselines[device] = runs;
+  }
+  return baselines;
+};

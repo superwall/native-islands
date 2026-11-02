@@ -1,5 +1,4 @@
 import { useNativeSupport } from "@superwall/native-islands/react";
-import type * as React from "react";
 import { Glass } from "../components/controls";
 import { useRouter, type RouteName } from "../router";
 
@@ -72,7 +71,7 @@ export default function Index() {
             key={app.route}
             type="button"
             className="app-tile"
-            style={{ "--hue": app.hue } as React.CSSProperties}
+            style={{ "--hue": app.hue }}
             onClick={() => router.push(app.route)}
           >
             <span className="app-tile-art" aria-hidden="true" />

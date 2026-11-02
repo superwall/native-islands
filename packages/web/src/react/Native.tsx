@@ -44,6 +44,12 @@ export type NativeHandle<
   state: () => Readonly<Partial<TState>> | undefined;
 };
 
+/** The handle `<Native>` gives its `ref`: commands and state, untyped. */
+export type NativeIslandHandle = {
+  command: (name: string, args?: unknown, options?: NativeCommandOptions) => Promise<unknown>;
+  state: () => Readonly<Record<string, unknown>> | undefined;
+};
+
 /** What VoiceOver reads for a native component. Default: derived from the web children (their `aria-label`, `alt` or text, and the role of the first one). */
 export type NativeAccessibility = TNativeAccessibility;
 
@@ -83,7 +89,7 @@ export type NativeProps = NativeCommonProps & {
   /** Answers a request native makes; may return a promise. Throw to refuse it. Default: none, so every request fails. */
   onRequest?: (name: string, payload: unknown) => unknown;
   /** Receives a handle that sends commands to the native view and reads its state. Default: none. */
-  ref?: React.Ref<NativeHandle>;
+  ref?: React.Ref<NativeIslandHandle>;
 };
 
 /** How long the web version takes to fade out before it is hidden from taps, focus and VoiceOver. */
@@ -155,10 +161,7 @@ export const Native = ({
     onState: onStateChange,
     onRequest,
   });
-  React.useImperativeHandle(ref, () => ({ command: command as NativeHandle["command"], state }), [
-    command,
-    state,
-  ]);
+  React.useImperativeHandle(ref, () => ({ command, state }), [command, state]);
   const nativeSize = sizing === "native" && mode !== "web" ? size : undefined;
   const shown = mode === "native" && handoff === undefined;
   const concealed = useConcealed(shown);

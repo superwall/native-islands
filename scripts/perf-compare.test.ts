@@ -3,6 +3,8 @@ import {
   compare,
   LIMITS,
   missingMeasurements,
+  parseBaselines,
+  parseResult,
   record,
   unmatchedRuns,
   type PerfRun,
@@ -93,5 +95,32 @@ describe("record", () => {
     const next = record({ device: "b", runs: [run(10)] }, { a: [run(50)] });
     expect(Object.keys(next)).toEqual(["a", "b"]);
     expect(next.b).toEqual([run(10)]);
+  });
+});
+
+describe("parseResult", () => {
+  it("reads a run the UI test wrote", () => {
+    const result = { device: "iPhone18,3", runs: [run(10), run(50)] };
+    expect(parseResult(JSON.parse(JSON.stringify(result)))).toEqual(result);
+  });
+
+  it.each([
+    ["a list", []],
+    ["a run with no device", { runs: [run(10)] }],
+    ["a run with a missing number", { device: "a", runs: [{ islands: 10 }] }],
+    ["runs that are not a list", { device: "a", runs: {} }],
+  ])("refuses %s", (_, value) => {
+    expect(() => parseResult(value)).toThrow("not a performance run");
+  });
+});
+
+describe("parseBaselines", () => {
+  it("reads every device's runs", () => {
+    expect(parseBaselines({ a: [run(10)], b: [] })).toEqual({ a: [run(10)], b: [] });
+  });
+
+  it("refuses something that is not an object, and a device that holds no runs", () => {
+    expect(() => parseBaselines(null)).toThrow("not an object of devices");
+    expect(() => parseBaselines({ a: "x" })).toThrow("The baseline for a is not a list of runs.");
   });
 });

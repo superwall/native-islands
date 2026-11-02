@@ -5,10 +5,10 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import {
   compare,
   missingMeasurements,
+  parseBaselines,
+  parseResult,
   record,
   unmatchedRuns,
-  type PerfBaselines,
-  type PerfResult,
 } from "./perf-compare";
 
 const [path, flag] = process.argv.slice(2);
@@ -17,10 +17,10 @@ if (!path) {
   process.exit(2);
 }
 const baselinePath = new URL("../perf/baseline.json", import.meta.url).pathname;
-const result = JSON.parse(readFileSync(path, "utf8")) as PerfResult;
-const baselines = (
-  existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {}
-) as PerfBaselines;
+const result = parseResult(JSON.parse(readFileSync(path, "utf8")));
+const baselines = existsSync(baselinePath)
+  ? parseBaselines(JSON.parse(readFileSync(baselinePath, "utf8")))
+  : {};
 
 const missing = missingMeasurements(result);
 if (missing.length > 0) {

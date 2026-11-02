@@ -9,7 +9,7 @@ import {
   Toggle,
   useNativeSupport,
 } from "../../src/react";
-import { eventNameOf } from "../../src/react/define";
+import { eventNameOf, isNativeValue } from "../../src/react/define";
 import {
   createWrapper,
   installCapability,
@@ -96,6 +96,48 @@ describe("defineNativeComponent", () => {
     );
     await view.nextFrame();
     expect(view.batches()).toEqual([]);
+  });
+
+  it("keeps the web version, with a console error, when a prop is not JSON", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const Rating = defineNativeComponent<{ props: { value: number } }>("custom", { version: 2 });
+    const view = renderNative(
+      <Rating value={Number.NaN}>
+        <span data-rect={rectAttribute(0, 0, 10, 10)}>web</span>
+      </Rating>,
+    );
+    await view.nextFrame();
+    expect(view.batches()).toEqual([]);
+    expect(error).toHaveBeenCalledWith("<custom> is showing its web version: value is not JSON.");
+  });
+});
+
+describe("isNativeValue", () => {
+  it.each([
+    ["a string", "a"],
+    ["a boolean", false],
+    ["a finite number", 2],
+    ["null", null],
+    ["an array of values", [1, "a", null, [true]]],
+    ["a plain object", { a: 1, b: undefined, c: { d: ["e"] } }],
+    ["an object with no prototype", Object.assign(Object.create(null), { a: 1 })],
+  ])("accepts %s", (_, value) => {
+    expect(isNativeValue(value)).toBe(true);
+  });
+
+  it.each([
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["undefined", undefined],
+    ["a function", () => {}],
+    ["a symbol", Symbol("a")],
+    ["a bigint", 1n],
+    ["a date", new Date(0)],
+    ["a map", new Map()],
+    ["an array holding a function", [() => {}]],
+    ["an object holding NaN", { a: Number.NaN }],
+  ])("refuses %s", (_, value) => {
+    expect(isNativeValue(value)).toBe(false);
   });
 });
 

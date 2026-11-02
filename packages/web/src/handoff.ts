@@ -252,13 +252,13 @@ const parseAlphaColor = (value: string): Rgba | undefined => {
   return srgb ? channelsOf(srgb[1], 255) : undefined;
 };
 
+const toByte = (value: number) => Math.round(Math.min(255, Math.max(0, value)));
+
 /**
  * The `rgba()` an element is filled with when it is see-through with nothing
  * else drawn on it, such as a backdrop, faded by its own opacity so a
  * backdrop fading in dims as much as it shows; `undefined` otherwise.
  */
-const toByte = (value: number) => Math.round(Math.min(255, Math.max(0, value)));
-
 export const shadeOf = (element: Element): string | undefined => {
   const style = getComputedStyle(element);
   if (!isNone(style.backdropFilter) || !isNone(style.backgroundImage)) return undefined;

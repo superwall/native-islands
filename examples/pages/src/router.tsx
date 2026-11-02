@@ -54,7 +54,7 @@ export const useRouter = (): Router => {
 export const useRouteActive = (): boolean => React.useContext(RouteContext)?.active ?? true;
 
 const isRoute = (value: string | null): value is RouteName =>
-  value !== null && (ROUTES as readonly string[]).includes(value);
+  value !== null && ROUTES.some((route) => route === value);
 
 /** `?route=<name>` opens straight on that page, with the index behind it. */
 export const initialStack = (search: string): RouteName[] => {
@@ -65,12 +65,18 @@ export const initialStack = (search: string): RouteName[] => {
 const reducedMotion = () =>
   typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const ROUTE_VALUES = Object.fromEntries(
-  ROUTES.flatMap((name) => [
-    [`${name}:on`, { name, active: true }],
-    [`${name}:off`, { name, active: false }],
-  ]),
-) as Record<string, { name: RouteName; active: boolean }>;
+type RouteValue = { name: RouteName; active: boolean };
+
+const ROUTE_VALUES = new Map<string, RouteValue>();
+
+const routeValue = (name: RouteName, active: boolean): RouteValue => {
+  const key = `${name}:${active}`;
+  const known = ROUTE_VALUES.get(key);
+  if (known) return known;
+  const value = { name, active };
+  ROUTE_VALUES.set(key, value);
+  return value;
+};
 
 const PageBody = React.memo(({ Page }: { Page: React.ComponentType }) => <Page />);
 
@@ -98,14 +104,14 @@ export const Pages = ({
   }, []);
 
   const router = React.useMemo<Router>(() => {
-    const top = state.stack[state.stack.length - 1] as RouteName;
+    const top = state.stack.at(-1) ?? "index";
     return {
       stack: state.stack,
       current: top,
       canGoBack: () => state.stack.length > 1,
       push: (route) =>
         navigate((stack) =>
-          stack[stack.length - 1] === route
+          stack.at(-1) === route
             ? { stack }
             : {
                 stack: [...stack.filter((entry) => entry !== route), route],
@@ -113,18 +119,15 @@ export const Pages = ({
               },
         ),
       back: () =>
-        navigate((stack) =>
-          stack.length > 1
+        navigate((stack) => {
+          const leaving = stack.at(-1);
+          return stack.length > 1 && leaving
             ? {
                 stack: stack.slice(0, -1),
-                transition: {
-                  route: stack[stack.length - 1] as RouteName,
-                  kind: "leave",
-                  key: ++keys.current,
-                },
+                transition: { route: leaving, kind: "leave", key: ++keys.current },
               }
-            : { stack },
-        ),
+            : { stack };
+        }),
       reset: () => navigate(() => ({ stack: ["index"] })),
     };
   }, [navigate, state.stack]);
@@ -164,10 +167,7 @@ export const Pages = ({
             const phase = state.transition?.route === name ? state.transition.kind : undefined;
             const leaving = phase === "leave";
             return (
-              <RouteContext.Provider
-                key={name}
-                value={ROUTE_VALUES[`${name}:${name === top ? "on" : "off"}`]}
-              >
+              <RouteContext.Provider key={name} value={routeValue(name, name === top)}>
                 <section
                   className="route"
                   data-island-route={name}

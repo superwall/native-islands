@@ -4,7 +4,6 @@ import {
   SegmentedControl,
   Toggle,
 } from "@superwall/native-islands/react";
-import type { CSSProperties } from "react";
 
 type GlassProps = {
   title: string;
@@ -31,7 +30,7 @@ export const Glass = ({
       type="button"
       className={block ? "glass glass--block" : "glass"}
       data-prominence={prominence}
-      style={tint ? ({ "--tint": tint } as CSSProperties) : undefined}
+      style={tint ? { "--tint": tint } : undefined}
       disabled={rest.disabled}
       onClick={onPress}
     >

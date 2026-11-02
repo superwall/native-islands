@@ -1,5 +1,12 @@
 import * as React from "react";
-import { Native, type NativeCommonProps, type NativeHandle, type NativeValue } from "./Native";
+import {
+  Native,
+  type NativeCommonProps,
+  type NativeHandle,
+  type NativeIslandHandle,
+  type NativeProps,
+  type NativeValue,
+} from "./Native";
 import type { NativeSizing } from "./useNativeIsland";
 
 /** The props a native component receives: plain values only. */
@@ -99,26 +106,64 @@ const HANDLER = /^on[A-Z]/;
 
 export const eventNameOf = (handler: string) => handler.charAt(2).toLowerCase() + handler.slice(3);
 
+type UntypedProps = NativeCommonProps & {
+  readonly [key: string]: unknown;
+  onStateChange?: NativeProps["onStateChange"];
+  requests?: Readonly<Record<string, unknown>>;
+  ref?: React.Ref<NativeIslandHandle>;
+};
+
+type UntypedOptions = {
+  version?: number;
+  sizing?: NativeSizing;
+  colorProps?: readonly string[];
+};
+
+const isHandler = (value: unknown): value is (payload: unknown) => unknown =>
+  typeof value === "function";
+
+export const isNativeValue = (value: unknown): value is NativeValue => {
+  if (value === null) return true;
+  switch (typeof value) {
+    case "string":
+    case "boolean":
+      return true;
+    case "number":
+      return Number.isFinite(value);
+    case "object": {
+      if (Array.isArray(value)) return value.every(isNativeValue);
+      const prototype: unknown = Object.getPrototypeOf(value);
+      return (
+        (prototype === Object.prototype || prototype === null) &&
+        Object.values(value).every((entry) => entry === undefined || isNativeValue(entry))
+      );
+    }
+    default:
+      return false;
+  }
+};
+
 /**
  * Defines a typed React component for a component the app registered with the
  * host under `name`. It renders its children as the web version and swaps in the
- * native view where the host offers it.
+ * native view where the host offers it. A prop that is not a plain JSON value
+ * keeps the island on its web version, with a console error.
  */
-export const defineNativeComponent = <TSpec extends NativeComponentSpec = NativeComponentSpec>(
+export function defineNativeComponent<TSpec extends NativeComponentSpec = NativeComponentSpec>(
   name: string,
-  options: NativeComponentOptions<TSpec> = {},
-): NativeComponent<TSpec> => {
+  options?: NativeComponentOptions<TSpec>,
+): NativeComponent<TSpec>;
+export function defineNativeComponent(name: string, options: UntypedOptions = {}) {
   const version = options.version ?? 1;
-  const Component = (input: NativeComponentProps<TSpec>) => {
-    const values: Record<string, unknown> = {};
-    const handlers: Record<string, (payload: unknown) => void> = {};
+  const Component = (input: UntypedProps) => {
+    const values: Record<string, NativeValue | undefined> = {};
+    const handlers: Record<string, (payload: unknown) => unknown> = {};
+    const invalid: string[] = [];
     for (const [key, value] of Object.entries(input)) {
       if (RESERVED.has(key)) continue;
-      if (HANDLER.test(key) && typeof value === "function") {
-        handlers[eventNameOf(key)] = value as (payload: unknown) => void;
-      } else {
-        values[key] = value;
-      }
+      if (HANDLER.test(key) && isHandler(value)) handlers[eventNameOf(key)] = value;
+      else if (value === undefined || isNativeValue(value)) values[key] = value;
+      else invalid.push(key);
     }
     const latest = React.useRef({ handlers, requests: input.requests });
     latest.current = { handlers, requests: input.requests };
@@ -126,33 +171,30 @@ export const defineNativeComponent = <TSpec extends NativeComponentSpec = Native
       latest.current.handlers[event]?.(payload);
     }, []);
     const onRequest = React.useCallback((request: string, payload: unknown) => {
-      const handler = (latest.current.requests as Record<string, unknown> | undefined)?.[request];
-      if (typeof handler !== "function") {
+      const handler = latest.current.requests?.[request];
+      if (!isHandler(handler)) {
         throw new Error(`<${name}> has no handler for the ${JSON.stringify(request)} request.`);
       }
-      return (handler as (payload: unknown) => unknown)(payload);
+      return handler(payload);
     }, []);
+    const problem = invalid.join(", ");
+    React.useEffect(() => {
+      if (problem) console.error(`<${name}> is showing its web version: ${problem} is not JSON.`);
+    }, [problem]);
     return (
       <Native
         component={name}
         version={version}
-        props={values as NativeComponentValues}
+        props={values}
         sizing={options.sizing}
         colorProps={options.colorProps}
         islandId={input.islandId}
-        native={input.native}
+        native={input.native !== false && invalid.length === 0}
         accessibility={input.accessibility}
         onEvent={onEvent}
-        onStateChange={
-          input.onStateChange as
-            | ((
-                state: Readonly<Record<string, unknown>>,
-                changed: Readonly<Record<string, unknown>>,
-              ) => void)
-            | undefined
-        }
+        onStateChange={input.onStateChange}
         onRequest={onRequest}
-        ref={input.ref as React.Ref<NativeHandle> | undefined}
+        ref={input.ref}
       >
         {input.children}
       </Native>
@@ -163,4 +205,4 @@ export const defineNativeComponent = <TSpec extends NativeComponentSpec = Native
     version,
     displayName: `Native(${name})`,
   });
-};
+}

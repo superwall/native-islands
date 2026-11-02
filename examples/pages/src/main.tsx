@@ -2,7 +2,7 @@ import { installNativeSimulator } from "@superwall/native-islands/simulator";
 import { NativeIslandsProvider } from "@superwall/native-islands/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { Pages, type RouteName } from "./router";
+import { Pages, ROUTES, type RouteName } from "./router";
 import MapScreen from "./routes/apps/map";
 import Paywall from "./routes/apps/paywall";
 import Player from "./routes/apps/player";
@@ -45,11 +45,10 @@ const ALL_PAGES: Record<RouteName, React.ComponentType> = {
 const measuring = new URLSearchParams(window.location.search).get("route") === "perf";
 const Empty = () => null;
 /** The perf runs measure the perf page alone, so the other pages render nothing then. */
-const PAGES = measuring
-  ? (Object.fromEntries(
-      Object.keys(ALL_PAGES).map((name) => [name, name === "perf" ? ALL_PAGES.perf : Empty]),
-    ) as Record<RouteName, React.ComponentType>)
-  : ALL_PAGES;
+const PAGES: Record<RouteName, React.ComponentType> = { ...ALL_PAGES };
+if (measuring) {
+  for (const name of ROUTES) if (name !== "perf") PAGES[name] = Empty;
+}
 
 const perfPage = () => {
   const element = document.querySelector<HTMLElement>("[data-perf-page]");
@@ -89,7 +88,9 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
   Object.assign(window, { __nativeIslandsSimulator: simulator });
 }
 
-createRoot(document.getElementById("root") as HTMLElement).render(
+const root = document.getElementById("root");
+if (!root) throw new Error("The page has no #root element.");
+createRoot(root).render(
   <React.StrictMode>
     <NativeIslandsProvider>
       <Pages pages={PAGES} layout={Layout} />
