@@ -42,6 +42,19 @@ export const NativeAnchorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("scroller"), scroller: NativeScrollerSchema }),
 ]);
 
+/**
+ * A `position: sticky` box inside a scroller, so the host can keep the island
+ * stuck itself as the scroller scrolls. Rects are in the scroller's content
+ * coordinates: `box` is the sticky box where it sits unstuck, `bounds` is how
+ * far it may travel (its containing block, less its margins).
+ */
+export const NativeStickySchema = z.object({
+  top: finite.optional(),
+  bottom: finite.optional(),
+  box: NativeFrameSchema,
+  bounds: NativeFrameSchema,
+});
+
 export const NativePropsSchema = z.record(z.string(), z.unknown());
 
 export const NativeAccessibilitySchema = z.object({
@@ -63,6 +76,10 @@ export const NativeMountOperationSchema = z.object({
   props: NativePropsSchema,
   frame: NativeFrameSchema,
   anchor: NativeAnchorSchema,
+  /** Keeps the island stuck like its sticky box. Applies to the frame it comes with. */
+  sticky: NativeStickySchema.optional(),
+  /** The part of the island to draw, in its own coordinates. Applies to the frame it comes with. */
+  clip: NativeFrameSchema.optional(),
   visible: z.boolean(),
   order: z.number().int().nonnegative(),
   sizing: z.enum(["web", "native"]),
@@ -76,6 +93,10 @@ export const NativeUpdateOperationSchema = z.object({
   props: NativePropsSchema.optional(),
   frame: NativeFrameSchema.optional(),
   anchor: NativeAnchorSchema.optional(),
+  /** Keeps the island stuck like its sticky box. Applies to the frame it comes with. */
+  sticky: NativeStickySchema.optional(),
+  /** The part of the island to draw, in its own coordinates. Applies to the frame it comes with. */
+  clip: NativeFrameSchema.optional(),
   visible: z.boolean().optional(),
   order: z.number().int().nonnegative().optional(),
   accessibility: NativeAccessibilitySchema.optional(),
@@ -110,7 +131,14 @@ export const NativeCapabilitySchema = z.object({
   features: z.array(z.string()).optional(),
 });
 
-export const NATIVE_FEATURES = ["state", "requests", "commands", "layered"] as const;
+export const NATIVE_FEATURES = [
+  "state",
+  "requests",
+  "commands",
+  "layered",
+  "sticky",
+  "clip",
+] as const;
 
 export const NativeStateValuesSchema = z.record(z.string(), z.unknown());
 
@@ -122,6 +150,7 @@ export type TNativeFrame = z.infer<typeof NativeFrameSchema>;
 export type TNativeSize = z.infer<typeof NativeSizeSchema>;
 export type TNativeAnchorType = z.infer<typeof NativeAnchorTypeSchema>;
 export type TNativeScroller = z.infer<typeof NativeScrollerSchema>;
+export type TNativeSticky = z.infer<typeof NativeStickySchema>;
 export type TNativeAnchor = z.infer<typeof NativeAnchorSchema>;
 export type TNativeProps = z.infer<typeof NativePropsSchema>;
 export type TNativeAccessibility = z.infer<typeof NativeAccessibilitySchema>;

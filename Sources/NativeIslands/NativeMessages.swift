@@ -95,6 +95,37 @@ struct NativeFrame: Codable, Equatable, Sendable {
   }
 }
 
+/// A `position: sticky` box inside a scroller. The host keeps the island
+/// stuck itself as the scroller scrolls, with no message per frame. Rects are
+/// in the scroller's content coordinates.
+struct NativeSticky: Codable, Equatable, Sendable {
+  /// The `top` inset it sticks at, when it sticks to the top.
+  let top: Double?
+  /// The `bottom` inset it sticks at, when it sticks to the bottom.
+  let bottom: Double?
+  /// The sticky box where it sits unstuck.
+  let box: NativeFrame
+  /// How far the box may travel: its containing block, less its margins.
+  let bounds: NativeFrame
+
+  var isValid: Bool {
+    box.isValid && bounds.isValid && [top, bottom].allSatisfy { $0?.isFinite ?? true }
+  }
+
+  /// How far the box sits from where it would be unstuck, for a scroller
+  /// scrolled to `offset` that shows `height` points of its content.
+  func shift(offset: Double, height: Double) -> Double {
+    var y = box.y
+    if let bottom {
+      y = min(y, max(offset + height - bottom - box.height, bounds.y))
+    }
+    if let top {
+      y = max(y, min(offset + top, bounds.y + bounds.height - box.height))
+    }
+    return y - box.y
+  }
+}
+
 struct NativeSize: Codable, Equatable, Sendable {
   let width: Double
   let height: Double

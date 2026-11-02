@@ -72,9 +72,26 @@ state, requests, commands both ways ◄────► typed text, "validate thi
 ```
 
 The page stays in charge of layout. The app only draws. When the page says an
-element is moving in a way a native view cannot follow, covered, clipped or
-faded, the web copy shows instead, and the native view comes back once it
+element is moving in a way a native view cannot follow, covered, faded or
+rotated, the web copy shows instead, and the native view comes back once it
 settles.
+
+Two kinds of motion stay native, because the app can follow them itself:
+
+- **Sticky boxes.** A `position: sticky` element inside a scrolling area is
+  sent with its sticky box where it sits unstuck, its inset and how far it may
+  travel. The app runs the same sticky rule on every scroll of that scroll
+  view, so the native view stays stuck, and comes unstuck at the end of the
+  page, in the same frame as the content (the `sticky` feature).
+- **Boxes that clip and resize**, such as an accordion opening. The page sends
+  the part of the island the box shows, and the app cuts the native view to
+  it, so the island is revealed as the box opens instead of swapping in when
+  it is done (the `clip` feature).
+
+Faded and rotated containers still show the web copy. A Liquid Glass view
+cannot be drawn half transparent: UIKit's glass breaks when its view has an
+alpha below 1. And islands are placed by frame, so the app has no rotation to
+apply; sending the element's transform is possible, but not built yet.
 
 ### Never a flash
 

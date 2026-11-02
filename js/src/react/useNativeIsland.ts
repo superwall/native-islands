@@ -7,10 +7,19 @@ import {
   frameIn,
   placementOf,
   sameAnchor,
+  scaleOf,
+  scrollOffsetOf,
+  stickyShift,
   unionRect,
   type NativeAnchorOf,
 } from "../measure";
-import type { TNativeAccessibility, TNativeAnchor, TNativeFrame, TNativeSize } from "../schemas";
+import type {
+  TNativeAccessibility,
+  TNativeAnchor,
+  TNativeFrame,
+  TNativeSize,
+  TNativeSticky,
+} from "../schemas";
 import { layoutWatcherFor, type LayoutPass } from "../watcher";
 import { accessibilityOf } from "./accessibility";
 import { useNativeIslandsContext } from "./context";
@@ -66,14 +75,39 @@ const TOLERANCE = 0.5;
 
 let nextOrder = 0;
 
-const geometryPatch = (geometry: {
+type Geometry = {
   frame: TNativeFrame;
   anchor: TNativeAnchor;
   visible: boolean;
-}) =>
+  sticky?: TNativeSticky;
+  clip?: TNativeFrame;
+};
+
+const geometryPatch = (geometry: Geometry) =>
   geometry.visible
-    ? { frame: geometry.frame, anchor: geometry.anchor, visible: true }
+    ? {
+        frame: geometry.frame,
+        anchor: geometry.anchor,
+        visible: true,
+        ...(geometry.sticky ? { sticky: geometry.sticky } : {}),
+        ...(geometry.clip ? { clip: geometry.clip } : {}),
+      }
     : { visible: false };
+
+const localClip = (
+  clip: TNativeFrame | undefined,
+  rect: TNativeFrame,
+  scroller: HTMLElement | undefined,
+): TNativeFrame | undefined => {
+  if (!clip) return undefined;
+  const scale = scroller ? scaleOf(scroller) : { x: 1, y: 1 };
+  return {
+    x: (clip.x - rect.x) / scale.x,
+    y: (clip.y - rect.y) / scale.y,
+    width: clip.width / scale.x,
+    height: clip.height / scale.y,
+  };
+};
 
 const report = (component: string, reason: Reason, message?: string) => {
   if (QUIET_REFUSALS.has(reason)) return;
@@ -106,27 +140,48 @@ export const useNativeIsland = (
   const motion = React.useRef<{
     at?: NativeAnchorOf;
     frame?: TNativeFrame;
+    sticky?: TNativeSticky;
+    revealing?: boolean;
     moving: boolean;
     still: number;
   }>({ moving: false, still: 0 });
 
   const evaluate = React.useCallback(
     (element: HTMLElement) => {
-      const placement = placementOf(element);
+      const placement = placementOf(element, {
+        sticky: supportsFeature(islands.capability, "sticky"),
+      });
       if (!placement) return undefined;
       const tracked = motion.current;
       tracked.at = placement.at;
       tracked.frame = placement.frame;
+      tracked.sticky = placement.sticky;
       const layered = supportsFeature(islands.capability, "layered");
       const riding = layered && placement.kind === "scroller" ? placement.scroller : undefined;
+      const watcher = layoutWatcherFor(element.ownerDocument);
+      const out: { clip?: TNativeFrame; revealing?: boolean } = {};
       const handoff = tracked.moving
         ? "moving"
-        : handoffOf(element, placement, layoutWatcherFor(element.ownerDocument).isMoving, layered);
+        : handoffOf(element, placement, watcher.isMoving, layered, {
+            clip: supportsFeature(islands.capability, "clip"),
+            isRevealing: watcher.isRevealing,
+            out,
+          });
+      tracked.revealing = out.revealing === true;
+      const clip = localClip(out.clip, placement.rect, riding);
       const previous = sentAnchor.current;
       const anchor =
         previous && sameAnchor(previous, placement.anchor) ? previous : placement.anchor;
       sentAnchor.current = anchor;
-      return { frame: placement.frame, anchor, handoff, riding, visible: handoff === undefined };
+      return {
+        frame: placement.frame,
+        anchor,
+        handoff,
+        riding,
+        visible: handoff === undefined,
+        ...(placement.sticky ? { sticky: placement.sticky } : {}),
+        ...(clip ? { clip } : {}),
+      };
     },
     [islands],
   );
@@ -182,7 +237,14 @@ export const useNativeIsland = (
       if (
         spec.handoff === "inactive" ||
         spec.handoff === "moving" ||
-        inTransition(element, layoutWatcherFor(element.ownerDocument).isMoving, spec.riding)
+        inTransition(
+          element,
+          layoutWatcherFor(element.ownerDocument).isMoving,
+          spec.riding,
+          supportsFeature(islands.capability, "clip")
+            ? layoutWatcherFor(element.ownerDocument).isRevealing
+            : undefined,
+        )
       ) {
         readiness.end(id);
         return false;
@@ -200,6 +262,8 @@ export const useNativeIsland = (
           anchor: spec.anchor,
           props: spec.props,
           accessibility: spec.accessibility,
+          ...(spec.sticky ? { sticky: spec.sticky } : {}),
+          ...(spec.clip ? { clip: spec.clip } : {}),
         },
         {
           onReady: () => {
@@ -248,6 +312,8 @@ export const useNativeIsland = (
                 frame: geometry.frame,
                 anchor: geometry.anchor,
                 visible: geometry.visible,
+                ...(geometry.sticky ? { sticky: geometry.sticky } : {}),
+                ...(geometry.clip ? { clip: geometry.clip } : {}),
               }
             );
           },
@@ -309,7 +375,20 @@ export const useNativeIsland = (
       const at = tracked.at as NativeAnchorOf;
       const rect = unionRect(boxElementsOf(element));
       if (!rect) return;
-      const last = tracked.frame as TNativeFrame;
+      const natural = tracked.frame as TNativeFrame;
+      const last =
+        tracked.sticky && at.kind === "scroller"
+          ? {
+              ...natural,
+              y:
+                natural.y +
+                stickyShift(
+                  tracked.sticky,
+                  scrollOffsetOf(at.scroller).y,
+                  at.scroller.clientHeight,
+                ),
+            }
+          : natural;
       const frame = frameIn(at, rect, element.ownerDocument);
       if (at.kind === "tracked") {
         if (moved(frame, last)) relayout();
@@ -317,6 +396,7 @@ export const useNativeIsland = (
       }
       if (moved(frame, last)) {
         tracked.frame = frame;
+        tracked.sticky = undefined;
         tracked.still = 0;
         if (!tracked.moving) {
           tracked.moving = true;
@@ -335,7 +415,7 @@ export const useNativeIsland = (
     };
     const onPass = (pass: LayoutPass) => {
       follow();
-      if (pass === "layout") relayout();
+      if (pass === "layout" || motion.current.revealing) relayout();
     };
     const unsubscribe = layoutWatcherFor(element.ownerDocument).subscribe(onPass);
     const observer =

@@ -14,6 +14,10 @@ struct NativeMount: Equatable, Sendable {
   /// The newest `native_component_state` revision the page had seen when it
   /// sent these props. A view whose own state is newer keeps it.
   var stateRevision: Int?
+  /// Keeps the island stuck like its sticky box.
+  var sticky: NativeSticky?
+  /// The part of the island to draw, in its own coordinates.
+  var clip: NativeFrame?
 }
 
 /// Only the fields that changed since the last batch.
@@ -26,6 +30,10 @@ struct NativeUpdate: Equatable, Sendable {
   var order: Int?
   var accessibility: NativeAccessibility?
   var stateRevision: Int?
+  /// Comes with `frame`: an update with a frame and no `sticky` unsticks it.
+  var sticky: NativeSticky?
+  /// Comes with `frame`: an update with a frame and no `clip` unclips it.
+  var clip: NativeFrame?
 }
 
 /// One step of a `native_component_batch`.
@@ -56,6 +64,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     case sizing
     case accessibility
     case stateRevision
+    case sticky
+    case clip
   }
 
   var id: String? {
@@ -118,31 +128,56 @@ enum NativeOperation: Decodable, Equatable, Sendable {
           order: order,
           sizing: try container.decode(NativeSizing.self, forKey: .sizing),
           accessibility: try container.decodeIfPresent(NativeAccessibility.self, forKey: .accessibility),
-          stateRevision: try revision(in: container)
+          stateRevision: try revision(in: container),
+          sticky: try geometry(in: container).sticky,
+          clip: try geometry(in: container).clip
         )
       )
     case .update:
-      let frame = try container.decodeIfPresent(NativeFrame.self, forKey: .frame)
-      let order = try container.decodeIfPresent(Int.self, forKey: .order)
-      if let frame, !frame.isValid {
-        throw DecodingError.dataCorruptedError(forKey: .frame, in: container, debugDescription: "frame")
-      }
-      if let order, order < 0 {
-        throw DecodingError.dataCorruptedError(forKey: .order, in: container, debugDescription: "order")
-      }
-      return .update(
-        NativeUpdate(
-          id: id,
-          props: try container.decodeIfPresent([String: NativeValue].self, forKey: .props),
-          frame: frame,
-          anchor: try container.decodeIfPresent(NativeAnchor.self, forKey: .anchor),
-          visible: try container.decodeIfPresent(Bool.self, forKey: .visible),
-          order: order,
-          accessibility: try container.decodeIfPresent(NativeAccessibility.self, forKey: .accessibility),
-          stateRevision: try revision(in: container)
-        )
-      )
+      return try decodeUpdate(container, id: id)
     }
+  }
+
+  private static func decodeUpdate(
+    _ container: KeyedDecodingContainer<CodingKeys>,
+    id: String
+  ) throws -> NativeOperation {
+    let frame = try container.decodeIfPresent(NativeFrame.self, forKey: .frame)
+    let order = try container.decodeIfPresent(Int.self, forKey: .order)
+    if let frame, !frame.isValid {
+      throw DecodingError.dataCorruptedError(forKey: .frame, in: container, debugDescription: "frame")
+    }
+    if let order, order < 0 {
+      throw DecodingError.dataCorruptedError(forKey: .order, in: container, debugDescription: "order")
+    }
+    return .update(
+      NativeUpdate(
+        id: id,
+        props: try container.decodeIfPresent([String: NativeValue].self, forKey: .props),
+        frame: frame,
+        anchor: try container.decodeIfPresent(NativeAnchor.self, forKey: .anchor),
+        visible: try container.decodeIfPresent(Bool.self, forKey: .visible),
+        order: order,
+        accessibility: try container.decodeIfPresent(NativeAccessibility.self, forKey: .accessibility),
+        stateRevision: try revision(in: container),
+        sticky: try geometry(in: container).sticky,
+        clip: try geometry(in: container).clip
+      )
+    )
+  }
+
+  private static func geometry(
+    in container: KeyedDecodingContainer<CodingKeys>
+  ) throws -> (sticky: NativeSticky?, clip: NativeFrame?) {
+    let sticky = try container.decodeIfPresent(NativeSticky.self, forKey: .sticky)
+    let clip = try container.decodeIfPresent(NativeFrame.self, forKey: .clip)
+    if let sticky, !sticky.isValid {
+      throw DecodingError.dataCorruptedError(forKey: .sticky, in: container, debugDescription: "sticky")
+    }
+    if let clip, !clip.isValid {
+      throw DecodingError.dataCorruptedError(forKey: .clip, in: container, debugDescription: "clip")
+    }
+    return (sticky, clip)
   }
 
   private static func revision(in container: KeyedDecodingContainer<CodingKeys>) throws -> Int? {

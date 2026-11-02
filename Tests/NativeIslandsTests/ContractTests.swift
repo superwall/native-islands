@@ -131,11 +131,24 @@ struct ContractTests {
     #expect(
       batches[1].operations == [
         .update(NativeUpdate(id: "cta", frame: NativeFrame(x: 24, y: 700, width: 354, height: 52))),
-        .update(NativeUpdate(id: "plans-annual", visible: false)),
+        .update(Self.stuckToggle),
         .unmount(id: "close")
       ]
     )
   }
+
+  private static let stuckToggle = NativeUpdate(
+    id: "plans-annual",
+    frame: NativeFrame(x: 296, y: 12, width: 51, height: 31),
+    visible: false,
+    sticky: NativeSticky(
+      top: nil,
+      bottom: 12,
+      box: NativeFrame(x: 0, y: 0, width: 354, height: 56),
+      bounds: NativeFrame(x: 0, y: 0, width: 354, height: 640)
+    ),
+    clip: NativeFrame(x: 0, y: 0, width: 51, height: 20)
+  )
 
   @Test("Encodes every reply as the contract's messages to the page")
   func encodesFixtureReplies() throws {

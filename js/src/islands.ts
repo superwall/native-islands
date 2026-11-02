@@ -6,6 +6,7 @@ import {
   type TNativeAnchor,
   type TNativeErrorReason,
   type TNativeFrame,
+  type TNativeSticky,
   type TNativeOperation,
   type TNativeProps,
   type TNativeSize,
@@ -62,10 +63,21 @@ export type NativeIslandSpec = {
   order: number;
   sizing: "web" | "native";
   accessibility?: TNativeAccessibility;
+  /** Keeps the island stuck like its sticky box. Travels with `frame`. Default: not sticky. */
+  sticky?: TNativeSticky;
+  /** The part of the island to draw, in its own coordinates. Travels with `frame`. Default: all of it. */
+  clip?: TNativeFrame;
 };
 
+/**
+ * What changed about an island. `sticky` and `clip` belong to the frame they
+ * come with: a patch with a `frame` and without them unsticks and unclips.
+ */
 export type NativeIslandPatch = Partial<
-  Pick<NativeIslandSpec, "props" | "frame" | "anchor" | "visible" | "order" | "accessibility">
+  Pick<
+    NativeIslandSpec,
+    "props" | "frame" | "anchor" | "visible" | "order" | "accessibility" | "sticky" | "clip"
+  >
 >;
 
 export type NativeFallbackReason = TNativeErrorReason | "invalid_spec";
@@ -315,12 +327,14 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       const revision = island.revision > 0 ? { state_revision: island.revision } : {};
       if (!sent) {
-        const { accessibility, ...rest } = spec;
+        const { accessibility, sticky, clip, ...rest } = spec;
         const operation: TNativeOperation = {
           op: "mount",
           id,
           ...rest,
           ...(accessibility === undefined ? {} : { accessibility }),
+          ...(sticky === undefined ? {} : { sticky }),
+          ...(clip === undefined ? {} : { clip }),
           ...revision,
         };
         if (!validOperation(operation)) {
@@ -333,6 +347,13 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       const changes: Record<string, unknown> = {};
       for (const key of UPDATABLE) {
         if (spec[key] !== undefined && !same(spec[key], sent[key])) changes[key] = spec[key];
+      }
+      if (!same(spec.sticky, sent.sticky) || !same(spec.clip, sent.clip)) {
+        changes.frame = spec.frame;
+      }
+      if ("frame" in changes) {
+        if (spec.sticky !== undefined) changes.sticky = spec.sticky;
+        if (spec.clip !== undefined) changes.clip = spec.clip;
       }
       if (Object.keys(changes).length === 0) continue;
       const operation = {
@@ -425,7 +446,8 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       props = converted;
     }
-    island.spec = { ...island.spec, ...rest, props };
+    const geometry = patch.frame === undefined ? {} : { sticky: patch.sticky, clip: patch.clip };
+    island.spec = { ...island.spec, ...rest, ...geometry, props };
     return true;
   };
 

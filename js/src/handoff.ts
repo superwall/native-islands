@@ -137,15 +137,30 @@ export const inTransition = (
   wrapper: HTMLElement,
   isMoving: (element: Element) => boolean,
   riding?: Element,
+  isRevealing?: (element: Element) => boolean,
 ): boolean => {
   for (
     let element: HTMLElement | null = wrapper.parentElement;
     element && element !== riding;
     element = element.parentElement
   ) {
-    if (element.hasAttribute(ISLAND_PHASE_ATTRIBUTE) || isMoving(element)) return true;
+    if (element.hasAttribute(ISLAND_PHASE_ATTRIBUTE)) return true;
+    if (isMoving(element) && !(riding && isRevealing?.(element))) return true;
   }
   return false;
+};
+
+export type HandoffOptions = {
+  /**
+   * Whether the host cuts islands to a clip. A layered island inside a box
+   * that clips it then stays native, cut to what the box shows, even while
+   * the box grows or shrinks. Default: `false`.
+   */
+  clip?: boolean;
+  /** Whether everything moving about an element is its size. Default: nothing is. */
+  isRevealing?: (element: Element) => boolean;
+  /** Receives the visible part of a clipped island, in viewport coordinates, and whether a box around it is resizing. */
+  out?: { clip?: TNativeFrame; revealing?: boolean };
 };
 
 export const handoffOf = (
@@ -153,8 +168,11 @@ export const handoffOf = (
   placement: NativePlacement,
   isMoving: (element: Element) => boolean,
   layered = false,
+  options: HandoffOptions = {},
 ): NativeHandoff | undefined => {
   const riding = layered && placement.kind === "scroller" ? placement.scroller : undefined;
+  const clips = riding !== undefined && options.clip === true;
+  let visible: TNativeFrame = placement.rect;
   let carried = false;
   if (placement.rect.width <= 0 || placement.rect.height <= 0) return "hidden";
   const boxes = boxElementsOf(wrapper);
@@ -181,7 +199,17 @@ export const handoffOf = (
     if (carried) continue;
     if (element.hasAttribute("inert") || element.hasAttribute(ISLAND_PHASE_ATTRIBUTE))
       return "inactive";
-    if (isMoving(element)) return "moving";
+    if (isMoving(element)) {
+      if (
+        !(
+          clips &&
+          options.isRevealing?.(element) &&
+          CLIPPING.test(style.overflowY + style.overflowX)
+        )
+      )
+        return "moving";
+      if (options.out) options.out.revealing = true;
+    }
     if (Number.parseFloat(style.opacity) < 1) return "faded";
     if (
       !isTranslation(style.transform) ||
@@ -203,10 +231,15 @@ export const handoffOf = (
     if (
       clipping &&
       (CLIPPING.test(style.overflowX) || CLIPPING.test(style.overflowY)) &&
-      !contains(contentBoxOf(element), placement.rect)
+      !contains(contentBoxOf(element), visible)
     ) {
-      return "clipped";
+      if (!clips) return "clipped";
+      const shown = intersect(visible, contentBoxOf(element));
+      if (!shown) return "hidden";
+      if (!(isMoving(element) && options.isRevealing?.(element))) return "clipped";
+      visible = shown;
     }
   }
-  return isCovered(wrapper, placement, riding) ? "covered" : undefined;
+  if (visible !== placement.rect && options.out) options.out.clip = visible;
+  return isCovered(wrapper, { ...placement, rect: visible }, riding) ? "covered" : undefined;
 };

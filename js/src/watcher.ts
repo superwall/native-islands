@@ -66,7 +66,15 @@ export type LayoutWatcher = {
   subscribe: (listener: (pass: LayoutPass) => void) => () => void;
   refresh: () => void;
   isMoving: (element: Element) => boolean;
+  /** Whether everything moving about the element is its size, as when an accordion opens. */
+  isRevealing: (element: Element) => boolean;
+  /** Runs `measure` and forgets the DOM changes it made, so measuring never triggers a layout pass. */
+  quietly: <T>(measure: () => T) => T;
 };
+
+const REVEALING = new Set(
+  ["height", "width", "max-height", "max-width"].map((p) => `transition:${p}`),
+);
 
 export const HOT_MS = 600;
 
@@ -113,6 +121,7 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
   let hotUntil = 0;
   let frameCount = 0;
   let teardown: (() => void) | undefined;
+  let observer: MutationObserver | undefined;
 
   const emit = (pass: LayoutPass) => {
     for (const listener of listeners) listener(pass);
@@ -208,7 +217,7 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
     for (const [name, handler] of events) document.addEventListener(name, handler, capture);
     const view = document.defaultView;
     view?.addEventListener("resize", notify);
-    const observer =
+    observer =
       typeof MutationObserver === "function"
         ? new MutationObserver((records) => {
             if (records.some((record) => !isOwnMutation(record))) notify();
@@ -225,6 +234,7 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
       for (const [name, handler] of events) document.removeEventListener(name, handler, capture);
       view?.removeEventListener("resize", notify);
       observer?.disconnect();
+      observer = undefined;
       live.clear();
     };
   };
@@ -243,6 +253,19 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
     },
     refresh: notify,
     isMoving: (element) => (moving.get(element)?.size ?? 0) > 0,
+    isRevealing: (element) => {
+      const keys = moving.get(element);
+      return keys !== undefined && keys.size > 0 && [...keys].every((key) => REVEALING.has(key));
+    },
+    quietly: (measure) => {
+      const earlier = observer?.takeRecords() ?? [];
+      try {
+        return measure();
+      } finally {
+        observer?.takeRecords();
+        if (earlier.some((record) => !isOwnMutation(record))) notify();
+      }
+    },
   };
 };
 

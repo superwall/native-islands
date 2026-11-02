@@ -82,7 +82,7 @@ describe("installNativeSimulator", () => {
       protocol: 1,
       components: SIMULATED_COMPONENTS,
       anchors: ["page", "scroller", "screen"],
-      features: ["state", "requests", "commands", "layered"],
+      features: ["state", "requests", "commands", "layered", "sticky", "clip"],
     });
     expect(() => installNativeSimulator()).toThrow(/already present/);
   });
@@ -203,6 +203,57 @@ describe("installNativeSimulator", () => {
     simulator = undefined;
     expect(list.querySelector("[data-island-simulated]")).toBeNull();
     expect(list.style.position).toBe("");
+  });
+
+  it("keeps a sticky island stuck as its scroller scrolls, and cuts an island to its clip", () => {
+    const list = document.createElement("div");
+    list.dataset.rect = rectAttribute(0, 0, 400, 800);
+    document.body.appendChild(list);
+    overrideStyle(list, { overflowY: "auto", position: "relative" });
+    setScrollGeometry(list, {
+      scrollHeight: 1000,
+      scrollWidth: 400,
+      clientHeight: 800,
+      clientWidth: 400,
+    });
+    simulator = installNativeSimulator();
+    const anchor = {
+      type: "scroller" as const,
+      scroller: {
+        id: "s",
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        content_size: { width: 400, height: 1000 },
+        scroll_offset: { x: 0, y: 0 },
+      },
+    };
+    post([
+      mount({
+        frame: { x: 20, y: 908, width: 360, height: 44 },
+        anchor,
+        sticky: {
+          bottom: 12,
+          box: { x: 0, y: 900, width: 400, height: 60 },
+          bounds: { x: 0, y: 0, width: 400, height: 1000 },
+        },
+      }),
+    ]);
+    expect(drawn().style.top).toBe("736px");
+    list.scrollTop = 100;
+    list.dispatchEvent(new Event("scroll"));
+    expect(drawn().style.top).toBe("836px");
+    document.body.dispatchEvent(new Event("scroll"));
+    expect(drawn().style.top).toBe("836px");
+
+    post([
+      {
+        op: "update",
+        id: "cta",
+        frame: { x: 20, y: 908, width: 360, height: 44 },
+        clip: { x: 0, y: 4, width: 360, height: 10 },
+      },
+    ]);
+    expect(drawn().style.top).toBe("908px");
+    expect(drawn().style.clipPath).toBe("inset(4px 0px 30px 0px)");
   });
 
   it("leaves a positioned scroller alone", () => {
@@ -492,7 +543,7 @@ describe("simulated state, requests and commands", () => {
   it("advertises the features", () => {
     simulator = installNativeSimulator();
     expect(global.__NATIVE_ISLANDS__).toMatchObject({
-      features: ["state", "requests", "commands", "layered"],
+      features: ["state", "requests", "commands", "layered", "sticky", "clip"],
     });
   });
 

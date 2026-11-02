@@ -44,6 +44,11 @@ enum NativeFeature: String, Codable, CaseIterable, Sendable {
   /// Scroller islands live inside WebKit's layer for their scroller, so they
   /// move with it through page changes and web content above covers them.
   case layered
+  /// Sticky scroller islands arrive with their sticky box, and the host keeps
+  /// them stuck as the scroller scrolls.
+  case sticky
+  /// Islands arrive with the part of them a clipping ancestor shows.
+  case clip
 }
 
 extension NativeCapability {

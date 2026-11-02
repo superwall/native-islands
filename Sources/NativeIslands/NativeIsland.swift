@@ -17,6 +17,8 @@ final class NativeIsland {
   private(set) var anchor: NativeAnchor
   private(set) var frame: NativeFrame
   private(set) var order: Int
+  private(set) var sticky: NativeSticky?
+  private(set) var clip: NativeFrame?
   var reportedSize: CGSize?
   /// Whether the view sits under the status bar, where the system blurs the
   /// page and a sharp native view would draw over it.
@@ -52,6 +54,8 @@ final class NativeIsland {
     sizing = mount.sizing
     anchor = mount.anchor
     frame = mount.frame
+    sticky = mount.sticky
+    clip = mount.clip
     order = mount.order
     if let initial = glass?(context.props), NativeGlassView.effect(for: initial) != nil {
       glassView = NativeGlassView(glass: initial, content: host.view)
@@ -69,8 +73,33 @@ final class NativeIsland {
     self.anchor = anchor
   }
 
-  func place(_ frame: NativeFrame) {
+  func place(_ frame: NativeFrame, sticky: NativeSticky? = nil, clip: NativeFrame? = nil) {
     self.frame = frame
+    self.sticky = sticky
+    self.clip = clip
+  }
+
+  /// Puts the view at its frame, moved as far as its sticky box is stuck in
+  /// the scroll view it lives in, and cut to its clip.
+  func layOut() {
+    var rect = frame.cgRect
+    if let sticky, let scrollView = view.superview?.enclosingScrollView {
+      rect.origin.y += sticky.shift(
+        offset: Double(scrollView.contentOffset.y),
+        height: Double(scrollView.bounds.height)
+      )
+    }
+    UIView.performWithoutAnimation {
+      view.frame = rect
+      if let clip {
+        let mask = view.mask ?? UIView()
+        mask.backgroundColor = .black
+        mask.frame = clip.cgRect
+        view.mask = mask
+      } else {
+        view.mask = nil
+      }
+    }
   }
 
   func reorder(_ order: Int) {
@@ -120,5 +149,17 @@ final class NativeIsland {
     }
     reportedSize = fitted
     return NativeSize(width: Double(fitted.width), height: Double(fitted.height))
+  }
+}
+
+extension UIView {
+  /// The nearest scroll view at or above this view.
+  var enclosingScrollView: UIScrollView? {
+    var current: UIView? = self
+    while let view = current {
+      if let scrollView = view as? UIScrollView { return scrollView }
+      current = view.superview
+    }
+    return nil
   }
 }

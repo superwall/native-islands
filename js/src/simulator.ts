@@ -10,12 +10,20 @@ import {
   NATIVE_PROTOCOL_VERSION,
   type TNativeAnchor,
   type TNativeFrame,
+  type TNativeSticky,
   type TNativeOperation,
   type TNativeScroller,
   type TNativeSize,
 } from "./schemas";
 import { NATIVE_RECEIVER_GLOBAL, type NativeIslandsReceiver } from "./transport";
-import { boxElementsOf, contentBoxOf, isScroller, scrollOffsetOf, unionRect } from "./measure";
+import {
+  boxElementsOf,
+  contentBoxOf,
+  isScroller,
+  scrollOffsetOf,
+  stickyShift,
+  unionRect,
+} from "./measure";
 
 /** What the simulated host offers and how it misbehaves, for testing pages in a browser. */
 export type NativeSimulatorOptions = {
@@ -55,6 +63,12 @@ export type SimulatedIsland = {
   sequence: number;
   /** The scroller it is drawn in, for a `scroller` anchor. */
   scroller?: HTMLElement;
+  /** Its frame as the page last sent it, unstuck. */
+  frame?: TNativeFrame;
+  /** The sticky box it follows, for a sticky island. */
+  sticky?: TNativeSticky;
+  /** The part of it drawn, in its own coordinates. */
+  clip?: TNativeFrame;
 };
 
 /** How far an island's drawn view sits from its web element, in CSS pixels. */
@@ -132,12 +146,26 @@ const labelOf = (component: string, props: Readonly<Record<string, unknown>>) =>
   return typeof title === "string" ? `${component} · ${title}` : component;
 };
 
-const place = (island: SimulatedIsland, frame: TNativeFrame) => {
-  const { scroller } = island;
+const place = (
+  island: SimulatedIsland,
+  frame: TNativeFrame,
+  sticky?: TNativeSticky,
+  clip?: TNativeFrame,
+) => {
+  island.frame = frame;
+  island.sticky = sticky;
+  island.clip = clip;
+  relayOut(island);
+};
+
+const relayOut = (island: SimulatedIsland) => {
+  const { scroller, frame, sticky, clip } = island;
+  if (!frame) return;
   let x = frame.x;
   let y = frame.y;
   if (scroller) {
     const origin = scrollOffsetOf(scroller);
+    if (sticky) y += stickyShift(sticky, origin.y, scroller.clientHeight);
     x -= origin.x - scroller.scrollLeft;
     y -= origin.y - scroller.scrollTop;
   }
@@ -146,6 +174,9 @@ const place = (island: SimulatedIsland, frame: TNativeFrame) => {
     top: `${y}px`,
     width: `${frame.width}px`,
     height: `${frame.height}px`,
+    clipPath: clip
+      ? `inset(${clip.y}px ${frame.width - clip.x - clip.width}px ${frame.height - clip.y - clip.height}px ${clip.x}px)`
+      : "",
   });
 };
 
@@ -165,6 +196,12 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
   const failing = new Set(options.failing);
   const silent = new Set(options.silent);
   const islands = new Map<string, SimulatedIsland>();
+  const followSticky = (event: Event) => {
+    for (const island of islands.values()) {
+      if (island.sticky && island.scroller === event.target) relayOut(island);
+    }
+  };
+  document.addEventListener("scroll", followSticky, { capture: true, passive: true });
   const positioned = new Map<HTMLElement, string>();
 
   const layer = (position: "absolute" | "fixed") => {
@@ -317,7 +354,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         return;
       }
       islands.set(operation.id, island);
-      place(island, operation.frame);
+      place(island, operation.frame, operation.sticky, operation.clip);
       show(island);
       const size = operation.sizing === "native" ? sizes[operation.component] : undefined;
       if (size) send({ event_name: "native_component_size", id: operation.id, size, sequence });
@@ -337,7 +374,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
       return;
     }
     if (operation.anchor) island.anchor = operation.anchor.type;
-    if (operation.frame) place(island, operation.frame);
+    if (operation.frame) place(island, operation.frame, operation.sticky, operation.clip);
     const echoed = operation.state_revision;
     const stale = echoed !== undefined && echoed < (revisions.get(operation.id) ?? 0);
     if (operation.props && !stale) island.props = operation.props;
@@ -414,7 +451,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     protocol: NATIVE_PROTOCOL_VERSION,
     components: { ...components },
     anchors: ["page", "scroller", "screen"],
-    features: ["state", "requests", "commands", "layered"],
+    features: ["state", "requests", "commands", "layered", "sticky", "clip"],
   };
 
   return {
@@ -481,6 +518,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         ];
       }),
     uninstall: () => {
+      document.removeEventListener("scroll", followSticky, { capture: true });
       for (const island of islands.values()) island.element.remove();
       for (const [scroller, position] of positioned) scroller.style.position = position;
       positioned.clear();

@@ -166,8 +166,8 @@ final class NativeIslandManager: NativeIslandMessaging {
     let island = NativeIsland(context: context, host: host, mount: mount, glass: entry.glass)
     islands[mount.id] = island
     attach(island, to: container)
+    island.layOut()
     UIView.performWithoutAnimation {
-      island.view.frame = mount.frame.cgRect
       island.view.layoutIfNeeded()
     }
     island.applyVisibility(animated: false)
@@ -194,10 +194,8 @@ final class NativeIslandManager: NativeIslandMessaging {
       island.move(to: anchor)
     }
     if let frame = update.frame {
-      island.place(frame)
-      UIView.performWithoutAnimation {
-        island.view.frame = frame.cgRect
-      }
+      island.place(frame, sticky: update.sticky, clip: update.clip)
+      island.layOut()
     }
     if let order = update.order {
       island.reorder(order)

@@ -149,8 +149,21 @@ extension NativeIslandManager {
       scrollObservations[ObjectIdentifier(scrollView)] = scrollView.observe(
         \.contentOffset,
         options: [.new]
-      ) { [weak self] _, _ in
-        MainActor.assumeIsolated { self?.updateObscured() }
+      ) { [weak self] scrolled, _ in
+        MainActor.assumeIsolated {
+          self?.followSticky(in: scrolled)
+          self?.updateObscured()
+        }
+      }
+    }
+  }
+
+  /// Keeps sticky islands in `scrollView` stuck as it scrolls, in the same
+  /// pass that moves its content, so they never trail a frame behind.
+  func followSticky(in scrollView: UIScrollView) {
+    for island in islands.values where island.sticky != nil {
+      if island.view.superview?.enclosingScrollView === scrollView {
+        island.layOut()
       }
     }
   }

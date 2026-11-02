@@ -9,7 +9,7 @@
       "symbol": 1
     },
     "anchors": ["page", "scroller", "screen"],
-    "features": ["state", "requests", "commands", "layered"]
+    "features": ["state", "requests", "commands", "layered", "sticky", "clip"]
   },
   "toHost": [
     {
@@ -121,7 +121,34 @@
         {
           "op": "update",
           "id": "plans-annual",
-          "visible": false
+          "visible": false,
+          "frame": {
+            "x": 296,
+            "y": 12,
+            "width": 51,
+            "height": 31
+          },
+          "sticky": {
+            "bottom": 12,
+            "box": {
+              "x": 0,
+              "y": 0,
+              "width": 354,
+              "height": 56
+            },
+            "bounds": {
+              "x": 0,
+              "y": 0,
+              "width": 354,
+              "height": 640
+            }
+          },
+          "clip": {
+            "x": 0,
+            "y": 0,
+            "width": 51,
+            "height": 20
+          }
         },
         {
           "op": "unmount",

@@ -1,4 +1,5 @@
-import type { TNativeAnchor, TNativeFrame } from "./schemas";
+import type { TNativeAnchor, TNativeFrame, TNativeSticky } from "./schemas";
+import { layoutWatcherFor } from "./watcher";
 
 export type NativeAnchorKind = "page" | "scroller" | "screen" | "tracked";
 
@@ -9,6 +10,13 @@ export type NativePlacement = {
   anchor: TNativeAnchor;
   rect: TNativeFrame;
   scroller?: HTMLElement;
+  /** For an island in a sticky box the host keeps stuck: that box, in content coordinates. */
+  sticky?: TNativeSticky;
+};
+
+export type PlacementOptions = {
+  /** Whether the host keeps sticky boxes in a scroller stuck itself. Default: `false`. */
+  sticky?: boolean;
 };
 
 export const boxElementsOf = (wrapper: HTMLElement): HTMLElement[] => {
@@ -45,7 +53,7 @@ export const isScroller = (element: Element): boolean => {
 };
 
 export type NativeAnchorOf =
-  | { kind: "scroller"; scroller: HTMLElement }
+  | { kind: "scroller"; scroller: HTMLElement; sticky?: HTMLElement }
   | { kind: Exclude<NativeAnchorKind, "scroller"> };
 
 const isNone = (value: string | undefined) =>
@@ -61,9 +69,10 @@ export const containsFixed = (style: CSSStyleDeclaration): boolean =>
 export const containsAbsolute = (style: CSSStyleDeclaration): boolean =>
   (style.position !== "static" && style.position !== "") || containsFixed(style);
 
-export const anchorOf = (start: Element): NativeAnchorOf => {
+export const anchorOf = (start: Element, options: PlacementOptions = {}): NativeAnchorOf => {
   const { body, documentElement } = start.ownerDocument;
   let pending: "absolute" | "fixed" | undefined;
+  let sticky: HTMLElement | undefined;
   for (
     let element: Element | null = start;
     element && element !== body && element !== documentElement;
@@ -75,14 +84,106 @@ export const anchorOf = (start: Element): NativeAnchorOf => {
       if (!contains) continue;
       pending = undefined;
     }
-    if (style.position === "sticky") return { kind: "tracked" };
+    if (style.position === "sticky" && !sticky) {
+      if (!options.sticky || !(element instanceof HTMLElement)) return { kind: "tracked" };
+      sticky = element;
+      continue;
+    }
     if (element !== start && element instanceof HTMLElement && isScroller(element)) {
-      return { kind: "scroller", scroller: element };
+      return sticky
+        ? { kind: "scroller", scroller: element, sticky }
+        : { kind: "scroller", scroller: element };
     }
     if (style.position === "fixed") pending = "fixed";
     else if (style.position === "absolute") pending = "absolute";
   }
+  if (sticky) return { kind: "tracked" };
   return pending === "fixed" ? { kind: "screen" } : { kind: "page" };
+};
+
+const pixels = (value: string): number | undefined =>
+  value.endsWith("px") ? Number.parseFloat(value) : undefined;
+
+/**
+ * How far a sticky box sits from where it would be unstuck, for a scroller
+ * scrolled to `offset` that shows `height` pixels of its content. The host
+ * runs the same rule on every scroll.
+ */
+export const stickyShift = (sticky: TNativeSticky, offset: number, height: number): number => {
+  let y = sticky.box.y;
+  if (sticky.bottom !== undefined) {
+    y = Math.min(y, Math.max(offset + height - sticky.bottom - sticky.box.height, sticky.bounds.y));
+  }
+  if (sticky.top !== undefined) {
+    y = Math.max(
+      y,
+      Math.min(offset + sticky.top, sticky.bounds.y + sticky.bounds.height - sticky.box.height),
+    );
+  }
+  return y - sticky.box.y;
+};
+
+/**
+ * Measures the island and its sticky box where they sit unstuck, by laying the
+ * box out as `static` for the length of one measurement. Nothing paints in
+ * between, and the layout watcher forgets the change.
+ */
+export const unstuckOf = (
+  at: Extract<NativeAnchorOf, { kind: "scroller" }> & { sticky: HTMLElement },
+  boxes: readonly Element[],
+): { rect: TNativeFrame; sticky: TNativeSticky } | undefined => {
+  const { sticky: element } = at;
+  const document = element.ownerDocument;
+  const parent = element.parentElement;
+  if (!parent) return undefined;
+  const style = getComputedStyle(element);
+  const top = pixels(style.top);
+  const bottom = pixels(style.bottom);
+  if (top === undefined && bottom === undefined) return undefined;
+  const marginTop = Number.parseFloat(style.marginTop) || 0;
+  const marginBottom = Number.parseFloat(style.marginBottom) || 0;
+  return layoutWatcherFor(document).quietly(() => {
+    const hadStyle = element.hasAttribute("style");
+    const previous = element.style.getPropertyValue("position");
+    const priority = element.style.getPropertyPriority("position");
+    element.style.setProperty("position", "static", "important");
+    try {
+      const rect = unionRect(boxes);
+      if (!rect) return undefined;
+      const box = element.getBoundingClientRect();
+      const outer = parent.getBoundingClientRect();
+      const parentStyle = getComputedStyle(parent);
+      const inset = (side: "Top" | "Bottom" | "Left" | "Right") =>
+        (Number.parseFloat(parentStyle[`border${side}Width`]) || 0) +
+        (Number.parseFloat(parentStyle[`padding${side}`]) || 0);
+      const content = {
+        x: outer.left + inset("Left"),
+        y: outer.top + inset("Top") + marginTop,
+        width: Math.max(0, outer.width - inset("Left") - inset("Right")),
+        height: Math.max(
+          0,
+          outer.height - inset("Top") - inset("Bottom") - marginTop - marginBottom,
+        ),
+      };
+      return {
+        rect,
+        sticky: {
+          ...(top === undefined ? {} : { top }),
+          ...(bottom === undefined ? {} : { bottom }),
+          box: frameIn(
+            at,
+            { x: box.left, y: box.top, width: box.width, height: box.height },
+            document,
+          ),
+          bounds: frameIn(at, content, document),
+        },
+      };
+    } finally {
+      if (previous) element.style.setProperty("position", previous, priority);
+      else element.style.removeProperty("position");
+      if (!hadStyle) element.removeAttribute("style");
+    }
+  });
 };
 
 const scrollerIds = new WeakMap<Element, string>();
@@ -160,11 +261,19 @@ export const frameIn = (
   return rect;
 };
 
-export const placementOf = (wrapper: HTMLElement): NativePlacement | undefined => {
+export const placementOf = (
+  wrapper: HTMLElement,
+  options: PlacementOptions = {},
+): NativePlacement | undefined => {
   const boxes = boxElementsOf(wrapper);
   const rect = unionRect(boxes);
   if (!rect) return undefined;
-  const found = anchorOf(boxes[0] as HTMLElement);
+  let found = anchorOf(boxes[0] as HTMLElement, options);
+  let unstuck: ReturnType<typeof unstuckOf>;
+  if (found.kind === "scroller" && found.sticky) {
+    unstuck = unstuckOf({ ...found, sticky: found.sticky }, boxes);
+    if (!unstuck) found = { kind: "tracked" };
+  }
   if (found.kind === "screen" || found.kind === "tracked") {
     return { kind: found.kind, at: found, rect, frame: rect, anchor: { type: "screen" } };
   }
@@ -177,7 +286,8 @@ export const placementOf = (wrapper: HTMLElement): NativePlacement | undefined =
       at: found,
       rect,
       scroller,
-      frame: frameIn(found, rect, wrapper.ownerDocument),
+      frame: frameIn(found, unstuck?.rect ?? rect, wrapper.ownerDocument),
+      ...(unstuck ? { sticky: unstuck.sticky } : {}),
       anchor: {
         type: "scroller",
         scroller: {

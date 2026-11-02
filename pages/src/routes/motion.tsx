@@ -30,7 +30,7 @@ export default function Motion() {
           <Glass title="Colour is not motion" />
         </div>
       </Scenario>
-      <Scenario id="S28" title="Inside an accordion that opens" expect="web while it happens">
+      <Scenario id="S28" title="Inside an accordion that opens" expect="native">
         <div style={{ width: "100%" }}>
           <Glass title={open ? "Close details" : "Open details"} onPress={() => setOpen(!open)} />
           <div className="expander" style={{ maxHeight: open ? 160 : 0 }}>

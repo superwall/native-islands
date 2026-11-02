@@ -429,3 +429,98 @@ describe("layered hosts", () => {
     expect(view.operations()).toEqual([expect.objectContaining({ op: "mount" })]);
   });
 });
+
+const Page = ({ open = 30 }: { open?: number }) => (
+  <div id="route" data-rect={rectAttribute(0, 0, 400, 600)}>
+    <div id="expander" data-rect={rectAttribute(0, 100, 400, open)}>
+      <GlassButton title="Inside" islandId="inside">
+        <button type="button" data-rect={rectAttribute(10, 110, 100, 40)}>
+          Inside
+        </button>
+      </GlassButton>
+    </div>
+    <div
+      id="footer"
+      style={{ position: "sticky", bottom: 12 }}
+      data-rect={rectAttribute(0, 520, 400, 60)}
+    >
+      <GlassButton title="Start" islandId="start">
+        <button type="button" data-rect={rectAttribute(10, 528, 380, 44)}>
+          Start
+        </button>
+      </GlassButton>
+    </div>
+  </div>
+);
+
+const prepare = (view: ReturnType<typeof renderNative>, open = 30) => {
+  const route = view.container.querySelector("#route") as HTMLElement;
+  const expander = view.container.querySelector("#expander") as HTMLElement;
+  overrideStyle(route, { overflowY: "auto" });
+  overrideStyle(expander, { overflowY: "hidden", overflowX: "hidden" });
+  setScrollGeometry(route, { scrollHeight: 1200, clientHeight: 600, clientWidth: 400 });
+  setScrollGeometry(expander, { clientHeight: open, clientWidth: 400 });
+  return { route, expander };
+};
+
+describe("sticky and clipped islands", () => {
+  const FEATURES = [...CAPABILITY.features, "layered", "sticky", "clip"];
+
+  it("anchors a sticky footer in its page, so the host keeps it stuck and it rides page changes", async () => {
+    installCapability({ ...CAPABILITY, features: FEATURES });
+    const view = renderNative(<Page />);
+    prepare(view);
+    view.rerender(<Page />);
+    await view.nextFrame();
+    expect(view.operations()).toContainEqual(
+      expect.objectContaining({
+        op: "mount",
+        id: "start",
+        anchor: expect.objectContaining({ type: "scroller" }),
+        sticky: expect.objectContaining({ bottom: 12 }),
+      }),
+    );
+  });
+
+  it("follows a sticky footer from JS on a host that cannot keep it stuck", async () => {
+    installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "layered"] });
+    const view = renderNative(<Page />);
+    prepare(view);
+    view.rerender(<Page />);
+    await view.nextFrame();
+    const start = view.operations().find((operation) => operation.id === "start");
+    expect(start).toMatchObject({ op: "mount", anchor: { type: "screen" } });
+    expect(start).not.toHaveProperty("sticky");
+  });
+
+  it("keeps an island in an opening accordion native, cut to what is open so far", async () => {
+    installCapability({ ...CAPABILITY, features: FEATURES });
+    const view = renderNative(<Page />);
+    const { expander } = prepare(view);
+    transition("transitionrun", expander, "max-height");
+    view.rerender(<Page />);
+    await view.nextFrame();
+    expect(view.operations()).toContainEqual(
+      expect.objectContaining({
+        op: "mount",
+        id: "inside",
+        visible: true,
+        clip: { x: 0, y: 0, width: 100, height: 20 },
+      }),
+    );
+    view.ackAll();
+    transition("transitionrun", expander, "max-height");
+    act(() => {
+      expander.dataset.rect = rectAttribute(0, 100, 400, 60);
+      setScrollGeometry(expander, { clientHeight: 60 });
+    });
+    await view.nextFrame();
+    await view.nextFrame();
+    const updates = view
+      .operations()
+      .filter((operation) => operation.id === "inside" && operation.op === "update");
+    expect(updates).not.toContainEqual(expect.objectContaining({ visible: false }));
+    expect(updates.at(-1)).toMatchObject({ frame: { x: 10, y: 110, width: 100, height: 40 } });
+    expect(updates.at(-1)).not.toHaveProperty("clip");
+  });
+});
