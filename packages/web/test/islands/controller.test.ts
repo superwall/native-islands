@@ -207,6 +207,22 @@ describe("batching", () => {
     expect(operations().slice(2)).toEqual([{ op: "update", id: "a", anchor: { type: "screen" } }]);
   });
 
+  it("resends the frame with every cut, shade, turn and fade when only those change", () => {
+    const { islands, frame, operations, receive } = setup();
+    islands.mount("a", spec());
+    frame();
+    receive({ event_name: "native_component_ack", sequence: 1, ids: ["a"] });
+    const clip = { x: 0, y: 0, width: 50, height: 44 };
+    islands.update("a", { clip, opacity: 0.5 });
+    frame();
+    expect(operations().slice(1)).toEqual([
+      { op: "update", id: "a", frame: spec().frame, clip, opacity: 0.5 },
+    ]);
+    islands.update("a", { clip: undefined, opacity: undefined });
+    frame();
+    expect(operations().slice(2)).toEqual([{ op: "update", id: "a", frame: spec().frame }]);
+  });
+
   it("sends no batch when nothing changed", () => {
     const { islands, frame, batches } = setup();
     islands.mount("a", spec());

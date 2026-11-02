@@ -5,6 +5,7 @@ import {
   nativeSupport,
   readNativeCapability,
   supportsAnchor,
+  supportsFeature,
 } from "../../src";
 
 const available = readNativeCapability({
@@ -115,5 +116,17 @@ describe("forward compatibility", () => {
     expect(supportsAnchor(limited, "page")).toBe(true);
     expect(supportsAnchor(limited, "scroller")).toBe(false);
     expect(supportsAnchor(readNativeCapability(undefined), "page")).toBe(false);
+  });
+
+  it("keeps the features it knows and ignores the rest", () => {
+    const result = readNativeCapability({
+      protocol: 1,
+      components: {},
+      features: ["state", "teleport"],
+    });
+    expect(supportsFeature(result, "state")).toBe(true);
+    expect(supportsFeature(result, "commands")).toBe(false);
+    expect(supportsFeature(readNativeCapability(undefined), "state")).toBe(false);
+    expect(result.status === "available" && result.ignored).toEqual(['feature "teleport"']);
   });
 });

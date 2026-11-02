@@ -1,3 +1,4 @@
+import { withoutUndefined } from "../../protocol/defined";
 import * as React from "react";
 import { supportsFeature } from "../../protocol/capability";
 import { ISLAND_PHASE_ATTRIBUTE } from "../../layout/attributes";
@@ -86,17 +87,17 @@ type Geometry = {
 
 const geometryPatch = (geometry: Geometry) =>
   geometry.visible
-    ? {
+    ? withoutUndefined({
         frame: geometry.frame,
         anchor: geometry.anchor,
         visible: true,
-        ...(geometry.sticky ? { sticky: geometry.sticky } : {}),
-        ...(geometry.clip ? { clip: geometry.clip } : {}),
-        ...(geometry.holes ? { holes: geometry.holes } : {}),
-        ...(geometry.shades ? { shades: geometry.shades } : {}),
-        ...(geometry.transform ? { transform: geometry.transform } : {}),
-        ...(geometry.opacity === undefined ? {} : { opacity: geometry.opacity }),
-      }
+        sticky: geometry.sticky,
+        clip: geometry.clip,
+        holes: geometry.holes,
+        shades: geometry.shades,
+        transform: geometry.transform,
+        opacity: geometry.opacity,
+      })
     : { visible: false };
 
 const untransformedFrame = (
@@ -109,16 +110,16 @@ const untransformedFrame = (
   const c = Math.abs(transform.c);
   const d = Math.abs(transform.d);
   const determinant = a * d - c * b;
-  let width: number;
-  let height: number;
-  if (Math.abs(determinant) > 0.2) {
-    width = (bounds.width * d - bounds.height * c) / determinant;
-    height = (bounds.height * a - bounds.width * b) / determinant;
-  } else {
-    const [box] = boxElementsOf(element);
-    width = box?.offsetWidth ?? bounds.width;
-    height = box?.offsetHeight ?? bounds.height;
-  }
+  const { width, height } =
+    Math.abs(determinant) > 0.2
+      ? {
+          width: (bounds.width * d - bounds.height * c) / determinant,
+          height: (bounds.height * a - bounds.width * b) / determinant,
+        }
+      : boxElementsOf(element).reduce(
+          (_, box) => ({ width: box.offsetWidth, height: box.offsetHeight }),
+          { width: bounds.width, height: bounds.height },
+        );
   return {
     x: bounds.x + bounds.width / 2 - width / 2,
     y: bounds.y + bounds.height / 2 - height / 2,
@@ -130,16 +131,13 @@ const untransformedFrame = (
 const localClip = (
   clip: TNativeFrame,
   rect: TNativeFrame,
-  scroller: HTMLElement | undefined,
-): TNativeFrame => {
-  const scale = scroller ? scaleOf(scroller) : { x: 1, y: 1 };
-  return {
-    x: (clip.x - rect.x) / scale.x,
-    y: (clip.y - rect.y) / scale.y,
-    width: clip.width / scale.x,
-    height: clip.height / scale.y,
-  };
-};
+  scale: { x: number; y: number },
+): TNativeFrame => ({
+  x: (clip.x - rect.x) / scale.x,
+  y: (clip.y - rect.y) / scale.y,
+  width: clip.width / scale.x,
+  height: clip.height / scale.y,
+});
 
 const report = (component: string, reason: Reason, message?: string) => {
   if (QUIET_REFUSALS.has(reason)) return;
@@ -204,10 +202,11 @@ export const useNativeIsland = (
         out,
       });
       tracked.revealing = out.revealing === true;
-      const clip = out.clip && localClip(out.clip, placement.rect, riding);
-      const holes = out.holes?.map((hole) => localClip(hole, placement.rect, riding));
+      const scale = riding ? scaleOf(riding) : { x: 1, y: 1 };
+      const clip = out.clip && localClip(out.clip, placement.rect, scale);
+      const holes = out.holes?.map((hole) => localClip(hole, placement.rect, scale));
       const shades = out.shades?.map(({ color, ...area }) => ({
-        ...localClip(area, placement.rect, riding),
+        ...localClip(area, placement.rect, scale),
         color,
       }));
       const previous = sentAnchor.current;
@@ -224,16 +223,18 @@ export const useNativeIsland = (
         frame: transform
           ? untransformedFrame(element, placement.frame, transform)
           : placement.frame,
-        ...(transform ? { transform } : {}),
-        ...(out.opacity === undefined ? {} : { opacity: out.opacity }),
         anchor,
         handoff,
         riding,
         visible: handoff === undefined,
-        ...(placement.sticky ? { sticky: placement.sticky } : {}),
-        ...(clip ? { clip } : {}),
-        ...(holes ? { holes } : {}),
-        ...(shades ? { shades } : {}),
+        ...withoutUndefined({
+          transform,
+          opacity: out.opacity,
+          sticky: placement.sticky,
+          clip,
+          holes,
+          shades,
+        }),
       };
     },
     [islands],
@@ -312,12 +313,14 @@ export const useNativeIsland = (
           anchor: spec.anchor,
           props: spec.props,
           accessibility: spec.accessibility,
-          ...(spec.sticky ? { sticky: spec.sticky } : {}),
-          ...(spec.clip ? { clip: spec.clip } : {}),
-          ...(spec.holes ? { holes: spec.holes } : {}),
-          ...(spec.shades ? { shades: spec.shades } : {}),
-          ...(spec.transform ? { transform: spec.transform } : {}),
-          ...(spec.opacity === undefined ? {} : { opacity: spec.opacity }),
+          ...withoutUndefined({
+            sticky: spec.sticky,
+            clip: spec.clip,
+            holes: spec.holes,
+            shades: spec.shades,
+            transform: spec.transform,
+            opacity: spec.opacity,
+          }),
         },
         {
           onReady: () => {
@@ -360,17 +363,18 @@ export const useNativeIsland = (
             sentAnchor.current = undefined;
             const geometry = evaluate(element);
             return (
-              geometry && {
+              geometry &&
+              withoutUndefined({
                 frame: geometry.frame,
                 anchor: geometry.anchor,
                 visible: geometry.visible,
-                ...(geometry.sticky ? { sticky: geometry.sticky } : {}),
-                ...(geometry.clip ? { clip: geometry.clip } : {}),
-                ...(geometry.holes ? { holes: geometry.holes } : {}),
-                ...(geometry.shades ? { shades: geometry.shades } : {}),
-                ...(geometry.transform ? { transform: geometry.transform } : {}),
-                ...(geometry.opacity === undefined ? {} : { opacity: geometry.opacity }),
-              }
+                sticky: geometry.sticky,
+                clip: geometry.clip,
+                holes: geometry.holes,
+                shades: geometry.shades,
+                transform: geometry.transform,
+                opacity: geometry.opacity,
+              })
             );
           },
         },

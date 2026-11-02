@@ -254,6 +254,17 @@ describe("installNativeSimulator", () => {
     ]);
     expect(drawn().style.top).toBe("908px");
     expect(drawn().style.clipPath).toBe("inset(4px 0px 30px 0px)");
+    post([
+      {
+        op: "update",
+        id: "cta",
+        frame: { x: 20, y: 908, width: 360, height: 44 },
+        transform: { a: 0, b: 1, c: -1, d: 0 },
+        opacity: 0.5,
+      },
+    ]);
+    expect(drawn().style.transform).toBe("matrix(0, 1, -1, 0, 0, 0)");
+    expect(drawn().style.clipPath).toBe("");
   });
 
   it("leaves a positioned scroller alone", () => {

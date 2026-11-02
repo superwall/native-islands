@@ -177,6 +177,10 @@ describe("handoffOf", () => {
     const out: NonNullable<HandoffOptions["out"]> = {};
     expect(handoffOf(wrapper, placement(), still, false, { transform: true, out })).toBeUndefined();
     expect(out.transform).toBeDefined();
+    overrideStyle(button, { rotate: "none", transform: "rotate(3deg)" });
+    expect(handoffOf(wrapper, placement(), still, false, { transform: true, out: {} })).toBe(
+      "transformed",
+    );
   });
 
   it("still hands off 3D transforms, filters and turned islands a box cuts", () => {
@@ -211,6 +215,8 @@ describe("handoffOf", () => {
     ]);
     expect(linearOf(style({ scale: "2 3" }))).toEqual([2, 0, 0, 3]);
     expect(linearOf(style({ scale: "2 2 2" }))).toBeUndefined();
+    expect(linearOf(style({ scale: "2" }))).toEqual([2, 0, 0, 2]);
+    expect(linearOf(style({ scale: "wide" }))).toBeUndefined();
     expect(linearOf(style({ rotate: "z 90deg" }))?.map((value) => Math.round(value))).toEqual([
       0, 1, -1, 0,
     ]);
@@ -642,6 +648,49 @@ describe("layered hosts", () => {
     expect(out.holes).toHaveLength(1);
   });
 
+  it("hands off a turned island a box inside its scroller cuts, even when the host clips", () => {
+    const { wrapper, inner, placement } = routed();
+    const button = wrapper.querySelector("button") as HTMLElement;
+    inner.dataset.rect = rectAttribute(0, 0, 400, 520);
+    overrideStyle(inner, { overflowY: "hidden" });
+    setScrollGeometry(inner, { clientWidth: 400, clientHeight: 520 });
+    overrideStyle(button, { rotate: "5deg" });
+    expect(
+      handoffOf(wrapper, placement(), still, true, { clip: true, transform: true, out: {} }),
+    ).toBe("clipped");
+  });
+
+  it("keeps at most a few shades", () => {
+    const { wrapper, inner, placement } = routed();
+    const button = wrapper.querySelector("button") as HTMLElement;
+    const veils = Array.from({ length: MAX_HOLES + 2 }, (_, index) => {
+      const veil = document.createElement("i");
+      veil.dataset.rect = rectAttribute(10 + index * 9, 500, 4, 4);
+      overrideStyle(veil, { backgroundColor: "rgba(0, 0, 0, 0.4)" });
+      inner.appendChild(veil);
+      return veil;
+    });
+    let call = 0;
+    Object.assign(document, {
+      elementsFromPoint: () => [veils[call++ % veils.length], button, inner],
+    });
+    const out: { shades?: NativeShade[] } = {};
+    handoffOf(wrapper, placement(), still, true, { clip: true, out });
+    expect(out.shades).toHaveLength(MAX_HOLES);
+  });
+
+  it("ignores a cover reported at a point it does not overlap", () => {
+    const { wrapper, inner, placement } = routed();
+    const button = wrapper.querySelector("button") as HTMLElement;
+    const stray = document.createElement("div");
+    stray.dataset.rect = rectAttribute(300, 0, 20, 20);
+    inner.appendChild(stray);
+    Object.assign(document, { elementsFromPoint: () => [stray, button, inner] });
+    const out: { holes?: TNativeFrame[] } = {};
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true, out })).toBeUndefined();
+    expect(out.holes).toBeUndefined();
+  });
+
   it("follows an even scale when the host clips, and hands off for anything else", () => {
     const { wrapper, inner, placement } = routed();
     const button = wrapper.querySelector("button") as HTMLElement;
@@ -675,6 +724,8 @@ describe("shadeOf", () => {
     overrideStyle(element, { backgroundColor: "color(srgb 0.1 0.2 0.3 / 0.4)" });
     expect(shadeOf(element)).toBe("rgba(26, 51, 77, 0.4)");
     overrideStyle(element, { backgroundColor: "color(srgb 0.1 0.2)" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { backgroundColor: "rgba(1, x, 3, 0.5)" });
     expect(shadeOf(element)).toBeUndefined();
     overrideStyle(element, { backgroundColor: "rgb(1, 2)" });
     expect(shadeOf(element)).toBeUndefined();

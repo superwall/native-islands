@@ -44,7 +44,7 @@ export type SimulatedIsland = {
   element: HTMLElement;
   sequence: number;
   scroller?: HTMLElement;
-  frame?: TNativeFrame;
+  frame: TNativeFrame;
   sticky?: TNativeSticky;
   clip?: TNativeFrame;
   transform?: TNativeTransform;
@@ -118,7 +118,6 @@ const place = (
 
 const relayOut = (island: SimulatedIsland) => {
   const { scroller, frame, sticky, clip, transform } = island;
-  if (!frame) return;
   let x = frame.x;
   let y = frame.y;
   if (scroller) {
@@ -301,6 +300,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         visible: operation.visible,
         element,
         sequence,
+        frame: operation.frame,
       };
       if (!attach(island, operation.anchor)) {
         send({

@@ -1,3 +1,4 @@
+import { withoutUndefined } from "../protocol/defined";
 import {
   NATIVE_PROTOCOL_VERSION,
   NativeComponentLimits,
@@ -223,6 +224,16 @@ export const toNativeProps = (
 
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
+const layerOf = (spec: NativeIslandSpec) =>
+  withoutUndefined({
+    sticky: spec.sticky,
+    clip: spec.clip,
+    holes: spec.holes,
+    shades: spec.shades,
+    transform: spec.transform,
+    opacity: spec.opacity,
+  });
+
 const defaultScheduler: NativeScheduler = (flush) => {
   let done = false;
   const run = () => {
@@ -337,20 +348,12 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       const revision = island.revision > 0 ? { state_revision: island.revision } : {};
       if (!sent) {
-        const { accessibility, sticky, clip, holes, shades, transform, opacity, ...rest } = spec;
-        const operation: TNativeOperation = {
+        const operation: TNativeOperation = withoutUndefined({
           op: "mount",
           id,
-          ...rest,
-          ...(accessibility === undefined ? {} : { accessibility }),
-          ...(sticky === undefined ? {} : { sticky }),
-          ...(clip === undefined ? {} : { clip }),
-          ...(holes === undefined ? {} : { holes }),
-          ...(shades === undefined ? {} : { shades }),
-          ...(transform === undefined ? {} : { transform }),
-          ...(opacity === undefined ? {} : { opacity }),
+          ...spec,
           ...revision,
-        };
+        });
         if (!validOperation(operation)) {
           fail(id, island, "invalid_spec");
           continue;
@@ -362,24 +365,9 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       for (const key of UPDATABLE) {
         if (spec[key] !== undefined && !same(spec[key], sent[key])) changes[key] = spec[key];
       }
-      if (
-        !same(spec.sticky, sent.sticky) ||
-        !same(spec.clip, sent.clip) ||
-        !same(spec.holes, sent.holes) ||
-        !same(spec.shades, sent.shades) ||
-        !same(spec.transform, sent.transform) ||
-        spec.opacity !== sent.opacity
-      ) {
-        changes.frame = spec.frame;
-      }
-      if ("frame" in changes) {
-        if (spec.sticky !== undefined) changes.sticky = spec.sticky;
-        if (spec.clip !== undefined) changes.clip = spec.clip;
-        if (spec.holes !== undefined) changes.holes = spec.holes;
-        if (spec.shades !== undefined) changes.shades = spec.shades;
-        if (spec.transform !== undefined) changes.transform = spec.transform;
-        if (spec.opacity !== undefined) changes.opacity = spec.opacity;
-      }
+      const layer = layerOf(spec);
+      if (!same(layer, layerOf(sent))) changes.frame = spec.frame;
+      if ("frame" in changes) Object.assign(changes, layer);
       if (Object.keys(changes).length === 0) continue;
       const operation = parseOperation({
         op: "update",

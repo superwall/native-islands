@@ -36,14 +36,16 @@ const numbersIn = (list: string, separator: RegExp): number[] | undefined => {
   return values.every(Number.isFinite) ? values : undefined;
 };
 
+const isSixValues = (
+  values: number[],
+): values is [number, number, number, number, number, number] => values.length === 6;
+
 const matrixOf = (transform: string): Matrix | undefined => {
   const match = /^matrix(3d)?\((.*)\)$/.exec(transform.trim());
   const values = match?.[2] === undefined ? undefined : numbersIn(match[2], /\s*,\s*/);
   if (!values) return undefined;
   if (match?.[1]) return values.length === 16 ? { kind: "3d", values } : undefined;
-  const [a, b, c, d, e, f, ...rest] = values;
-  if (f === undefined || rest.length > 0) return undefined;
-  return { kind: "2d", values: [a ?? 0, b ?? 0, c ?? 0, d ?? 0, e ?? 0, f] };
+  return isSixValues(values) ? { kind: "2d", values } : undefined;
 };
 
 const IDENTITY_3D_LINEAR = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
@@ -93,7 +95,7 @@ export const multiply = (outer: Linear, inner: Linear): Linear => [
 ];
 
 export const isIdentity = (linear: Linear, epsilon = 1e-4) =>
-  linear.every((value, index) => Math.abs(value - (IDENTITY[index] ?? 0)) < epsilon);
+  linear.every((value, index) => Math.abs(value - (index % 3 === 0 ? 1 : 0)) < epsilon);
 
 const ANGLE_UNITS = {
   deg: Math.PI / 180,
@@ -104,8 +106,8 @@ const ANGLE_UNITS = {
 
 const isAngleUnit = (unit: string): unit is keyof typeof ANGLE_UNITS => unit in ANGLE_UNITS;
 
-const angleOf = (value: string | undefined): number | undefined => {
-  const match = value === undefined ? null : /^(-?[\d.]+(?:e-?\d+)?)([a-z]+)$/.exec(value);
+const angleOf = (value: string): number | undefined => {
+  const match = /^(-?[\d.]+(?:e-?\d+)?)([a-z]+)$/.exec(value);
   const [, amount, unit] = match ?? [];
   if (amount === undefined || unit === undefined || !isAngleUnit(unit)) return undefined;
   return Number.parseFloat(amount) * ANGLE_UNITS[unit];
@@ -131,7 +133,7 @@ const linearOfTransform = (transform: string): Linear | undefined => {
 const linearOfRotate = (rotate: string | undefined): Linear | undefined => {
   if (isNone(rotate)) return IDENTITY;
   const parts = rotate.trim().split(/\s+/);
-  const angle = angleOf(parts.at(-1));
+  const angle = angleOf(rotate.trim().replace(/^.*\s/, ""));
   if (angle === undefined) return undefined;
   const axis = parts.slice(0, -1);
   if (axis.length === 1 && axis[0] !== "z") return undefined;
@@ -226,9 +228,8 @@ export type NativeShade = TNativeFrame & { color: string };
 
 type Rgba = readonly [number, number, number, number];
 
-const channelsOf = (list: string | undefined, scale: number): Rgba | undefined => {
-  const [red, green, blue, alpha = 1, ...rest] =
-    list === undefined ? [] : (numbersIn(list, /[\s,/]+/) ?? []);
+const channelsOf = (list: string, scale: number): Rgba | undefined => {
+  const [red, green, blue, alpha = 1, ...rest] = numbersIn(list, /[\s,/]+/) ?? [];
   if (red === undefined || green === undefined || blue === undefined || rest.length > 0) {
     return undefined;
   }
@@ -237,10 +238,10 @@ const channelsOf = (list: string | undefined, scale: number): Rgba | undefined =
 
 const parseAlphaColor = (value: string): Rgba | undefined => {
   const trimmed = value.trim();
-  const css = /^rgba?\(([^)]*)\)$/.exec(trimmed);
-  if (css) return channelsOf(css[1], 1);
-  const srgb = /^color\(srgb ([^)]*)\)$/.exec(trimmed);
-  return srgb ? channelsOf(srgb[1], 255) : undefined;
+  const inside = trimmed.slice(trimmed.indexOf("(") + 1, -1);
+  if (/^rgba?\([^)]*\)$/.test(trimmed)) return channelsOf(inside, 1);
+  if (/^color\(srgb [^)]*\)$/.test(trimmed)) return channelsOf(inside.slice("srgb ".length), 255);
+  return undefined;
 };
 
 const toByte = (value: number) => Math.round(Math.min(255, Math.max(0, value)));

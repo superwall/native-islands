@@ -115,6 +115,21 @@ describe("sticky placement", () => {
     expect(footer.style.position).toBe("sticky");
   });
 
+  it("leaves a box made sticky by a stylesheet without a style attribute", () => {
+    mockStickyLayout();
+    const { footer, wrapper } = footerPage();
+    footer.removeAttribute("style");
+    const sheet = document.createElement("style");
+    sheet.textContent = "#footer { position: sticky; bottom: 12px; }";
+    document.head.appendChild(sheet);
+    try {
+      expect(placementOf(wrapper, { sticky: true })?.sticky?.bottom).toBe(12);
+      expect(footer.hasAttribute("style")).toBe(false);
+    } finally {
+      sheet.remove();
+    }
+  });
+
   it("keeps an important position the box set itself", () => {
     mockStickyLayout();
     const { footer, wrapper } = footerPage("position: sticky !important; top: 4px");

@@ -553,6 +553,32 @@ describe("sticky and clipped islands", () => {
     expect(start).not.toHaveProperty("sticky");
   });
 
+  it("cuts what covers an island out of it and lays a backdrop over it as a shade", async () => {
+    installCapability({ ...CAPABILITY, features: FEATURES });
+    const view = renderNative(<Page open={60} />);
+    const { route } = prepare(view, 60);
+    const button = view.container.querySelector("#expander button") as HTMLElement;
+    const toast = document.createElement("div");
+    toast.dataset.rect = rectAttribute(0, 100, 40, 60);
+    const veil = document.createElement("div");
+    veil.dataset.rect = rectAttribute(0, 0, 400, 600);
+    overrideStyle(veil, { backgroundColor: "rgba(0, 0, 0, 0.4)" });
+    route.append(toast, veil);
+    Object.assign(document, {
+      elementsFromPoint: (x: number) => (x < 40 ? [toast, button] : [veil, button]),
+    });
+    view.rerender(<Page open={60} />);
+    await view.nextFrame();
+    expect(view.operations()).toContainEqual(
+      expect.objectContaining({
+        op: "mount",
+        id: "inside",
+        holes: [{ x: 0, y: 0, width: 30, height: 40 }],
+        shades: [{ x: 0, y: 0, width: 100, height: 40, color: "rgba(0, 0, 0, 0.4)" }],
+      }),
+    );
+  });
+
   it("keeps an island in an opening accordion native, cut to what is open so far", async () => {
     installCapability({ ...CAPABILITY, features: FEATURES });
     const view = renderNative(<Page />);
