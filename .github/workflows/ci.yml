@@ -14,11 +14,11 @@ jobs:
         with:
           bun-version: 1.3.x
       - run: bun install --frozen-lockfile
-      - run: bunx oxlint --deny-warnings packages/web examples/pages scripts
-      - run: bunx oxfmt --check packages/web examples/pages contract scripts
+      - run: bunx oxlint --deny-warnings packages/web examples/pages performance
+      - run: bunx oxfmt --check packages/web examples/pages contract performance
       - run: bun run --cwd packages/web typecheck
       - run: bun run --cwd packages/web test:coverage
-      - run: bun test scripts
+      - run: bun test performance
       - run: bun run --cwd examples/pages build
 
   swift:

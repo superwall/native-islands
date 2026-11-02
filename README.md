@@ -222,8 +222,8 @@ in the same place.
 scripts/ui-tests.sh                     # alignment and screenshots, iPhone 17 and iPhone Air at once
 scripts/ui-tests.sh --devices "iPhone 17,iPhone 17e,iPhone Air"
 scripts/ui-tests.sh --record            # rewrite examples/ios/Baselines after a deliberate visual change
-scripts/perf.sh                         # 10, 50 and 100 islands against perf/baseline.json
-scripts/perf.sh --device "iPhone Air" --record
+performance/run.sh                      # 10, 50 and 100 islands against performance/baseline.json
+performance/run.sh --device "iPhone Air" --record
 ```
 
 - **Alignment** (`examples/ios/ExampleUITests/AlignmentUITests.swift`) opens every
@@ -236,9 +236,9 @@ scripts/perf.sh --device "iPhone Air" --record
 - **Performance** (`PerformanceUITests.swift`) records, for 10, 50 and 100
   islands: the time until the page is shown with its islands drawn, the memory
   per island, frames dropped while the page scrolls top to bottom and back,
-  and the JS time of one layout pass. `scripts/perf-check.ts` fails when one
+  and the JS time of one layout pass. `performance/check.ts` fails when one
   rises past its baseline by more than a share plus a fixed slack
-  (`scripts/perf-compare.ts`), and when one could not be measured. On a
+  (`performance/compare.ts`), and when one could not be measured. On a
   shared simulator dropped frames and layout cost swing a lot between
   identical runs, so those gates only catch large rises; measure scrolling on a device for anything finer.
 

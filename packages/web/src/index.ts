@@ -1,6 +1,6 @@
-export * from "./schemas";
-export * from "./messages";
-export * from "./attributes";
+export * from "./protocol/schemas";
+export * from "./protocol/messages";
+export * from "./layout/attributes";
 export {
   describeNativeCapability,
   nativeCapabilityFromGlobal,
@@ -11,7 +11,7 @@ export {
   type NativeCapability,
   type NativeCapabilityResult,
   type NativeSupport,
-} from "./capability";
+} from "./protocol/capability";
 export {
   createNativeIslands,
   NATIVE_ACK_TIMEOUT_MS,
@@ -30,19 +30,19 @@ export {
   type NativeMountRefusal,
   type NativeMountResult,
   type NativeScheduler,
-} from "./islands";
+} from "./islands/controller";
 export {
   createWebKitTransport,
   NATIVE_RECEIVER_GLOBAL,
   type NativeIslandsReceiver,
   type NativeIslandsTransport,
   type WebKitTransportOptions,
-} from "./transport";
+} from "./bridge/transport";
 export {
   connectNativeIslands,
   type ConnectNativeIslandsOptions,
   type NativeIslandsConnection,
-} from "./connect";
+} from "./bridge/connect";
 export {
   anchorOf,
   boxElementsOf,
@@ -56,11 +56,11 @@ export {
   type NativeAnchorKind,
   type NativeAnchorOf,
   type NativePlacement,
-} from "./measure";
-export { handoffOf, isCovered, type NativeHandoff } from "./handoff";
+} from "./layout/measure";
+export { handoffOf, isCovered, type NativeHandoff } from "./layout/handoff";
 export {
   createLayoutWatcher,
   layoutWatcherFor,
   type LayoutPass,
   type LayoutWatcher,
-} from "./watcher";
+} from "./layout/watcher";

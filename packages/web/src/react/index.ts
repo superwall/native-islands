@@ -1,10 +1,16 @@
-export { CloseButton, GlassButton, SegmentedControl, SystemSymbol, Toggle } from "./builtins";
+export {
+  CloseButton,
+  GlassButton,
+  SegmentedControl,
+  SystemSymbol,
+  Toggle,
+} from "./components/builtins";
 export {
   NativeIslandsProvider,
   useNativeIslands,
   useNativeIslandsReady,
   type NativeIslandsProviderProps,
-} from "./context";
+} from "./provider/context";
 export {
   defineNativeComponent,
   type NativeCommand,
@@ -16,7 +22,7 @@ export {
   type NativeEventHandlers,
   type NativeRequest,
   type NativeRequestHandlers,
-} from "./define";
+} from "./components/define";
 export {
   Native,
   type NativeAccessibility,
@@ -26,9 +32,9 @@ export {
   type NativeIslandHandle,
   type NativeProps,
   type NativeValue,
-} from "./Native";
-export type { NativeMode, NativeSizing } from "./useNativeIsland";
-export { useNativeSupport } from "./useNativeSupport";
-export type { NativeHandoff } from "../handoff";
-export { NativeCommandError, type NativeCommandFailure } from "../islands";
-export type { NativeSupport } from "../capability";
+} from "./components/Native";
+export type { NativeMode, NativeSizing } from "./hooks/useNativeIsland";
+export { useNativeSupport } from "./hooks/useNativeSupport";
+export type { NativeHandoff } from "../layout/handoff";
+export { NativeCommandError, type NativeCommandFailure } from "../islands/controller";
+export type { NativeSupport } from "../protocol/capability";

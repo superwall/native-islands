@@ -5,7 +5,7 @@ import XCTest
 /// long the first frame takes to show, the memory each island costs, the
 /// frames dropped while the page sweeps through its scroll, and the JS time a
 /// layout pass costs. Writes them to `PERF_OUTPUT` as JSON, which
-/// `scripts/perf-check.ts` compares with `perf/baseline.json`.
+/// `performance/check.ts` compares with `performance/baseline.json`.
 final class PerformanceUITests: XCTestCase {
   static let counts = [10, 50, 100]
 
