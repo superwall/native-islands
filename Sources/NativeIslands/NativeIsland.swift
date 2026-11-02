@@ -23,7 +23,7 @@ final class NativeIsland {
   private(set) var shades: [NativeShade]?
   private(set) var transform: NativeTransform?
   private(set) var opacity: Double?
-  private var shadeViews: [UIView] = []
+  private(set) var shadeViews: [UIView] = []
   private var shadeHost: UIView?
   var reportedSize: CGSize?
   /// How much of the view's top scrolling has carried under the status bar,
@@ -180,9 +180,16 @@ final class NativeIsland {
     }
     container.frame = view.frame
     container.alpha = view.alpha
-    container.layer.cornerRadius = glassView.map {
-      NativeGlassView.cornerRadius(for: $0.glass.shape, in: view.bounds.size)
-    } ?? 0
+    if let glassView {
+      container.layer.mask = nil
+      container.layer.cornerRadius = NativeGlassView.cornerRadius(
+        for: glassView.glass.shape,
+        in: view.bounds.size
+      )
+    } else {
+      container.layer.cornerRadius = 0
+      container.layer.mask = silhouette() ?? container.layer.mask
+    }
     while shadeViews.count > wanted.count {
       shadeViews.removeLast().removeFromSuperview()
     }
@@ -212,17 +219,21 @@ final class NativeIsland {
     shadeViews.removeAll()
   }
 
-  /// The colour views laid over the view, for tests.
-  var shadeLayers: [UIView] { shadeViews }
-
   /// Cuts the view to its shape. Glass ignores a mask view, so glass is cut
   /// through its layer's mask instead.
   private func applyShape() {
     guard let shape = drawnShape else {
       view.mask = nil
       view.layer.mask = nil
+      view.isHidden = false
+      shadeHost?.isHidden = false
       return
     }
+    // Glass does not always honour a mask drawn with nothing in it, so an
+    // island covered all over is taken off the screen outright.
+    let covered = NativeIslandMask.visibleParts(of: shape.area, less: shape.holes).isEmpty
+    view.isHidden = covered
+    shadeHost?.isHidden = covered
     if glassView != nil {
       let mask = (view.layer.mask as? CAShapeLayer) ?? NativeIslandMask.shapeLayer()
       NativeIslandMask.draw(mask, in: view.bounds, area: shape.area, holes: shape.holes)
@@ -306,49 +317,5 @@ extension UIView {
       current = view.superview
     }
     return nil
-  }
-}
-
-/// Draws the visible part of an island: its area, with the holes the page
-/// covers left out.
-final class NativeIslandMask: UIView {
-  private let shape = CAShapeLayer()
-
-  override init(frame: CGRect) {
-    super.init(frame: frame)
-    shape.fillRule = .evenOdd
-    shape.fillColor = UIColor.black.cgColor
-    layer.addSublayer(shape)
-  }
-
-  @available(*, unavailable)
-  required init?(coder: NSCoder) {
-    fatalError("NativeIslandMask is created in code.")
-  }
-
-  func draw(area: CGRect, holes: [CGRect]) {
-    Self.draw(shape, in: bounds, area: area, holes: holes)
-  }
-
-  static func shapeLayer() -> CAShapeLayer {
-    let layer = CAShapeLayer()
-    layer.fillRule = .evenOdd
-    layer.fillColor = UIColor.black.cgColor
-    return layer
-  }
-
-  /// Fills `area` of `layer`, less `holes`.
-  static func draw(_ layer: CAShapeLayer, in bounds: CGRect, area: CGRect, holes: [CGRect]) {
-    let path = CGMutablePath()
-    path.addRect(area)
-    for hole in holes {
-      let cut = hole.intersection(area)
-      if !cut.isNull, !cut.isEmpty { path.addRect(cut) }
-    }
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
-    layer.frame = bounds
-    layer.path = path
-    CATransaction.commit()
   }
 }
