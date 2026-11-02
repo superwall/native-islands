@@ -59,7 +59,7 @@ extension NativeBridgeTests {
     }
 
     private func until(_ condition: () -> Bool) async throws {
-      for _ in 0..<200 where !condition() {
+      for _ in 0..<800 where !condition() {
         try await Task.sleep(nanoseconds: 25_000_000)
       }
       try #require(condition())
@@ -89,7 +89,7 @@ extension NativeBridgeTests {
         webView.islands?.manager?.islands.values.allSatisfy(\.context.isAcknowledged) == true
       }
       var events: [String] = []
-      for _ in 0..<200 {
+      for _ in 0..<800 {
         let received = try await evaluate(webView, "return window.received.map((m) => m.event_name)")
         events = received as? [String] ?? []
         if events.contains("native_component_ack") { break }

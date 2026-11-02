@@ -1,4 +1,4 @@
 import Testing
 
-@Suite
+@Suite(.serialized)
 enum NativeBridgeTests {}
