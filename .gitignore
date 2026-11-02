@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj/
+xcuserdata/
+.DS_Store
+.playwright-mcp/

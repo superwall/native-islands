@@ -1,0 +1,267 @@
+{
+  "capability": {
+    "protocol": 1,
+    "components": {
+      "glassButton": 1,
+      "closeButton": 1,
+      "toggle": 1,
+      "segmentedControl": 1,
+      "symbol": 1
+    },
+    "anchors": ["page", "scroller", "screen"],
+    "features": ["state", "requests", "commands", "layered"]
+  },
+  "toHost": [
+    {
+      "event_name": "native_component_batch",
+      "protocol": 1,
+      "sequence": 1,
+      "operations": [
+        {
+          "op": "mount",
+          "id": "cta",
+          "component": "glassButton",
+          "version": 1,
+          "props": {
+            "title": "Continue",
+            "prominence": "prominent",
+            "tint": "rgb(10, 132, 255)"
+          },
+          "frame": {
+            "x": 24,
+            "y": 712,
+            "width": 354,
+            "height": 52
+          },
+          "anchor": {
+            "type": "page"
+          },
+          "visible": true,
+          "order": 0,
+          "sizing": "web",
+          "accessibility": {
+            "label": "Continue",
+            "traits": ["button"]
+          }
+        },
+        {
+          "op": "mount",
+          "id": "plans-annual",
+          "component": "toggle",
+          "version": 1,
+          "props": {
+            "isOn": true
+          },
+          "frame": {
+            "x": 296,
+            "y": 12,
+            "width": 51,
+            "height": 31
+          },
+          "anchor": {
+            "type": "scroller",
+            "scroller": {
+              "id": "plans",
+              "frame": {
+                "x": 24,
+                "y": 320,
+                "width": 354,
+                "height": 200
+              },
+              "content_size": {
+                "width": 354,
+                "height": 640
+              },
+              "scroll_offset": {
+                "x": 0,
+                "y": 0
+              }
+            }
+          },
+          "visible": true,
+          "order": 1,
+          "sizing": "native"
+        },
+        {
+          "op": "mount",
+          "id": "close",
+          "component": "closeButton",
+          "version": 1,
+          "props": {},
+          "frame": {
+            "x": 346,
+            "y": 62,
+            "width": 44,
+            "height": 44
+          },
+          "anchor": {
+            "type": "screen"
+          },
+          "visible": true,
+          "order": 2,
+          "sizing": "web"
+        }
+      ]
+    },
+    {
+      "event_name": "native_component_batch",
+      "protocol": 1,
+      "sequence": 2,
+      "operations": [
+        {
+          "op": "update",
+          "id": "cta",
+          "frame": {
+            "x": 24,
+            "y": 700,
+            "width": 354,
+            "height": 52
+          }
+        },
+        {
+          "op": "update",
+          "id": "plans-annual",
+          "visible": false
+        },
+        {
+          "op": "unmount",
+          "id": "close"
+        }
+      ]
+    },
+    {
+      "event_name": "native_component_batch",
+      "protocol": 1,
+      "sequence": 3,
+      "operations": [
+        {
+          "op": "update",
+          "id": "cta",
+          "props": {
+            "title": "Continue"
+          },
+          "state_revision": 4
+        }
+      ]
+    },
+    {
+      "event_name": "native_component_command",
+      "id": "signup",
+      "request_id": "command-1",
+      "name": "focus",
+      "args": {
+        "field": "email"
+      }
+    },
+    {
+      "event_name": "native_component_response",
+      "id": "signup",
+      "request_id": "request-7",
+      "ok": true,
+      "value": {
+        "valid": false,
+        "message": "Use a work email"
+      }
+    },
+    {
+      "event_name": "native_component_response",
+      "id": "signup",
+      "request_id": "request-8",
+      "ok": false,
+      "error": "No handler for checkCode"
+    }
+  ],
+  "toPage": [
+    {
+      "event_name": "native_component_ack",
+      "sequence": 1,
+      "ids": ["cta", "plans-annual"]
+    },
+    {
+      "event_name": "native_component_error",
+      "id": "close",
+      "reason": "unknown_component",
+      "message": "closeButton is not registered"
+    },
+    {
+      "event_name": "native_component_event",
+      "id": "cta",
+      "name": "press"
+    },
+    {
+      "event_name": "native_component_event",
+      "id": "cta",
+      "name": "press",
+      "sequence": 1
+    },
+    {
+      "event_name": "native_component_event",
+      "id": "plans-annual",
+      "name": "change",
+      "payload": {
+        "isOn": false
+      }
+    },
+    {
+      "event_name": "native_component_size",
+      "id": "plans-annual",
+      "size": {
+        "width": 51,
+        "height": 31
+      }
+    },
+    {
+      "event_name": "native_component_reset"
+    },
+    {
+      "event_name": "native_component_size",
+      "id": "plans-annual",
+      "size": {
+        "width": 51,
+        "height": 31
+      },
+      "sequence": 1
+    },
+    {
+      "event_name": "native_component_state",
+      "id": "signup",
+      "revision": 4,
+      "values": {
+        "email": "ada@example.com",
+        "agreed": true
+      },
+      "sequence": 1
+    },
+    {
+      "event_name": "native_component_state",
+      "id": "signup",
+      "revision": 5,
+      "values": {
+        "email": "",
+        "agreed": false,
+        "plan": "annual"
+      },
+      "replace": true
+    },
+    {
+      "event_name": "native_component_request",
+      "id": "signup",
+      "request_id": "request-7",
+      "name": "validate",
+      "payload": {
+        "email": "ada@gmail.com"
+      }
+    },
+    {
+      "event_name": "native_component_reply",
+      "request_id": "command-1",
+      "ok": true
+    },
+    {
+      "event_name": "native_component_reply",
+      "request_id": "command-2",
+      "ok": false,
+      "error": "unknown command"
+    }
+  ]
+}

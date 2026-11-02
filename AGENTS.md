@@ -1,0 +1,62 @@
+# AGENTS.md
+
+Guidance for coding agents (and people) working in this repository.
+
+## What this is
+
+NativeIslands puts native views inside a `WKWebView` page. The page stays in
+charge of layout: each island is a web element whose native twin the host draws
+in WebKit's own scroll views, so it scrolls, slides and is covered exactly like
+the web content around it. Anything the host cannot draw stays web.
+
+It has two sides that speak one contract:
+
+- **Host (Swift):** the `NativeIslands` package, iOS 15+ to build, iOS 26+ to
+  draw. It works with any `WKWebView`; nothing in it knows about an app or a
+  service.
+- **Page (JS):** `@superwall/native-islands` in `js/`, with `/react` bindings.
+
+## The contract is the source of truth
+
+`contract/contract.json` holds every message in both directions and the
+capability. The zod schemas in `js/src/` and the Swift models in
+`Sources/NativeIslands/` both decode it in their tests, so a change to one side
+that the other cannot read fails a test.
+
+- Change the contract additively: add optional fields and new messages; never
+  rename or repurpose one.
+- `toHost` is what the page posts to the `nativeIslands` message handler;
+  `toPage` is what the host delivers back.
+- The host offers what it can draw in `window.__NATIVE_ISLANDS__`, injected at
+  document start. A page without it renders web versions only.
+
+## Layout
+
+- `contract/` — the shared fixture.
+- `js/` — the page package: schemas and messages (`src/schemas.ts`,
+  `src/messages.ts`), tests in `test/`.
+- `Sources/NativeIslands/`, `Tests/NativeIslandsTests/` — the host package and
+  its Swift Testing suites.
+- `.github/workflows/ci.yml` — CI.
+
+## Commands
+
+Run only what your change touches; never a whole suite by hand.
+
+- JS tests: `bun run --cwd js test:run test/<file>`
+- JS types: `bun run --cwd js typecheck`
+- JS lint and format: `bunx oxlint js`, `bunx oxfmt --check js contract`
+- Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
+- SwiftLint: `swiftlint lint --quiet --strict Sources Tests`
+
+## Conventions
+
+- No code comments explaining a change; put that in the pull request. Doc
+  comments on types and public API are fine.
+- JS: every optional field of a public type states its default. Tests keep
+  `js/src` at 100% coverage.
+- Swift: 2-space indentation, Swift Testing (not XCTest), `swiftlint --strict`
+  clean.
+- Never require browser storage on the page side.
+- Never read "couldn't check" as "nothing there": when the page cannot tell
+  whether an island can be shown, it shows the web version.
