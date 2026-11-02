@@ -2,11 +2,12 @@
   "name": "native-islands-workspace",
   "private": true,
   "workspaces": [
-    "js"
+    "js",
+    "pages"
   ],
   "type": "module",
   "scripts": {
-    "lint": "oxlint js",
+    "lint": "oxlint js pages",
     "format": "oxfmt",
     "format:check": "oxfmt --check"
   },

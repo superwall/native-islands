@@ -69,7 +69,11 @@ export const NativeIslandsProvider = ({
   children,
 }: NativeIslandsProviderProps) => {
   const [owned] = React.useState(() => (islands ? undefined : connectNativeIslands(connect)));
-  React.useEffect(() => (owned ? owned.disconnect : undefined), [owned]);
+  React.useEffect(() => {
+    if (!owned) return;
+    owned.reconnect();
+    return owned.disconnect;
+  }, [owned]);
   const [readiness] = React.useState(createReadiness);
   const controller = islands ?? (owned as { islands: NativeIslands }).islands;
   const value = React.useMemo(() => ({ islands: controller, readiness }), [controller, readiness]);

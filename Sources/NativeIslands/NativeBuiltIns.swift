@@ -114,14 +114,20 @@ struct NativeGlassButtonView: View {
           Image(systemName: symbol)
         }
         if let title = props.string("title"), !title.isEmpty {
-          Text(title)
-            .lineLimit(2)
-            .multilineTextAlignment(.center)
+          ViewThatFits(in: .horizontal) {
+            Text(title)
+              .lineLimit(1)
+              .fixedSize(horizontal: true, vertical: false)
+            Text(title)
+              .lineLimit(2)
+              .multilineTextAlignment(.center)
+              .minimumScaleFactor(0.8)
+          }
         }
       }
       .font(.body.weight(.semibold))
       .foregroundStyle(prominent ? Color.white : Color.primary)
-      .padding(.horizontal, 16)
+      .padding(.horizontal, 12)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())
     }

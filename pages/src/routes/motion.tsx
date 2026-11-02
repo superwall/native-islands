@@ -1,0 +1,62 @@
+import * as React from "react";
+import { useRouter } from "../router";
+import { Glass } from "../components/controls";
+import { Scenario } from "../components/Scenario";
+
+export default function Motion() {
+  const router = useRouter();
+  const [moved, setMoved] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <main className="page">
+      <h1>Motion</h1>
+      <p className="lede">
+        A native view cannot follow CSS motion frame by frame, so while something moves the web
+        version shows, and the native view returns where the element comes to rest.
+      </p>
+      <Scenario id="S25" title="Slides when tapped" expect="web while it happens">
+        <div className="mover" data-moved={moved}>
+          <Glass title={moved ? "Slide back" : "Slide"} onPress={() => setMoved(!moved)} />
+        </div>
+      </Scenario>
+      <Scenario id="S26" title="Inside something that keeps pulsing" expect="web">
+        <div className="pulse">
+          <Glass title="Always moving" />
+        </div>
+      </Scenario>
+      <Scenario id="S27" title="Inside something whose colour animates" expect="native">
+        <div className="glow" style={{ padding: 8 }}>
+          <Glass title="Colour is not motion" />
+        </div>
+      </Scenario>
+      <Scenario id="S28" title="Inside an accordion that opens" expect="web while it happens">
+        <div style={{ width: "100%" }}>
+          <Glass title={open ? "Close details" : "Open details"} onPress={() => setOpen(!open)} />
+          <div className="expander" style={{ maxHeight: open ? 160 : 0 }}>
+            <p className="lede">Annual billing saves 40% compared with monthly.</p>
+            <Glass title="Inside the details" />
+          </div>
+        </div>
+      </Scenario>
+      <Scenario id="S29" title="Inside a faded container" expect="web">
+        <div style={{ opacity: 0.5 }}>
+          <Glass title="Half transparent" />
+        </div>
+      </Scenario>
+      <Scenario id="S30" title="Inside a rotated container" expect="web">
+        <div style={{ transform: "rotate(-4deg)" }}>
+          <Glass title="Tilted" />
+        </div>
+      </Scenario>
+      <Scenario id="S31" title="Inside a translated container" expect="native">
+        <div style={{ transform: "translateY(6px)" }}>
+          <Glass title="Shifted, not distorted" />
+        </div>
+      </Scenario>
+      <Scenario id="S32" title="Across a page transition" expect="web while it happens">
+        <Glass title="Push the next page" onPress={() => router.push("overlays")} />
+      </Scenario>
+    </main>
+  );
+}

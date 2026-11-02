@@ -72,6 +72,14 @@ that the other cannot read fails a test.
     handler, and the `-NativeIslandsAlignmentLog YES` log of native frames
     beside DOM rects.
   - `Tests/.swiftlint.yml` relaxes a few rules for tests only.
+- `pages/` — the local test pages (Vite + React): every scenario of the
+  gallery, tagged `data-scenario` and `data-expect`, and the `flow-*` pages.
+  `src/router.tsx` renders every page at once and parks the ones not showing
+  off to the side, each at its own spot, so their islands are drawn before
+  they slide in. `?native=simulate` installs the JS reference host.
+- `Example/` — the xcodegen iOS app that bundles `pages/dist` (a pre-build
+  script runs `bun run --cwd pages build`) and serves it from `islands://`.
+  It registers the gallery's app components in `Example/Components/`.
 - `.github/workflows/ci.yml` — CI.
 
 ## Commands
@@ -82,7 +90,10 @@ Run only what your change touches; never a whole suite by hand.
 - JS types: `bun run --cwd js typecheck`
 - JS lint and format: `bunx oxlint js`, `bunx oxfmt --check js contract`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
-- SwiftLint: `swiftlint lint --quiet --strict Sources Tests`
+- SwiftLint: `swiftlint lint --quiet --strict Sources Tests Example`
+- Pages: `bun run --cwd pages build`; in a browser `bun run --cwd pages dev`
+- Example app: `cd Example && xcodegen -q && xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet`
+- On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
 ## Conventions
 

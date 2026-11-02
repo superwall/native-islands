@@ -71,6 +71,27 @@ describe("connectNativeIslands", () => {
     expect(host.stop).toHaveBeenCalledOnce();
   });
 
+  it("listens again after a disconnect, once", () => {
+    const host = fakeTransport();
+    const listen = vi.spyOn(host.transport, "listen");
+    const { islands, disconnect, reconnect } = connectNativeIslands({
+      transport: host.transport,
+      capability,
+      schedule: (flush) => flush(),
+    });
+    reconnect();
+    expect(listen).toHaveBeenCalledTimes(1);
+    disconnect();
+    disconnect();
+    expect(host.stop).toHaveBeenCalledTimes(1);
+    reconnect();
+    expect(listen).toHaveBeenCalledTimes(2);
+    const onReady = vi.fn();
+    islands.mount("cta", spec, { onReady });
+    host.deliver({ event_name: "native_component_ack", sequence: 1, ids: ["cta"] });
+    expect(onReady).toHaveBeenCalledOnce();
+  });
+
   it("reads the capability from window.__NATIVE_ISLANDS__ by default", () => {
     globals[NATIVE_CAPABILITY_GLOBAL] = capability;
     const { islands } = connectNativeIslands({ transport: fakeTransport().transport });

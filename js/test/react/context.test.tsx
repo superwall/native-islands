@@ -1,3 +1,4 @@
+import * as React from "react";
 import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ISLAND_STYLE_ATTRIBUTE, NATIVE_ACK_TIMEOUT_MS, connectNativeIslands } from "../../src";
@@ -175,6 +176,61 @@ describe("NativeIslandsProvider", () => {
     expect(stop).not.toHaveBeenCalled();
     view.unmount();
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("still hears the host after StrictMode replays its effects", () => {
+    const listeners = new Set<(message: unknown) => void>();
+    const transport = {
+      post: vi.fn((_message: unknown) => true),
+      listen: (listener: (message: unknown) => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    };
+    const onReady = vi.fn();
+    const Probe = () => {
+      const islands = useNativeIslands();
+      React.useEffect(() => {
+        islands.mount(
+          "strict",
+          {
+            component: "glassButton",
+            version: 1,
+            props: {},
+            frame: { x: 0, y: 0, width: 10, height: 10 },
+            anchor: { type: "page" },
+            visible: true,
+            order: 0,
+            sizing: "web",
+          },
+          { onReady },
+        );
+        islands.flush();
+        return () => islands.unmount("strict");
+      }, [islands]);
+      return null;
+    };
+    render(
+      <React.StrictMode>
+        <NativeIslandsProvider
+          connect={{
+            transport,
+            capability: { protocol: 1, components: { glassButton: 1 } },
+            schedule: () => undefined,
+          }}
+        >
+          <Probe />
+        </NativeIslandsProvider>
+      </React.StrictMode>,
+    );
+    const batch = transport.post.mock.calls
+      .map(([message]) => message as { event_name: string; sequence: number })
+      .filter((message) => message.event_name === "native_component_batch")
+      .at(-1);
+    for (const listener of listeners) {
+      listener({ event_name: "native_component_ack", sequence: batch?.sequence, ids: ["strict"] });
+    }
+    expect(onReady).toHaveBeenCalled();
   });
 
   it("keeps one controller for its whole life", () => {

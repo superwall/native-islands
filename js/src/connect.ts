@@ -26,6 +26,8 @@ export type NativeIslandsConnection = {
   islands: NativeIslands;
   /** Stops listening to the host. Islands already drawn stay until the host clears them. */
   disconnect: () => void;
+  /** Listens to the host again after `disconnect`. Does nothing while connected. */
+  reconnect: () => void;
 };
 
 const warn = (message: string, error?: unknown) => {
@@ -56,8 +58,19 @@ export const connectNativeIslands = (
     ackTimeoutMs: options.ackTimeoutMs,
     report,
   });
-  const stop = transport.listen((message) => {
-    islands.handle(message);
-  });
-  return { islands, disconnect: stop };
+  const listen = () =>
+    transport.listen((message) => {
+      islands.handle(message);
+    });
+  let stop: (() => void) | undefined = listen();
+  return {
+    islands,
+    disconnect: () => {
+      stop?.();
+      stop = undefined;
+    },
+    reconnect: () => {
+      stop ??= listen();
+    },
+  };
 };

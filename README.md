@@ -79,11 +79,36 @@ scrolling areas (the `layered` feature). Mark such a page with
 rather than `display: none`: its islands mount right away, ride along when it
 slides in, and need no swap to native when it arrives.
 
+## Try it
+
+`pages/` is a set of local test pages covering every scenario, plus a
+three-page flow that shows islands sliding in with their page.
+`Example/` is an iOS 26+ app that bundles them; it needs no account or network.
+
+```bash
+bun install
+bun run --cwd pages dev        # http://localhost:5173/?native=simulate in a browser
+cd Example && xcodegen && open Example.xcodeproj
+```
+
+In a browser, `?native=simulate` draws each native view as a magenta outline,
+and `?route=<name>` opens one page directly (`buttons`, `controls`,
+`scrolling`, `motion`, `overlays`, `stress`, `state`, `flow-plans`).
+The app takes the same page as `-route <name>`, loads a dev server with
+`-pagesURL http://<mac>:5173/`, and logs native frames beside DOM rects with
+`-NativeIslandsAlignmentLog YES`.
+
+The pages keep every page rendered at once. The page on top shows, and the
+others wait off to the side, each at its own spot: the host tells scrolling
+areas apart by size and position, so two pages of the same size must not wait
+in the same place.
+
 ## Develop
 
 ```bash
 bun install
 bun run --cwd js test:run
 bun run --cwd js typecheck
+bun run --cwd pages build
 xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
