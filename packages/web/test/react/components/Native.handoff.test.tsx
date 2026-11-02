@@ -294,7 +294,7 @@ describe("following motion frame by frame", () => {
     act(() => {
       card.setAttribute("inert", "");
     });
-    await view.nextFrame();
+    for (let frame = 0; frame < 4; frame += 1) await view.nextFrame();
     const before = view.operations().length;
     button.dataset.rect = rectAttribute(40, 150, 100, 40);
     act(() => {
