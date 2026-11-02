@@ -145,6 +145,10 @@
       ]
     },
     {
+      "event_name": "native_islands_ready",
+      "sequence": 3
+    },
+    {
       "event_name": "native_component_command",
       "id": "signup",
       "request_id": "command-1",

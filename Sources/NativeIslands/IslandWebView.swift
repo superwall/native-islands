@@ -13,14 +13,16 @@ open class IslandWebView: WKWebView {
   public private(set) var islands: NativeIslandsHost?
 
   /// Creates a web view offering what `registry` holds to its pages, or
-  /// ``NativeComponentRegistry/shared`` when it is `nil`.
+  /// ``NativeComponentRegistry/shared`` when it is `nil`, showing each
+  /// document as `reveal` says.
   public init(
     frame: CGRect = .zero,
     configuration: WKWebViewConfiguration = WKWebViewConfiguration(),
-    registry: NativeComponentRegistry? = nil
+    registry: NativeComponentRegistry? = nil,
+    reveal: NativeIslandsReveal = .whenIslandsReady(timeout: 2)
   ) {
     super.init(frame: frame, configuration: configuration)
-    islands = NativeIslandsHost(webView: self, registry: registry)
+    islands = NativeIslandsHost(webView: self, registry: registry, reveal: reveal)
   }
 
   @available(*, unavailable)

@@ -39,9 +39,20 @@ export const NativeComponentResponseSchema = z.object({
   error: z.string().optional(),
 });
 
+/**
+ * Sent once per document, when every island the page rendered is drawn
+ * natively or settled on its web version. `sequence` is the last batch sent
+ * before it, `0` when none was. A host holding the web view hidden reveals it.
+ */
+export const NativeIslandsReadySchema = z.object({
+  event_name: z.literal("native_islands_ready"),
+  sequence: z.number().int().nonnegative(),
+});
+
 /** Everything the page sends the host. */
 export const ToHostMessageSchema = z.discriminatedUnion("event_name", [
   NativeComponentBatchSchema,
+  NativeIslandsReadySchema,
   NativeComponentCommandSchema,
   NativeComponentResponseSchema,
 ]);
@@ -120,6 +131,7 @@ export const ToPageMessageSchema = z.discriminatedUnion("event_name", [
 export type TToHostMessage = z.infer<typeof ToHostMessageSchema>;
 export type TToPageMessage = z.infer<typeof ToPageMessageSchema>;
 export type TNativeComponentBatch = z.infer<typeof NativeComponentBatchSchema>;
+export type TNativeIslandsReady = z.infer<typeof NativeIslandsReadySchema>;
 export type TNativeComponentCommand = z.infer<typeof NativeComponentCommandSchema>;
 export type TNativeComponentResponse = z.infer<typeof NativeComponentResponseSchema>;
 export type TNativeComponentAck = z.infer<typeof NativeComponentAckSchema>;

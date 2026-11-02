@@ -470,4 +470,11 @@ describe("inTransition", () => {
     card.setAttribute("data-island-phase", "leave");
     expect(inTransition(wrapper, still)).toBe(true);
   });
+
+  it("stops at the scroller a layered island rides in", () => {
+    const { wrapper, card } = setup();
+    card.setAttribute("data-island-phase", "leave");
+    expect(inTransition(wrapper, still, card)).toBe(false);
+    expect(inTransition(wrapper, (element) => element === card, card)).toBe(false);
+  });
 });

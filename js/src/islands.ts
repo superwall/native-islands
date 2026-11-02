@@ -116,6 +116,12 @@ export interface NativeIslands {
   status: (id: string) => NativeIslandStatus | undefined;
   handle: (message: unknown) => boolean;
   flush: () => void;
+  /**
+   * Tells the host every island the page rendered is settled, so a host
+   * holding the web view hidden reveals it. Sends pending operations first.
+   * Only the first call per controller sends anything; returns whether it did.
+   */
+  announceReady: () => boolean;
   resync: () => void;
   retry: () => void;
   state: (id: string) => Readonly<Record<string, unknown>> | undefined;
@@ -370,6 +376,15 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
         operations: chunk,
       });
     }
+  };
+
+  let announced = false;
+  const announceReady = () => {
+    if (announced || capability.status !== "available") return false;
+    announced = true;
+    flush();
+    post({ event_name: "native_islands_ready", sequence });
+    return true;
   };
 
   const supports = (component: string, version: number) =>
@@ -685,6 +700,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     status: (id) => islands.get(id)?.status,
     handle,
     flush,
+    announceReady,
     resync,
     retry,
     state: (id) => islands.get(id)?.state,

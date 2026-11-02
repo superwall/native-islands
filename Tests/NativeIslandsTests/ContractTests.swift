@@ -40,6 +40,7 @@ struct ContractTests {
       if case .batch(let batch) = message { return batch }
       return nil
     }
+    #expect(messages.contains(.ready(sequence: 3)))
     #expect(batches.map(\.sequence) == [1, 2, 3])
     #expect(
       batches[2].operations == [

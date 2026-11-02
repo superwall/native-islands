@@ -51,6 +51,13 @@ export type NativeIslandsProviderProps = {
   islands?: NativeIslands;
   /** Options for the controller the provider makes, read once. Ignored with `islands`. Default: `{}`. */
   connect?: ConnectNativeIslandsOptions;
+  /**
+   * Tells the host once every island rendered on the first frame is settled,
+   * so a host holding the web view hidden reveals it with the islands already
+   * drawn. Turn it off to call `announceReady()` on the controller yourself.
+   * Default: `true`.
+   */
+  announceReady?: boolean;
   children?: React.ReactNode;
 };
 
@@ -58,6 +65,7 @@ export type NativeIslandsProviderProps = {
 export const NativeIslandsProvider = ({
   islands,
   connect,
+  announceReady = true,
   children,
 }: NativeIslandsProviderProps) => {
   const [owned] = React.useState(() => (islands ? undefined : connectNativeIslands(connect)));
@@ -65,6 +73,24 @@ export const NativeIslandsProvider = ({
   const [readiness] = React.useState(createReadiness);
   const controller = islands ?? (owned as { islands: NativeIslands }).islands;
   const value = React.useMemo(() => ({ islands: controller, readiness }), [controller, readiness]);
+  React.useEffect(() => {
+    if (!announceReady) return;
+    let unsubscribe: (() => void) | undefined;
+    const check = () => {
+      if (!readiness.ready()) return;
+      unsubscribe?.();
+      unsubscribe = undefined;
+      controller.announceReady();
+    };
+    const frame = requestAnimationFrame(() => {
+      unsubscribe = readiness.subscribe(check);
+      check();
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      unsubscribe?.();
+    };
+  }, [announceReady, controller, readiness]);
   React.useInsertionEffect(() => {
     ensureIslandStyles(document);
   }, []);

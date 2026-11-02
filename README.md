@@ -57,6 +57,28 @@ With a web view of your own, attach `NativeIslandsHost(webView:)` before the
 first load and call its `hitTest(_:with:webHit:)` from your `hitTest(_:with:)`,
 so islands in inner scrolling areas take their taps.
 
+## No web flash
+
+The host keeps each new document hidden until the page says its islands are
+drawn, so a native element never shows its web copy first. The provider sends
+that signal once every island of the first frame is drawn (or settled on its
+web version); a page without React calls `islands.announceReady()` itself. A
+page that never announces is shown after the timeout, two seconds by default:
+
+```swift
+let host = NativeIslandsHost(webView: webView, reveal: .whenIslandsReady(timeout: 2))
+host.onReady = { reason in present() } // .ready or .timedOut
+```
+
+Pass `.immediately` for web views that load pages without the library.
+
+Pages that are rendered but not showing yet, such as the next screen of a
+flow, keep their islands placed when the host draws islands inside the page's
+scrolling areas (the `layered` feature). Mark such a page with
+`data-island-phase` or `inert` and lay it out (off screen or underneath),
+rather than `display: none`: its islands mount right away, ride along when it
+slides in, and need no swap to native when it arrives.
+
 ## Develop
 
 ```bash

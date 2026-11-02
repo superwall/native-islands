@@ -128,13 +128,19 @@ export const isCovered = (
   }
 };
 
+/**
+ * Whether the wrapper or an ancestor is entering, leaving or moving. With
+ * `riding`, the scroller a layered island is drawn inside, the walk stops
+ * there: the island moves with that scroller and everything above it.
+ */
 export const inTransition = (
   wrapper: HTMLElement,
   isMoving: (element: Element) => boolean,
+  riding?: Element,
 ): boolean => {
   for (
     let element: HTMLElement | null = wrapper.parentElement;
-    element;
+    element && element !== riding;
     element = element.parentElement
   ) {
     if (element.hasAttribute(ISLAND_PHASE_ATTRIBUTE) || isMoving(element)) return true;

@@ -18,6 +18,10 @@ import WebKit
 /// view asks the host first. ``IslandWebView`` does that for you; a web view of
 /// your own calls ``hitTest(_:with:webHit:)`` from its `hitTest(_:with:)`.
 ///
+/// Each new document is held hidden until its islands are drawn, so the page
+/// never shows the web copy of an element that turns native a moment later.
+/// See ``NativeIslandsReveal``.
+///
 /// Islands are cleared whenever a new document starts. Call
 /// ``webContentProcessDidTerminate()`` from your navigation delegate so they
 /// are cleared as soon as the page is gone.
@@ -28,8 +32,19 @@ public final class NativeIslandsHost {
   /// The web view this host draws in, while it is alive.
   public private(set) weak var webView: WKWebView?
 
+  /// When each document is shown.
+  public let reveal: NativeIslandsReveal
+  /// Whether the current document is shown: its page announced its islands
+  /// are drawn, the hold timed out, or nothing was held.
+  public private(set) var isReady = true
+  /// Called once per held document when it is shown, with why.
+  public var onReady: (@MainActor (NativeIslandsReadiness) -> Void)?
+
   let manager: NativeIslandManager?
   private let surface: WebViewSurface?
+  private let schedule: NativeIslandsScheduler
+  private var hold = 0
+  private var heldAlpha: CGFloat?
   private var userContentController: WKUserContentController?
   private var alignmentProbe: NativeAlignmentProbe?
 
@@ -41,11 +56,29 @@ public final class NativeIslandsHost {
   /// ``NativeComponentRegistry/shared`` when it is `nil`.
   ///
   /// When the registry is empty, or the OS is older than iOS 26, nothing is
-  /// offered and every page shows its web versions.
-  public init(webView: WKWebView, registry: NativeComponentRegistry? = nil) {
+  /// offered, nothing is held, and every page shows its web versions.
+  ///
+  /// - Parameter reveal: When each document is shown. Default:
+  ///   ``NativeIslandsReveal/whenIslandsReady(timeout:)`` with two seconds.
+  public convenience init(
+    webView: WKWebView,
+    registry: NativeComponentRegistry? = nil,
+    reveal: NativeIslandsReveal = .whenIslandsReady(timeout: 2)
+  ) {
+    self.init(webView: webView, registry: registry, reveal: reveal, schedule: Self.mainQueue)
+  }
+
+  init(
+    webView: WKWebView,
+    registry: NativeComponentRegistry?,
+    reveal: NativeIslandsReveal,
+    schedule: @escaping NativeIslandsScheduler
+  ) {
     let registry = registry ?? .shared
     self.registry = registry
     self.webView = webView
+    self.reveal = reveal
+    self.schedule = schedule
     guard let capability = registry.capability, let preload = capability.preloadScript else {
       manager = nil
       surface = nil
@@ -82,6 +115,7 @@ public final class NativeIslandsHost {
       probe.start()
     }
     #endif
+    holdDocument()
   }
 
   /// Whether the host offers any component to the page.
@@ -93,6 +127,7 @@ public final class NativeIslandsHost {
   /// added stay in the configuration; pages they start show web versions
   /// once the handler is gone.
   public func detach() {
+    release()
     alignmentProbe?.stop()
     alignmentProbe = nil
     manager?.clear(notifyPage: false)
@@ -125,6 +160,7 @@ public final class NativeIslandsHost {
     guard let manager else { return }
     if let marker = body as? String, marker == Self.documentStartMarker {
       manager.clear(notifyPage: false)
+      holdDocument()
       return
     }
     let message: NativeHostMessage
@@ -145,6 +181,46 @@ public final class NativeIslandsHost {
       manager.perform(command)
     case .response(let response):
       manager.receive(response)
+    case .ready:
+      show(.ready)
+    }
+  }
+
+  /// Hides the web view until the new document's page announces its islands
+  /// are drawn, or the timeout passes.
+  private func holdDocument() {
+    guard case .whenIslandsReady(let timeout) = reveal, let webView else { return }
+    hold += 1
+    let current = hold
+    isReady = false
+    if heldAlpha == nil {
+      heldAlpha = webView.alpha
+      webView.alpha = 0
+    }
+    schedule(timeout) { [weak self] in
+      guard let self, self.hold == current else { return }
+      self.show(.timedOut)
+    }
+  }
+
+  private func show(_ readiness: NativeIslandsReadiness) {
+    guard !isReady else { return }
+    release()
+    onReady?(readiness)
+  }
+
+  /// Gives the web view back the alpha it had before the hold.
+  private func release() {
+    hold += 1
+    isReady = true
+    guard let alpha = heldAlpha else { return }
+    heldAlpha = nil
+    webView?.alpha = alpha
+  }
+
+  static let mainQueue: NativeIslandsScheduler = { delay, work in
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+      MainActor.assumeIsolated(work)
     }
   }
 
@@ -163,6 +239,28 @@ public final class NativeIslandsHost {
     "window.webkit.messageHandlers.\(NativeHostMessage.handlerName).postMessage(\"\(documentStartMarker)\");"
   }
 }
+
+/// When a ``NativeIslandsHost`` shows each document.
+public enum NativeIslandsReveal: Equatable, Sendable {
+  /// As soon as WebKit draws it. Islands appear when they are drawn, so the
+  /// web copy of an element can show for a moment first.
+  case immediately
+  /// Hidden from the document's start until its page announces that every
+  /// island it rendered is drawn, or `timeout` seconds pass. A page that does
+  /// not use `@superwall/native-islands` never announces, so it shows after
+  /// the timeout; use ``immediately`` for web views that load such pages.
+  case whenIslandsReady(timeout: TimeInterval)
+}
+
+/// Why a held document was shown.
+public enum NativeIslandsReadiness: Equatable, Sendable {
+  /// Its page announced that its islands are drawn.
+  case ready
+  /// The page did not announce in time.
+  case timedOut
+}
+
+typealias NativeIslandsScheduler = @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> Void
 
 /// Forwards script messages without retaining the host, since the user content
 /// controller keeps its handlers alive.

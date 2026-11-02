@@ -91,6 +91,11 @@ export type NativeSimulator = {
   ) => Promise<{ ok: boolean; value?: unknown; error?: string }>;
   /** Every command the page has sent, oldest first. */
   commands: () => Array<{ id: string; name: string; args?: unknown }>;
+  /**
+   * Whether the page announced that its islands are settled. Until then a real
+   * host would keep the web view hidden; the simulator only records it.
+   */
+  ready: () => boolean;
   /** Removes the host, its drawings and `window.__NATIVE_ISLANDS__`. */
   uninstall: () => void;
 };
@@ -340,6 +345,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     show(island);
   };
 
+  let announced = false;
   const receive = (raw: unknown) => {
     const parsed = ToHostMessageSchema.safeParse(typeof raw === "string" ? JSON.parse(raw) : raw);
     if (!parsed.success) {
@@ -347,6 +353,10 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
       return;
     }
     const message = parsed.data;
+    if (message.event_name === "native_islands_ready") {
+      announced = true;
+      return;
+    }
     if (message.event_name === "native_component_response") {
       const resolve = requests.get(message.request_id);
       requests.delete(message.request_id);
@@ -409,6 +419,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
 
   return {
     islands: () => [...islands.values()],
+    ready: () => announced,
     press: (id, name = "press", payload) => {
       const island = islands.get(id);
       send({

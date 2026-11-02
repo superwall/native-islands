@@ -99,6 +99,14 @@ describe("installNativeSimulator", () => {
     delete global.webkit;
   });
 
+  it("records when the page announces its islands are settled", () => {
+    simulator = installNativeSimulator();
+    expect(simulator.ready()).toBe(false);
+    postRaw([{ event_name: "native_islands_ready", sequence: 0 }]);
+    expect(simulator.ready()).toBe(true);
+    expect(received).toEqual([]);
+  });
+
   it("draws a page island at its frame, labelled, and acknowledges it", () => {
     simulator = installNativeSimulator();
     const batch = post([mount()]);

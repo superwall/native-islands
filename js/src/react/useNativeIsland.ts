@@ -115,19 +115,16 @@ export const useNativeIsland = (
       const tracked = motion.current;
       tracked.at = placement.at;
       tracked.frame = placement.frame;
+      const layered = supportsFeature(islands.capability, "layered");
+      const riding = layered && placement.kind === "scroller" ? placement.scroller : undefined;
       const handoff = tracked.moving
         ? "moving"
-        : handoffOf(
-            element,
-            placement,
-            layoutWatcherFor(element.ownerDocument).isMoving,
-            supportsFeature(islands.capability, "layered"),
-          );
+        : handoffOf(element, placement, layoutWatcherFor(element.ownerDocument).isMoving, layered);
       const previous = sentAnchor.current;
       const anchor =
         previous && sameAnchor(previous, placement.anchor) ? previous : placement.anchor;
       sentAnchor.current = anchor;
-      return { frame: placement.frame, anchor, handoff, visible: handoff === undefined };
+      return { frame: placement.frame, anchor, handoff, riding, visible: handoff === undefined };
     },
     [islands],
   );
@@ -173,8 +170,15 @@ export const useNativeIsland = (
         warned = true;
         return false;
       }
-      if (spec.handoff === "inactive" || spec.handoff === "moving") return false;
-      if (inTransition(element, layoutWatcherFor(element.ownerDocument).isMoving)) return false;
+      if (
+        spec.handoff === "inactive" ||
+        spec.handoff === "moving" ||
+        inTransition(element, layoutWatcherFor(element.ownerDocument).isMoving, spec.riding)
+      ) {
+        readiness.end(id);
+        return false;
+      }
+      if (waits) readiness.begin(id);
       const result = islands.mount(
         id,
         {

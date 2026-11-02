@@ -731,3 +731,34 @@ describe("default scheduler", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("announceReady", () => {
+  it("sends pending operations, then the last sequence, once", () => {
+    const { islands, posted } = setup();
+    islands.mount("cta", spec(), undefined);
+    expect(islands.announceReady()).toBe(true);
+    expect(posted.map((message) => message.event_name)).toEqual([
+      "native_component_batch",
+      "native_islands_ready",
+    ]);
+    expect(posted[1]).toEqual({ event_name: "native_islands_ready", sequence: 1 });
+    expect(islands.announceReady()).toBe(false);
+    expect(posted).toHaveLength(2);
+  });
+
+  it("announces sequence 0 for a page with no islands", () => {
+    const { islands, posted } = setup();
+    expect(islands.announceReady()).toBe(true);
+    expect(posted).toEqual([{ event_name: "native_islands_ready", sequence: 0 }]);
+  });
+
+  it("sends nothing to a host that offers no islands", () => {
+    const posted: TToHostMessage[] = [];
+    const islands = createNativeIslands({
+      capability: { status: "absent" },
+      post: (message) => posted.push(message),
+    });
+    expect(islands.announceReady()).toBe(false);
+    expect(posted).toEqual([]);
+  });
+});

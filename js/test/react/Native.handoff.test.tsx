@@ -374,18 +374,45 @@ describe("layered hosts", () => {
     expect(islandOf(view.container).hasAttribute("data-island-shown")).toBe(true);
   });
 
-  it("still waits for a new page to settle before it mounts", async () => {
+  it("mounts an island on a page that is still entering, so it slides in natively", async () => {
     installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "layered"] });
     const view = renderNative(
-      <div data-island-phase="enter" id="stage">
+      <div data-island-phase="enter" id="stage" inert>
         <Route />
       </div>,
     );
     scrolling(view);
+    view.rerender(
+      <div data-island-phase="enter" id="stage" inert>
+        <Route />
+      </div>,
+    );
+    await view.nextFrame();
+    expect(view.operations()).toEqual([
+      expect.objectContaining({
+        op: "mount",
+        visible: true,
+        anchor: expect.objectContaining({ type: "scroller" }),
+      }),
+    ]);
+  });
+
+  it("still waits for content moving inside its scroller", async () => {
+    installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "layered"] });
+    const Inner = () => (
+      <div id="route" data-rect={rectAttribute(0, 0, 400, 600)}>
+        <div data-island-phase="enter" id="panel">
+          <Card />
+        </div>
+      </div>
+    );
+    const view = renderNative(<Inner />);
+    scrolling(view);
+    view.rerender(<Inner />);
     await view.nextFrame();
     expect(view.batches()).toEqual([]);
     act(() => {
-      (view.container.querySelector("#stage") as HTMLElement).removeAttribute("data-island-phase");
+      (view.container.querySelector("#panel") as HTMLElement).removeAttribute("data-island-phase");
     });
     await view.nextFrame();
     expect(view.operations()).toEqual([expect.objectContaining({ op: "mount" })]);

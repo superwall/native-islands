@@ -8,6 +8,9 @@ enum NativeHostMessage: Decodable, Equatable, Sendable {
   case unreadableBatch
   case command(NativeComponentCommand)
   case response(NativeComponentResponse)
+  /// Every island the page rendered is drawn or settled on its web version,
+  /// as of the batch with this sequence (`0` when none was sent).
+  case ready(sequence: Int)
 
   /// The name of the `WKScriptMessageHandler` the page posts to.
   static let handlerName = "nativeIslands"
@@ -23,10 +26,12 @@ enum NativeHostMessage: Decodable, Equatable, Sendable {
     case batch = "native_component_batch"
     case command = "native_component_command"
     case response = "native_component_response"
+    case ready = "native_islands_ready"
   }
 
   private enum CodingKeys: String, CodingKey {
     case eventName
+    case sequence
   }
 
   init(from decoder: Decoder) throws {
@@ -48,6 +53,16 @@ enum NativeHostMessage: Decodable, Equatable, Sendable {
       self = .command(try NativeComponentCommand(from: decoder))
     case .response:
       self = .response(try NativeComponentResponse(from: decoder))
+    case .ready:
+      let sequence = try container.decode(Int.self, forKey: .sequence)
+      guard sequence >= 0 else {
+        throw DecodingError.dataCorruptedError(
+          forKey: .sequence,
+          in: container,
+          debugDescription: "A ready sequence is never negative."
+        )
+      }
+      self = .ready(sequence: sequence)
     }
   }
 

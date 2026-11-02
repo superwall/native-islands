@@ -1,6 +1,6 @@
 import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ISLAND_STYLE_ATTRIBUTE, NATIVE_ACK_TIMEOUT_MS } from "../../src";
+import { ISLAND_STYLE_ATTRIBUTE, NATIVE_ACK_TIMEOUT_MS, connectNativeIslands } from "../../src";
 import {
   GlassButton,
   NativeIslandsProvider,
@@ -213,5 +213,91 @@ describe("NativeIslandsProvider", () => {
     expect(() => renderHook(() => useNativeIslands())).toThrow(
       "Native islands must be used within a NativeIslandsProvider.",
     );
+  });
+});
+
+describe("announcing readiness", () => {
+  const readyMessages = (view: ReturnType<typeof renderNative>) =>
+    view.outgoing.filter((message) => message.event_name === "native_islands_ready");
+
+  it("tells the host once every island of the first frame is drawn", async () => {
+    const view = renderNative(
+      <GlassButton title="Go">
+        <button data-rect={rectAttribute(0, 0, 100, 44)}>Go</button>
+      </GlassButton>,
+    );
+    await view.nextFrame();
+    expect(readyMessages(view)).toEqual([]);
+    view.ackAll();
+    expect(readyMessages(view)).toEqual([{ event_name: "native_islands_ready", sequence: 1 }]);
+    view.send({ event_name: "native_component_reset" });
+    await view.nextFrame();
+    view.ackAll();
+    expect(readyMessages(view)).toHaveLength(1);
+  });
+
+  it("tells the host at once when the page has no islands", async () => {
+    const view = renderNative(<span />);
+    await view.nextFrame();
+    expect(readyMessages(view)).toEqual([{ event_name: "native_islands_ready", sequence: 0 }]);
+  });
+
+  it("does not hold the host for an island parked on a page that is not showing", async () => {
+    const view = renderNative(
+      <div data-island-phase="behind">
+        <GlassButton title="Go">
+          <button data-rect={rectAttribute(0, 0, 100, 44)}>Go</button>
+        </GlassButton>
+      </div>,
+    );
+    await view.nextFrame();
+    expect(view.batches()).toEqual([]);
+    expect(readyMessages(view)).toHaveLength(1);
+  });
+
+  it("stops listening when announcing is turned off while an island still waits", async () => {
+    const { outgoing, transport } = fakeTransport();
+    const { islands } = connectNativeIslands({ transport });
+    const page = (announceReady: boolean) => (
+      <NativeIslandsProvider islands={islands} announceReady={announceReady}>
+        <GlassButton title="Go">
+          <button data-rect={rectAttribute(0, 0, 100, 44)}>Go</button>
+        </GlassButton>
+      </NativeIslandsProvider>
+    );
+    const view = render(page(true));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+    view.rerender(page(false));
+    view.unmount();
+    expect(outgoing.filter((message) => message.event_name === "native_islands_ready")).toEqual([]);
+  });
+
+  it("leaves announcing to the app when turned off", async () => {
+    const { outgoing, transport } = fakeTransport();
+    render(
+      <NativeIslandsProvider connect={{ transport }} announceReady={false}>
+        <span />
+      </NativeIslandsProvider>,
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+    expect(outgoing).toEqual([]);
+  });
+
+  it("stops listening when the provider unmounts before the first frame", async () => {
+    const { outgoing, transport } = fakeTransport();
+    const view = render(
+      <NativeIslandsProvider connect={{ transport }}>
+        <span />
+      </NativeIslandsProvider>,
+    );
+    view.unmount();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+    expect(outgoing).toEqual([]);
   });
 });
