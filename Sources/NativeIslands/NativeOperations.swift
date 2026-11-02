@@ -18,6 +18,10 @@ struct NativeMount: Equatable, Sendable {
   var sticky: NativeSticky?
   /// The part of the island to draw, in its own coordinates.
   var clip: NativeFrame?
+  /// Parts the page covers, cut out of the island, in its own coordinates.
+  var holes: [NativeFrame]?
+  /// See-through parts of the page laid over the island.
+  var shades: [NativeShade]?
 }
 
 /// Only the fields that changed since the last batch.
@@ -34,6 +38,10 @@ struct NativeUpdate: Equatable, Sendable {
   var sticky: NativeSticky?
   /// Comes with `frame`: an update with a frame and no `clip` unclips it.
   var clip: NativeFrame?
+  /// Comes with `frame`: an update with a frame and no `holes` fills them.
+  var holes: [NativeFrame]?
+  /// Comes with `frame`: an update with a frame and no `shades` clears them.
+  var shades: [NativeShade]?
 }
 
 /// One step of a `native_component_batch`.
@@ -66,6 +74,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     case stateRevision
     case sticky
     case clip
+    case holes
+    case shades
   }
 
   var id: String? {
@@ -130,7 +140,9 @@ enum NativeOperation: Decodable, Equatable, Sendable {
           accessibility: try container.decodeIfPresent(NativeAccessibility.self, forKey: .accessibility),
           stateRevision: try revision(in: container),
           sticky: try geometry(in: container).sticky,
-          clip: try geometry(in: container).clip
+          clip: try geometry(in: container).clip,
+          holes: try geometry(in: container).holes,
+          shades: try geometry(in: container).shades
         )
       )
     case .update:
@@ -161,14 +173,26 @@ enum NativeOperation: Decodable, Equatable, Sendable {
         accessibility: try container.decodeIfPresent(NativeAccessibility.self, forKey: .accessibility),
         stateRevision: try revision(in: container),
         sticky: try geometry(in: container).sticky,
-        clip: try geometry(in: container).clip
+        clip: try geometry(in: container).clip,
+        holes: try geometry(in: container).holes,
+        shades: try geometry(in: container).shades
       )
     )
   }
 
+  struct NativeGeometry {
+    let sticky: NativeSticky?
+    let clip: NativeFrame?
+    let holes: [NativeFrame]?
+    let shades: [NativeShade]?
+  }
+
+  /// Mirrors the page's `max(8)` on `holes`.
+  static let maxHoles = 8
+
   private static func geometry(
     in container: KeyedDecodingContainer<CodingKeys>
-  ) throws -> (sticky: NativeSticky?, clip: NativeFrame?) {
+  ) throws -> NativeGeometry {
     let sticky = try container.decodeIfPresent(NativeSticky.self, forKey: .sticky)
     let clip = try container.decodeIfPresent(NativeFrame.self, forKey: .clip)
     if let sticky, !sticky.isValid {
@@ -177,7 +201,15 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     if let clip, !clip.isValid {
       throw DecodingError.dataCorruptedError(forKey: .clip, in: container, debugDescription: "clip")
     }
-    return (sticky, clip)
+    let holes = try container.decodeIfPresent([NativeFrame].self, forKey: .holes)
+    if let holes, holes.count > maxHoles || holes.contains(where: { !$0.isValid }) {
+      throw DecodingError.dataCorruptedError(forKey: .holes, in: container, debugDescription: "holes")
+    }
+    let shades = try container.decodeIfPresent([NativeShade].self, forKey: .shades)
+    if let shades, shades.count > maxHoles || shades.contains(where: { !$0.isValid }) {
+      throw DecodingError.dataCorruptedError(forKey: .shades, in: container, debugDescription: "shades")
+    }
+    return NativeGeometry(sticky: sticky, clip: clip, holes: holes, shades: shades)
   }
 
   private static func revision(in container: KeyedDecodingContainer<CodingKeys>) throws -> Int? {

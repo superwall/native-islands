@@ -533,3 +533,57 @@ button:focus-visible {
   flex-direction: column;
   gap: 12px;
 }
+
+.progress {
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+  overflow: hidden;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.session-list {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--elevated) 70%, transparent);
+  border: 1px solid var(--border);
+}
+
+.session-row > div {
+  display: grid;
+  gap: 2px;
+}
+
+.cta-row {
+  margin-inline: auto;
+  width: 70%;
+  transition: width 320ms ease;
+}
+
+.cta-row[data-picked="true"] {
+  width: 100%;
+}
+
+.resizer {
+  width: 60%;
+  transition: width 500ms ease;
+}
+
+.resizer[data-wide="true"] {
+  width: 100%;
+}

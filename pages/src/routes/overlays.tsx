@@ -17,13 +17,13 @@ export default function Overlays() {
     <main className="page">
       <h1>Overlays and clipping</h1>
       <p className="lede">
-        A native view always sits above the page, so whenever web content covers or clips its
-        element, the web version shows instead.
+        Native views live inside the page. A sheet on its own layer covers them by itself, and
+        anything else drawn over one, such as a toast, is cut out of it, so it stays native.
       </p>
-      <Scenario id="S33" title="Covered by a sheet" expect="web while it happens">
+      <Scenario id="S33" title="Covered by a sheet" expect="native">
         <Glass title="Open a sheet" onPress={() => setSheet(true)} />
       </Scenario>
-      <Scenario id="S34" title="Covered by a toast" expect="web while it happens">
+      <Scenario id="S34" title="Covered by a toast" expect="native">
         {toast ? <div className="toast">Saved</div> : null}
         <Glass title="Show a toast" onPress={() => setToast(true)} />
       </Scenario>

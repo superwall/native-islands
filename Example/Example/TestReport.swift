@@ -69,7 +69,9 @@ final class TestReport {
     guard let islands = webView?.islands else { return }
     let measured = perf
     let alignments = await islands.alignment()
-    let misaligned = alignments.filter { $0.isMisaligned() }.map { alignment -> [String: Any] in
+    let moving = await movingScenarios()
+    let held = alignments.filter { $0.isMisaligned() && !moving.contains($0.scenario ?? "") }
+    let misaligned = held.map { alignment -> [String: Any] in
       let deltas = alignment.deltas
       return [
         "id": alignment.id,
@@ -105,6 +107,15 @@ final class TestReport {
     if let data = try? JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]) {
       label.accessibilityLabel = String(data: data, encoding: .utf8)
     }
+  }
+
+  /// Scenarios whose element never stops moving: their native view may trail
+  /// it by a frame, so they are not held to the 0.5 pt alignment.
+  private func movingScenarios() async -> Set<String> {
+    let script = "return [...document.querySelectorAll('[data-scenario][data-moving]')]"
+      + ".map((el) => el.getAttribute('data-scenario'));"
+    let result = try? await webView?.callAsyncJavaScript(script, contentWorld: .page)
+    return Set(result as? [String] ?? [])
   }
 
   /// Wrappers on screen whose scenario expects native but that the page still

@@ -5,11 +5,16 @@ import {
   handoffOf,
   inTransition,
   intersect,
+  shadeOf,
   isCovered,
+  isEvenScale,
   isTranslation,
+  MAX_HOLES,
+  type NativeShade,
   samplePoints,
 } from "../src/handoff";
 import { placementOf, type NativePlacement } from "../src/measure";
+import type { TNativeFrame } from "../src/schemas";
 import {
   mockLayout,
   overrideStyle,
@@ -455,10 +460,124 @@ describe("layered hosts", () => {
     expect(handoffOf(wrapper, placement(), still, true)).toBeUndefined();
   });
 
+  it("cuts what the page covers out of the island instead of handing off, when the host clips", () => {
+    const { wrapper, inner, placement } = routed();
+    const button = wrapper.querySelector("button") as HTMLElement;
+    const toast = document.createElement("div");
+    toast.dataset.rect = rectAttribute(0, 490, 60, 30);
+    inner.appendChild(toast);
+    Object.assign(document, {
+      elementsFromPoint: (x: number, y: number) =>
+        x < 60 && y < 520 ? [toast, button, inner] : [button, inner],
+    });
+    const out: { holes?: TNativeFrame[] } = {};
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true, out })).toBeUndefined();
+    expect(out.holes).toEqual([{ x: 10, y: 500, width: 50, height: 20 }]);
+    expect(handoffOf(wrapper, placement(), still, true)).toBe("covered");
+  });
+
+  it("stays native, all cut away, when the page covers all of it", () => {
+    const { wrapper, inner, placement } = routed();
+    const footer = document.createElement("div");
+    footer.dataset.rect = rectAttribute(0, 480, 400, 120);
+    inner.appendChild(footer);
+    const button = wrapper.querySelector("button") as HTMLElement;
+    Object.assign(document, { elementsFromPoint: () => [footer, button, inner] });
+    const out: { holes?: TNativeFrame[] } = {};
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true, out })).toBeUndefined();
+    expect(out.holes).toEqual([{ x: 10, y: 500, width: 100, height: 40 }]);
+  });
+
+  it("lays a see-through backdrop over the island as a shade, fixed or not", () => {
+    const { wrapper, inner, placement } = routed();
+    const overlay = document.createElement("div");
+    overlay.dataset.rect = rectAttribute(0, 0, 400, 600);
+    inner.appendChild(overlay);
+    overrideStyle(overlay, { position: "fixed", backgroundColor: "rgba(0, 0, 0, 0.4)" });
+    const button = wrapper.querySelector("button") as HTMLElement;
+    Object.assign(document, { elementsFromPoint: () => [overlay, button, inner] });
+    const out: { holes?: TNativeFrame[]; shades?: NativeShade[] } = {};
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true, out })).toBeUndefined();
+    expect(out.holes).toBeUndefined();
+    expect(out.shades).toEqual([
+      { x: 10, y: 500, width: 100, height: 40, color: "rgba(0, 0, 0, 0.4)" },
+    ]);
+  });
+
+  it("merges more than a few cut-outs into one", () => {
+    const { wrapper, inner, placement } = routed();
+    const button = wrapper.querySelector("button") as HTMLElement;
+    const dots = Array.from({ length: MAX_HOLES + 2 }, (_, index) => {
+      const dot = document.createElement("i");
+      dot.dataset.rect = rectAttribute(10 + index * 9, 500, 4, 4);
+      inner.appendChild(dot);
+      return dot;
+    });
+    let call = 0;
+    Object.assign(document, {
+      elementsFromPoint: () => [dots[call++ % dots.length], button, inner],
+    });
+    const out: { holes?: TNativeFrame[] } = {};
+    handoffOf(wrapper, placement(), still, true, { clip: true, out });
+    expect(out.holes).toHaveLength(1);
+  });
+
+  it("follows an even scale when the host clips, and hands off for anything else", () => {
+    const { wrapper, inner, placement } = routed();
+    const button = wrapper.querySelector("button") as HTMLElement;
+    overrideStyle(inner, { transform: "matrix(1.04, 0, 0, 1.04, 0, 0)" });
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true })).toBeUndefined();
+    expect(handoffOf(wrapper, placement(), still, true)).toBe("transformed");
+    overrideStyle(inner, { transform: "none", scale: "1.1" });
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true })).toBeUndefined();
+    overrideStyle(inner, { scale: "1.1 0.9" });
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true })).toBe("transformed");
+    overrideStyle(inner, { scale: "none" });
+    overrideStyle(button, { transform: "matrix(0.9, 0, 0, 0.9, 0, 0)" });
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true })).toBeUndefined();
+    overrideStyle(button, { transform: "matrix(0.9, 0.1, 0, 0.9, 0, 0)" });
+    expect(handoffOf(wrapper, placement(), still, true, { clip: true })).toBe("transformed");
+  });
+
   it("applies only to scroller islands", () => {
     const { wrapper, card, placement } = setup();
     card.setAttribute("data-island-phase", "enter");
     expect(handoffOf(wrapper, placement(), still, true)).toBe("inactive");
+  });
+});
+
+describe("shadeOf", () => {
+  it("reads a see-through fill with nothing else on it", () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    overrideStyle(element, { backgroundColor: "rgba(10, 20, 30, 0.5)" });
+    expect(shadeOf(element)).toBe("rgba(10, 20, 30, 0.5)");
+    overrideStyle(element, { backgroundColor: "color(srgb 0.1 0.2 0.3 / 0.4)" });
+    expect(shadeOf(element)).toBe("rgba(26, 51, 77, 0.4)");
+    overrideStyle(element, { backgroundColor: "color(srgb 0.1 0.2)" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { backgroundColor: "rgb(1, 2)" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { backgroundColor: "rgb(1, 2, 3)" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { backgroundColor: "rgba(1, 2, 3, 0)" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { backgroundColor: "transparent" });
+    expect(shadeOf(element)).toBeUndefined();
+    overrideStyle(element, { backgroundColor: "rgba(1, 2, 3, 0.5)", backdropFilter: "blur(4px)" });
+    expect(shadeOf(element)).toBeUndefined();
+  });
+});
+
+describe("isEvenScale", () => {
+  it("accepts translations and even scales only", () => {
+    expect(isEvenScale("none")).toBe(true);
+    expect(isEvenScale("matrix(1.5, 0, 0, 1.5, 4, 4)")).toBe(true);
+    expect(isEvenScale("matrix(1.5, 0, 0, 1.4, 0, 0)")).toBe(false);
+    expect(isEvenScale("matrix(-1, 0, 0, -1, 0, 0)")).toBe(false);
+    expect(isEvenScale("matrix(1, 0.2, 0, 1, 0, 0)")).toBe(false);
+    expect(isEvenScale("matrix(1, 0)")).toBe(false);
+    expect(isEvenScale("rotate(3deg)")).toBe(false);
   });
 });
 

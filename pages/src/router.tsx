@@ -11,6 +11,7 @@ export const ROUTES = [
   "overlays",
   "stress",
   "state",
+  "onboarding",
   "flow-plans",
   "flow-details",
   "flow-done",

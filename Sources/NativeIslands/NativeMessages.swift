@@ -95,6 +95,22 @@ struct NativeFrame: Codable, Equatable, Sendable {
   }
 }
 
+/// A see-through part of the page over an island, such as a sheet's dimmed
+/// backdrop, in the island's own coordinates. The host lays its colour over
+/// the island there, so the island is dimmed like the page around it.
+struct NativeShade: Codable, Equatable, Sendable {
+  let x: Double
+  let y: Double
+  let width: Double
+  let height: Double
+  /// An `rgb()` or `rgba()` colour.
+  let color: String
+
+  var frame: NativeFrame { NativeFrame(x: x, y: y, width: width, height: height) }
+
+  var isValid: Bool { frame.isValid && NativeComponentProps.rgba(color) != nil }
+}
+
 /// A `position: sticky` box inside a scroller. The host keeps the island
 /// stuck itself as the scroller scrolls, with no message per frame. Rects are
 /// in the scroller's content coordinates.

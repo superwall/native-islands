@@ -168,30 +168,30 @@ extension NativeIslandManager {
     }
   }
 
-  /// Hides islands that scrolling carried under the viewport's top safe
-  /// area. The system blurs web content there; a native view would stay sharp
-  /// on top of the status bar. An island that sits in the top inset at rest,
-  /// such as a full-screen page's close button, is meant to be there and
-  /// stays. Islands on the screen layer are left alone.
+  /// Cuts away the part of each island that scrolling carried under the
+  /// viewport's top safe area, so it slides under the status bar like the
+  /// page instead of drawing sharp on top of the system's blur. An island
+  /// that sits in the top inset at rest, such as a full-screen page's close
+  /// button, is meant to be there and is left whole, as are islands on the
+  /// screen layer.
   func updateObscured() {
     guard let viewport = surface?.viewport else { return }
     let top = viewport.safeAreaInsets.top
     for island in islands.values {
-      let obscured: Bool
+      var cut: CGFloat = 0
       if case .screen = island.anchor {
-        obscured = false
-      } else {
+        cut = 0
+      } else if top > 0 {
         let rect = island.view.convert(island.view.bounds, to: viewport)
         let scrolled = Self.scrolledDistance(from: island.view, to: viewport)
         let atRest = rect.minY + scrolled
-        obscured = top > 0 &&
-          scrolled > NativeScrollerMatcher.tolerance &&
-          rect.minY < top - NativeScrollerMatcher.tolerance &&
-          atRest >= top - NativeScrollerMatcher.tolerance
+        if scrolled > NativeScrollerMatcher.tolerance,
+           atRest >= top - NativeScrollerMatcher.tolerance,
+           rect.minY < top - NativeScrollerMatcher.tolerance {
+          cut = top - rect.minY
+        }
       }
-      if island.obscure(obscured) {
-        island.applyVisibility(animated: true)
-      }
+      _ = island.cutTop(cut)
     }
   }
 

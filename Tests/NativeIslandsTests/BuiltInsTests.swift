@@ -395,7 +395,7 @@ extension NativeBridgeTests {
   @MainActor
   struct StatusBarTests {
     @Test
-    func hidesPageIslandsWhileTheyAreUnderTheStatusBarAndShowsThemAfter() {
+    func cutsAwayThePartOfAPageIslandUnderTheStatusBarAndKeepsTheRestShown() {
       let registry = NativeComponentRegistry(includingBuiltIns: false)
       registry.register("glassButton") { _ in Color.clear }
       let surface = NotchedSurface()
@@ -412,14 +412,47 @@ extension NativeBridgeTests {
       #expect(low?.view.isUserInteractionEnabled == true)
 
       surface.pageScrollView.contentOffset = CGPoint(x: 0, y: 180)
-      #expect(low?.isObscured == true)
-      #expect(low?.isShown == false)
-      #expect(low?.view.isUserInteractionEnabled == false)
-      #expect(manager.islands["bar"]?.isObscured == false)
-      #expect(manager.frames().first { $0.id == "low" }?.visible == false)
+      #expect(low?.topCut == 40)
+      #expect(low?.isShown == true)
+      #expect(low?.view.alpha == 1)
+      #expect(low?.drawnShape?.area == CGRect(x: 0, y: 40, width: 100, height: 4))
+      #expect(low?.view.mask is NativeIslandMask)
+      #expect(manager.islands["bar"]?.topCut == 0)
+
+      surface.pageScrollView.contentOffset = CGPoint(x: 0, y: 300)
+      #expect(low?.drawnShape?.area.height == 0)
 
       surface.pageScrollView.contentOffset = .zero
-      #expect(low?.isShown == true)
+      #expect(low?.topCut == 0)
+      #expect(low?.view.mask == nil)
+    }
+
+    @Test
+    func cutsHolesWherePageContentCoversAnIsland() {
+      let registry = NativeComponentRegistry(includingBuiltIns: false)
+      registry.register("glassButton") { _ in Color.clear }
+      let surface = NotchedSurface()
+      let manager = NativeIslandManager(registry: registry, surface: surface, send: { _ in }, schedule: { _ in })
+      var mount = mountOp("cta", frame: NativeFrame(x: 10, y: 300, width: 100, height: 44))
+      if case .mount(var value) = mount {
+        value.holes = [NativeFrame(x: 0, y: 30, width: 100, height: 14)]
+        value.shades = [NativeShade(x: 0, y: 0, width: 100, height: 30, color: "rgba(0, 0, 0, 0.4)")]
+        mount = .mount(value)
+      }
+      manager.apply(batch(1, mount))
+      let cta = manager.islands["cta"]
+      #expect(cta?.isShown == true)
+      #expect(cta?.drawnShape?.holes == [CGRect(x: 0, y: 30, width: 100, height: 14)])
+      #expect(cta?.view.mask is NativeIslandMask)
+      #expect(cta?.shadeLayers.count == 1)
+      #expect(cta?.shadeLayers.first?.frame == CGRect(x: 0, y: 0, width: 100, height: 30))
+      #expect(cta?.shadeLayers.first?.superview?.superview === cta?.host.view)
+      manager.apply(
+        batch(2, .update(NativeUpdate(id: "cta", frame: NativeFrame(x: 10, y: 300, width: 100, height: 44))))
+      )
+      #expect(cta?.drawnShape == nil)
+      #expect(cta?.view.mask == nil)
+      #expect(cta?.shadeLayers.isEmpty == true)
     }
 
     @Test
@@ -436,10 +469,10 @@ extension NativeBridgeTests {
       )
       surface.pageScrollView.contentOffset = CGPoint(x: 0, y: 1)
       manager.updateObscured()
-      #expect(manager.islands["close"]?.isObscured == false)
+      #expect(manager.islands["close"]?.topCut == 0)
       surface.pageScrollView.contentOffset = CGPoint(x: 0, y: 40)
       manager.updateObscured()
-      #expect(manager.islands["close"]?.isObscured == false)
+      #expect(manager.islands["close"]?.topCut == 0)
       #expect(manager.islands["close"]?.isShown == true)
     }
 
@@ -469,7 +502,7 @@ extension NativeBridgeTests {
       #expect(manager.islands["row"]?.isShown == true)
       list.contentOffset = CGPoint(x: 0, y: 70)
       #expect(manager.islands["row"]?.view.superview === list)
-      #expect(manager.islands["row"]?.isObscured == true)
+      #expect(manager.islands["row"]?.topCut == 10)
     }
   }
 }

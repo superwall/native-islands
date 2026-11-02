@@ -11,6 +11,7 @@ const GROUPS: ReadonlyArray<{ route: RouteName; title: string; range: string }> 
   { route: "stress", title: "Stress", range: "S38–S40" },
   { route: "state", title: "State and callbacks", range: "S41–S45" },
   { route: "flow-plans", title: "Page transitions", range: "S46–S49" },
+  { route: "onboarding", title: "A real onboarding screen", range: "S50–S54" },
 ];
 
 export default function Index() {

@@ -147,7 +147,9 @@ struct ContractTests {
       box: NativeFrame(x: 0, y: 0, width: 354, height: 56),
       bounds: NativeFrame(x: 0, y: 0, width: 354, height: 640)
     ),
-    clip: NativeFrame(x: 0, y: 0, width: 51, height: 20)
+    clip: NativeFrame(x: 0, y: 0, width: 51, height: 20),
+    holes: [NativeFrame(x: 0, y: 12, width: 51, height: 8)],
+    shades: [NativeShade(x: 0, y: 0, width: 51, height: 12, color: "rgba(0, 0, 0, 0.4)")]
   )
 
   @Test("Encodes every reply as the contract's messages to the page")

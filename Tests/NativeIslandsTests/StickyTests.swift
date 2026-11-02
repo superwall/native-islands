@@ -89,7 +89,8 @@ extension NativeBridgeTests {
 
       let clip = NativeFrame(x: 0, y: 0, width: 100, height: 10)
       harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", frame: frame, clip: clip))))
-      #expect(view.mask?.frame == CGRect(x: 0, y: 0, width: 100, height: 10))
+      #expect(view.mask is NativeIslandMask)
+      #expect(harness.island("cta")?.drawnShape?.area == CGRect(x: 0, y: 0, width: 100, height: 10))
 
       harness.manager.apply(batch(3, .update(NativeUpdate(id: "cta", frame: frame))))
       #expect(view.mask == nil)
@@ -101,6 +102,15 @@ extension NativeBridgeTests {
         + #""clip":{"x":0,"y":0,"width":-1,"height":10}}"#
       let operation = try NativeHostMessage.decoder.decode(NativeOperation.self, from: Data(json.utf8))
       #expect(operation == .invalid(id: "cta"))
+      for field in [
+        #""holes":[{"x":0,"y":0,"width":-1,"height":10}]"#,
+        #""shades":[{"x":0,"y":0,"width":1,"height":1,"color":"blue"}]"#,
+        #""holes":["# + Array(repeating: #"{"x":0,"y":0,"width":1,"height":1}"#, count: 9).joined(separator: ",") + "]"
+      ] {
+        let invalid = #"{"op":"update","id":"cta","frame":{"x":0,"y":0,"width":10,"height":10},"# + field + "}"
+        let decoded = try NativeHostMessage.decoder.decode(NativeOperation.self, from: Data(invalid.utf8))
+        #expect(decoded == .invalid(id: "cta"))
+      }
     }
   }
 }

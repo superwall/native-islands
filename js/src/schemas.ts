@@ -68,6 +68,13 @@ export const NativeAccessibilitySchema = z.object({
 const componentId = z.string().min(1).max(NativeComponentLimits.maxIdLength);
 const componentName = z.string().min(1).max(NativeComponentLimits.maxComponentNameLength);
 
+export const NativeShadeSchema = NativeFrameSchema.extend({
+  /** An `rgb()` or `rgba()` colour. */
+  color: z.string().max(64),
+});
+
+export type TNativeShade = z.infer<typeof NativeShadeSchema>;
+
 export const NativeMountOperationSchema = z.object({
   op: z.literal("mount"),
   id: componentId,
@@ -80,6 +87,10 @@ export const NativeMountOperationSchema = z.object({
   sticky: NativeStickySchema.optional(),
   /** The part of the island to draw, in its own coordinates. Applies to the frame it comes with. */
   clip: NativeFrameSchema.optional(),
+  /** Parts of the island the page covers, cut out of it, in its own coordinates. Applies to the frame it comes with. */
+  holes: z.array(NativeFrameSchema).max(8).optional(),
+  /** See-through parts of the page over the island, laid over it in their colour, in its own coordinates. Applies to the frame it comes with. */
+  shades: z.array(NativeShadeSchema).max(8).optional(),
   visible: z.boolean(),
   order: z.number().int().nonnegative(),
   sizing: z.enum(["web", "native"]),
@@ -97,6 +108,10 @@ export const NativeUpdateOperationSchema = z.object({
   sticky: NativeStickySchema.optional(),
   /** The part of the island to draw, in its own coordinates. Applies to the frame it comes with. */
   clip: NativeFrameSchema.optional(),
+  /** Parts of the island the page covers, cut out of it, in its own coordinates. Applies to the frame it comes with. */
+  holes: z.array(NativeFrameSchema).max(8).optional(),
+  /** See-through parts of the page over the island, laid over it in their colour, in its own coordinates. Applies to the frame it comes with. */
+  shades: z.array(NativeShadeSchema).max(8).optional(),
   visible: z.boolean().optional(),
   order: z.number().int().nonnegative().optional(),
   accessibility: NativeAccessibilitySchema.optional(),

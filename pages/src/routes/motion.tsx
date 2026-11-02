@@ -20,7 +20,7 @@ export default function Motion() {
           <Glass title={moved ? "Slide back" : "Slide"} onPress={() => setMoved(!moved)} />
         </div>
       </Scenario>
-      <Scenario id="S26" title="Inside something that keeps pulsing" expect="web">
+      <Scenario id="S26" title="Inside something that keeps pulsing" expect="native" moving>
         <div className="pulse">
           <Glass title="Always moving" />
         </div>

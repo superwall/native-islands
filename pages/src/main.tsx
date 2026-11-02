@@ -9,6 +9,7 @@ import { FlowDetails, FlowDone, FlowPlans } from "./routes/flow";
 import Index from "./routes/index";
 import { Layout } from "./routes/layout";
 import Motion from "./routes/motion";
+import Onboarding from "./routes/onboarding";
 import Overlays from "./routes/overlays";
 import Perf from "./routes/perf";
 import Scrolling from "./routes/scrolling";
@@ -26,6 +27,7 @@ const ALL_PAGES: Record<RouteName, React.ComponentType> = {
   overlays: Overlays,
   stress: Stress,
   state: State,
+  onboarding: Onboarding,
   "flow-plans": FlowPlans,
   "flow-details": FlowDetails,
   "flow-done": FlowDone,

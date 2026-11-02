@@ -6,6 +6,7 @@ import {
   type TNativeAnchor,
   type TNativeErrorReason,
   type TNativeFrame,
+  type TNativeShade,
   type TNativeSticky,
   type TNativeOperation,
   type TNativeProps,
@@ -67,16 +68,30 @@ export type NativeIslandSpec = {
   sticky?: TNativeSticky;
   /** The part of the island to draw, in its own coordinates. Travels with `frame`. Default: all of it. */
   clip?: TNativeFrame;
+  /** Parts of the island the page covers, cut out of it, in its own coordinates. Travels with `frame`. Default: none. */
+  holes?: TNativeFrame[];
+  /** See-through parts of the page laid over the island, in its own coordinates. Travels with `frame`. Default: none. */
+  shades?: TNativeShade[];
 };
 
 /**
- * What changed about an island. `sticky` and `clip` belong to the frame they
- * come with: a patch with a `frame` and without them unsticks and unclips.
+ * What changed about an island. `sticky`, `clip` and `holes` belong to the
+ * frame they come with: a patch with a `frame` and without them unsticks,
+ * unclips and fills the holes.
  */
 export type NativeIslandPatch = Partial<
   Pick<
     NativeIslandSpec,
-    "props" | "frame" | "anchor" | "visible" | "order" | "accessibility" | "sticky" | "clip"
+    | "props"
+    | "frame"
+    | "anchor"
+    | "visible"
+    | "order"
+    | "accessibility"
+    | "sticky"
+    | "clip"
+    | "holes"
+    | "shades"
   >
 >;
 
@@ -327,7 +342,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       const revision = island.revision > 0 ? { state_revision: island.revision } : {};
       if (!sent) {
-        const { accessibility, sticky, clip, ...rest } = spec;
+        const { accessibility, sticky, clip, holes, shades, ...rest } = spec;
         const operation: TNativeOperation = {
           op: "mount",
           id,
@@ -335,6 +350,8 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
           ...(accessibility === undefined ? {} : { accessibility }),
           ...(sticky === undefined ? {} : { sticky }),
           ...(clip === undefined ? {} : { clip }),
+          ...(holes === undefined ? {} : { holes }),
+          ...(shades === undefined ? {} : { shades }),
           ...revision,
         };
         if (!validOperation(operation)) {
@@ -348,12 +365,19 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       for (const key of UPDATABLE) {
         if (spec[key] !== undefined && !same(spec[key], sent[key])) changes[key] = spec[key];
       }
-      if (!same(spec.sticky, sent.sticky) || !same(spec.clip, sent.clip)) {
+      if (
+        !same(spec.sticky, sent.sticky) ||
+        !same(spec.clip, sent.clip) ||
+        !same(spec.holes, sent.holes) ||
+        !same(spec.shades, sent.shades)
+      ) {
         changes.frame = spec.frame;
       }
       if ("frame" in changes) {
         if (spec.sticky !== undefined) changes.sticky = spec.sticky;
         if (spec.clip !== undefined) changes.clip = spec.clip;
+        if (spec.holes !== undefined) changes.holes = spec.holes;
+        if (spec.shades !== undefined) changes.shades = spec.shades;
       }
       if (Object.keys(changes).length === 0) continue;
       const operation = {
@@ -446,7 +470,10 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       props = converted;
     }
-    const geometry = patch.frame === undefined ? {} : { sticky: patch.sticky, clip: patch.clip };
+    const geometry =
+      patch.frame === undefined
+        ? {}
+        : { sticky: patch.sticky, clip: patch.clip, holes: patch.holes, shades: patch.shades };
     island.spec = { ...island.spec, ...rest, ...geometry, props };
     return true;
   };

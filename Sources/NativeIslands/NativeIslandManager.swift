@@ -194,7 +194,13 @@ final class NativeIslandManager: NativeIslandMessaging {
       island.move(to: anchor)
     }
     if let frame = update.frame {
-      island.place(frame, sticky: update.sticky, clip: update.clip)
+      island.place(
+        frame,
+        sticky: update.sticky,
+        clip: update.clip,
+        holes: update.holes,
+        shades: update.shades
+      )
       island.layOut()
     }
     if let order = update.order {

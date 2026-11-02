@@ -41,6 +41,31 @@ export const isTranslation = (transform: string): boolean => {
   );
 };
 
+/** Whether `transform` only translates and scales evenly, so the island can just follow its rect. */
+export const isEvenScale = (transform: string): boolean => {
+  if (isTranslation(transform)) return true;
+  const match = /^matrix\((.*)\)$/.exec(transform.trim());
+  if (!match) return false;
+  const values = (match[1] as string).split(",").map((value) => Number.parseFloat(value));
+  return (
+    values.length === 6 &&
+    (values[0] as number) > 0 &&
+    values[0] === values[3] &&
+    values[1] === 0 &&
+    values[2] === 0
+  );
+};
+
+const isEvenScaleProperty = (scale: string | undefined) => {
+  if (isNone(scale)) return true;
+  const parts = (scale as string).trim().split(/\s+/);
+  return (
+    parts.length <= 2 &&
+    parts.every((part) => part === parts[0]) &&
+    Number.parseFloat(parts[0] as string) > 0
+  );
+};
+
 const isNone = (value: string | undefined) =>
   value === undefined || value === "" || value === "none";
 
@@ -103,10 +128,76 @@ export const coveredAt = (
     : "own";
 };
 
-export const isCovered = (
+/** A see-through area of the page over an island, such as a sheet's dimmed backdrop. */
+export type NativeShade = TNativeFrame & { color: string };
+
+const parseAlphaColor = (value: string): [number, number, number, number] | undefined => {
+  const css = /^rgba?\(([^)]*)\)$/.exec(value.trim());
+  if (css) {
+    const parts = (css[1] as string)
+      .split(/[\s,/]+/)
+      .filter(Boolean)
+      .map(Number);
+    if (parts.length < 3 || parts.some((part) => !Number.isFinite(part))) return undefined;
+    return [parts[0] as number, parts[1] as number, parts[2] as number, parts[3] ?? 1];
+  }
+  const srgb = /^color\(srgb ([^)]*)\)$/.exec(value.trim());
+  if (srgb) {
+    const parts = (srgb[1] as string)
+      .split(/[\s/]+/)
+      .filter(Boolean)
+      .map(Number);
+    if (parts.length < 3 || parts.some((part) => !Number.isFinite(part))) return undefined;
+    return [
+      (parts[0] as number) * 255,
+      (parts[1] as number) * 255,
+      (parts[2] as number) * 255,
+      parts[3] ?? 1,
+    ];
+  }
+  return undefined;
+};
+
+/**
+ * The `rgba()` an element is filled with when it is see-through with nothing
+ * else drawn on it, such as a backdrop; `undefined` otherwise.
+ */
+export const shadeOf = (element: Element): string | undefined => {
+  const style = getComputedStyle(element);
+  if (!isNone(style.backdropFilter) || !isNone(style.backgroundImage)) return undefined;
+  const color = parseAlphaColor(style.backgroundColor);
+  if (!color) return undefined;
+  const [red, green, blue, alpha] = color;
+  if (alpha <= 0 || alpha >= 1) return undefined;
+  const round = (value: number) => Math.round(Math.min(255, Math.max(0, value)));
+  return `rgba(${round(red)}, ${round(green)}, ${round(blue)}, ${Number(alpha.toFixed(3))})`;
+};
+
+export const MAX_HOLES = 8;
+
+const union = (left: TNativeFrame, right: TNativeFrame): TNativeFrame => {
+  const x = Math.min(left.x, right.x);
+  const y = Math.min(left.y, right.y);
+  return {
+    x,
+    y,
+    width: Math.max(left.x + left.width, right.x + right.width) - x,
+    height: Math.max(left.y + left.height, right.y + right.height) - y,
+  };
+};
+
+/**
+ * Samples what covers the island. With `cover`, every element drawn above it
+ * is collected instead of counting as cover: a see-through one with nothing
+ * on it as a shade the host lays over the island, anything else as a hole cut
+ * out of it. The island then stays native whatever covers it, whether WebKit
+ * draws the cover on the island's layer or a layer of its own.
+ */
+const sampleCover = (
   wrapper: HTMLElement,
   placement: NativePlacement,
-  within?: Element,
+  within: Element | undefined,
+  cover: { holes: TNativeFrame[]; shades: NativeShade[] } | undefined,
 ): boolean => {
   const document = wrapper.ownerDocument;
   if (typeof document.elementsFromPoint !== "function") return false;
@@ -114,19 +205,47 @@ export const isCovered = (
   if (area && placement.scroller) area = intersect(area, contentBoxOf(placement.scroller));
   if (!area) return false;
   const sampled = area;
+  const seen = new Set<Element>();
   wrapper.setAttribute(ISLAND_PROBE_ATTRIBUTE, "");
   try {
     let reached = false;
     for (const [x, y] of samplePoints(sampled)) {
-      const cover = coveredAt(wrapper, document.elementsFromPoint(x, y), within);
-      if (cover === "covered") return true;
-      if (cover === "own") reached = true;
+      const stack = document.elementsFromPoint(x, y);
+      const state = coveredAt(wrapper, stack, within);
+      if (state === "own") reached = true;
+      if (state !== "covered") continue;
+      if (!cover) return true;
+      reached = true;
+      const top = stack.find(
+        (element) => !wrapper.contains(element) && !element.contains(wrapper),
+      ) as Element;
+      if (seen.has(top)) continue;
+      seen.add(top);
+      const rect = top.getBoundingClientRect();
+      const area = intersect(
+        { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        sampled,
+      );
+      if (!area) continue;
+      const color = shadeOf(top);
+      if (color) cover.shades.push({ ...area, color });
+      else cover.holes.push(area);
     }
+    if (cover && cover.holes.length > MAX_HOLES) {
+      cover.holes.splice(0, cover.holes.length, cover.holes.reduce(union));
+    }
+    if (cover && cover.shades.length > MAX_HOLES) cover.shades.splice(MAX_HOLES);
     return !reached;
   } finally {
     wrapper.removeAttribute(ISLAND_PROBE_ATTRIBUTE);
   }
 };
+
+export const isCovered = (
+  wrapper: HTMLElement,
+  placement: NativePlacement,
+  within?: Element,
+): boolean => sampleCover(wrapper, placement, within, undefined);
 
 /**
  * Whether the wrapper or an ancestor is entering, leaving or moving. With
@@ -159,8 +278,16 @@ export type HandoffOptions = {
   clip?: boolean;
   /** Whether everything moving about an element is its size. Default: nothing is. */
   isRevealing?: (element: Element) => boolean;
-  /** Receives the visible part of a clipped island, in viewport coordinates, and whether a box around it is resizing. */
-  out?: { clip?: TNativeFrame; revealing?: boolean };
+  /**
+   * Receives the visible part of a clipped island and the parts covered by
+   * the page, in viewport coordinates, and whether a box around it is resizing.
+   */
+  out?: {
+    clip?: TNativeFrame;
+    holes?: TNativeFrame[];
+    shades?: NativeShade[];
+    revealing?: boolean;
+  };
 };
 
 export const handoffOf = (
@@ -174,14 +301,16 @@ export const handoffOf = (
   const clips = riding !== undefined && options.clip === true;
   let visible: TNativeFrame = placement.rect;
   let carried = false;
+  const follows = (style: CSSStyleDeclaration) =>
+    clips
+      ? isEvenScale(style.transform) && isEvenScaleProperty(style.scale) && isNone(style.rotate)
+      : isTranslation(style.transform) && isNone(style.scale) && isNone(style.rotate);
   if (placement.rect.width <= 0 || placement.rect.height <= 0) return "hidden";
   const boxes = boxElementsOf(wrapper);
   for (const box of boxes) {
     if (box === wrapper) continue;
     const style = getComputedStyle(box);
-    if (!isTranslation(style.transform) || !isNone(style.scale) || !isNone(style.rotate)) {
-      return "transformed";
-    }
+    if (!follows(style)) return "transformed";
   }
   const firstPosition = getComputedStyle(boxes[0] as HTMLElement).position;
   let clipping = placement.kind !== "screen";
@@ -208,13 +337,7 @@ export const handoffOf = (
     )
       options.out.revealing = true;
     if (Number.parseFloat(style.opacity) < 1) return "faded";
-    if (
-      !isTranslation(style.transform) ||
-      !isNone(style.scale) ||
-      !isNone(style.rotate) ||
-      !isNone(style.filter) ||
-      !isNone(style.clipPath)
-    ) {
+    if (!follows(style) || !isNone(style.filter) || !isNone(style.clipPath)) {
       return "transformed";
     }
     if (element === placement.scroller) clipping = false;
@@ -238,5 +361,11 @@ export const handoffOf = (
     }
   }
   if (visible !== placement.rect && options.out) options.out.clip = visible;
-  return isCovered(wrapper, { ...placement, rect: visible }, riding) ? "covered" : undefined;
+  const cover = clips && options.out ? { holes: [], shades: [] } : undefined;
+  const covered = sampleCover(wrapper, { ...placement, rect: visible }, riding, cover);
+  if (cover && options.out) {
+    if (cover.holes.length > 0) options.out.holes = cover.holes;
+    if (cover.shades.length > 0) options.out.shades = cover.shades;
+  }
+  return covered ? "covered" : undefined;
 };

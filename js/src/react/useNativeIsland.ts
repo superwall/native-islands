@@ -17,6 +17,7 @@ import type {
   TNativeAccessibility,
   TNativeAnchor,
   TNativeFrame,
+  TNativeShade,
   TNativeSize,
   TNativeSticky,
 } from "../schemas";
@@ -80,6 +81,8 @@ type Geometry = {
   visible: boolean;
   sticky?: TNativeSticky;
   clip?: TNativeFrame;
+  holes?: TNativeFrame[];
+  shades?: TNativeShade[];
 };
 
 const geometryPatch = (geometry: Geometry) =>
@@ -90,6 +93,8 @@ const geometryPatch = (geometry: Geometry) =>
         visible: true,
         ...(geometry.sticky ? { sticky: geometry.sticky } : {}),
         ...(geometry.clip ? { clip: geometry.clip } : {}),
+        ...(geometry.holes ? { holes: geometry.holes } : {}),
+        ...(geometry.shades ? { shades: geometry.shades } : {}),
       }
     : { visible: false };
 
@@ -156,7 +161,12 @@ export const useNativeIsland = (
       const layered = supportsFeature(islands.capability, "layered");
       const riding = layered && placement.kind === "scroller" ? placement.scroller : undefined;
       const watcher = layoutWatcherFor(element.ownerDocument);
-      const out: { clip?: TNativeFrame; revealing?: boolean } = {};
+      const out: {
+        clip?: TNativeFrame;
+        holes?: TNativeFrame[];
+        shades?: TNativeShade[];
+        revealing?: boolean;
+      } = {};
       const handoff = handoffOf(element, placement, watcher.isMoving, layered, {
         clip: supportsFeature(islands.capability, "clip"),
         isRevealing: watcher.isRevealing,
@@ -164,6 +174,13 @@ export const useNativeIsland = (
       });
       tracked.revealing = out.revealing === true;
       const clip = localClip(out.clip, placement.rect, riding);
+      const holes = out.holes?.map(
+        (hole) => localClip(hole, placement.rect, riding) as TNativeFrame,
+      );
+      const shades = out.shades?.map(({ color, ...area }) => ({
+        ...(localClip(area, placement.rect, riding) as TNativeFrame),
+        color,
+      }));
       const previous = sentAnchor.current;
       const anchor =
         previous && sameAnchor(previous, placement.anchor) ? previous : placement.anchor;
@@ -176,6 +193,8 @@ export const useNativeIsland = (
         visible: handoff === undefined,
         ...(placement.sticky ? { sticky: placement.sticky } : {}),
         ...(clip ? { clip } : {}),
+        ...(holes ? { holes } : {}),
+        ...(shades ? { shades } : {}),
       };
     },
     [islands],
@@ -256,6 +275,8 @@ export const useNativeIsland = (
           accessibility: spec.accessibility,
           ...(spec.sticky ? { sticky: spec.sticky } : {}),
           ...(spec.clip ? { clip: spec.clip } : {}),
+          ...(spec.holes ? { holes: spec.holes } : {}),
+          ...(spec.shades ? { shades: spec.shades } : {}),
         },
         {
           onReady: () => {
@@ -304,6 +325,8 @@ export const useNativeIsland = (
                 visible: geometry.visible,
                 ...(geometry.sticky ? { sticky: geometry.sticky } : {}),
                 ...(geometry.clip ? { clip: geometry.clip } : {}),
+                ...(geometry.holes ? { holes: geometry.holes } : {}),
+                ...(geometry.shades ? { shades: geometry.shades } : {}),
               }
             );
           },
