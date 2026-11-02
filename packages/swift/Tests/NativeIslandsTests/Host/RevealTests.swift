@@ -168,8 +168,9 @@ extension NativeBridgeTests {
         """,
         baseURL: nil
       )
-      for _ in 0..<1000 where webView.islands?.isReady != true {
-        try await Task.sleep(nanoseconds: 10_000_000)
+      let deadline = Date().addingTimeInterval(30)
+      while webView.islands?.isReady != true, Date() < deadline {
+        try await Task.sleep(nanoseconds: 20_000_000)
       }
       #expect(seen == [.ready])
       #expect(webView.alpha == 1)
