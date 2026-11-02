@@ -51,13 +51,13 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Host/               NativeIslandsHost, IslandWebView, router, surface
     Protocol/           contract models, decoding, replies, capability
     Islands/            the island manager and the island view
-    Components/         registry, context, props, glass, accessibility;
-                        Defaults/ holds one file per default view
+    Components/         registry, context, props, glass, accessibility
     Debug/              frame reporter and alignment
     Extensions/, Support/
   Tests/NativeIslandsTests/  mirrors Sources/
 examples/pages/         local test pages (Vite + React)
-examples/ios/           the iOS example app and its UI tests
+examples/ios/           the iOS example app and its UI tests; its
+                        Components/Defaults/ holds ready-made glass views
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers and parallel UI test runs
 ```

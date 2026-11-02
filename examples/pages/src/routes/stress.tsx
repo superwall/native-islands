@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useRouteActive } from "../router";
-import { SystemSymbol } from "@superwall/native-islands/react";
+import { SystemSymbol } from "../components/defaults";
 import { Glass } from "../components/controls";
 import { Scenario } from "../components/Scenario";
 

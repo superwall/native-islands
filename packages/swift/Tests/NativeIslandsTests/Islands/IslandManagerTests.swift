@@ -32,7 +32,7 @@ final class FakeSurface: NativeHostSurface {
 
 @MainActor
 final class NativeTestHarness {
-  let registry = NativeComponentRegistry(includingDefaults: false)
+  let registry = NativeComponentRegistry()
   let surface = FakeSurface()
   var sent: [[NativeReply]] = []
   var scheduled: [@MainActor () -> Void] = []

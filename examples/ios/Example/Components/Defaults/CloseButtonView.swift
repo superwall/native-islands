@@ -1,8 +1,8 @@
+import NativeIslands
 import SwiftUI
 
 @available(iOS 26.0, macCatalyst 26.0, *)
-
-struct NativeCloseButtonView: View {
+struct CloseButtonView: View {
   @ObservedObject var component: NativeComponentContext
 
   var body: some View {

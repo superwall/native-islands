@@ -3,12 +3,12 @@ import SwiftUI
 
 /// The app's own components, which the gallery defines with
 /// `defineNativeComponent` in `examples/pages/src/components/custom.tsx`
-/// and `examples/pages/src/components/stateful.tsx`. The default components (`glassButton`,
-/// `toggle` and the rest) come with the package.
+/// and `examples/pages/src/components/stateful.tsx`.
 enum AppComponents {
   @MainActor
   static func register() {
     let registry = NativeComponentRegistry.shared
+    DefaultComponents.register(in: registry)
     registry.register("rating") { RatingView(component: $0) }
     registry.register(
       "planCard",

@@ -1,7 +1,8 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GlassButton, Native, Toggle } from "../../../src/react";
+import { Native } from "../../../src/react";
+import { GlassButton, Toggle } from "../../support/components";
 import {
   installCapability,
   islandOf,

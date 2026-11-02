@@ -53,6 +53,11 @@ public struct NativeComponentProps: Equatable, Sendable {
     )
   }
 
+  public func uiColor(_ key: String) -> UIColor? {
+    guard let rgba = string(key).flatMap(Self.rgba) else { return nil }
+    return UIColor(red: rgba.red, green: rgba.green, blue: rgba.blue, alpha: rgba.alpha)
+  }
+
   struct RGBA: Equatable {
     let red: Double
     let green: Double

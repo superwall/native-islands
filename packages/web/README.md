@@ -26,44 +26,13 @@ is. Everywhere else the web element stays.
 | `connect`       | `ConnectNativeIslandsOptions` | `{}`                                                                                                         |
 | `announceReady` | `boolean`                     | `true`: tells the host once the first frame's islands are drawn, so it can reveal the page with no web flash |
 
-### Default components
-
-Ready-made components every host offers unless it opts out. The children are
-the web version.
-
-```tsx
-<GlassButton title="Start Pro" prominence="prominent" tint="var(--brand)" onPress={buy}>
-  <button className="cta">Start Pro</button>
-</GlassButton>
-
-<CloseButton onPress={close}><button aria-label="Close">×</button></CloseButton>
-
-<Toggle isOn={on} onChange={({ isOn }) => setOn(isOn)}>
-  <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} />
-</Toggle>
-
-<SegmentedControl segments={["Monthly", "Annual"]} selectedIndex={i}
-  onChange={({ selectedIndex }) => setI(selectedIndex)}>
-  <WebTabs />
-</SegmentedControl>
-
-<SystemSymbol name="sparkles" pointSize={22} tint="var(--brand)"><Icon /></SystemSymbol>
-```
-
-| Component          | Props                                                                                                  | Events                        |
-| ------------------ | ------------------------------------------------------------------------------------------------------ | ----------------------------- |
-| `GlassButton`      | `title?`, `systemImage?`, `prominence?: "regular" \| "prominent"`, `tint?`, `disabled?`, `glassGroup?` | `onPress`                     |
-| `CloseButton`      | `tint?`, `glassGroup?`                                                                                 | `onPress`                     |
-| `Toggle`           | `isOn`, `tint?`, `disabled?`                                                                           | `onChange({ isOn })`          |
-| `SegmentedControl` | `segments`, `selectedIndex`, `disabled?`, `glassGroup?`                                                | `onChange({ selectedIndex })` |
-| `SystemSymbol`     | `name`, `tint?`, `weight?`, `pointSize?`                                                               | none                          |
-
-Colours can be any CSS colour or `var(--token)`; they are resolved before they
-reach native. Islands that share a `glassGroup` blend like system glass.
-
 ### `defineNativeComponent`
 
-Types a component the app registered itself. Everything in the spec is optional.
+Types a component the app registered. Everything in the spec is optional.
+Colours in `colorProps` can be any CSS colour or `var(--token)`; they are
+resolved before they reach native. Islands that share a `glassGroup` prop blend
+like system glass. The example pages define a set of glass buttons and controls
+in `examples/pages/src/components/defaults.ts`.
 
 ```tsx
 const SignupForm = defineNativeComponent<{

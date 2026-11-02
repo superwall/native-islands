@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SystemSymbol } from "@superwall/native-islands/react";
+import { SystemSymbol } from "../components/defaults";
 import { Confetti, Rating, RatingV2, SilentBadge, Stars } from "../components/custom";
 import { Segments, Switch } from "../components/controls";
 import { Scenario } from "../components/Scenario";

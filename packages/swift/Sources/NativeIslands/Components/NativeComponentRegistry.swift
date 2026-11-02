@@ -15,11 +15,7 @@ public final class NativeComponentRegistry {
 
   private(set) var entries: [String: Entry] = [:]
 
-  public init(includingDefaults: Bool = true) {
-    if includingDefaults {
-      NativeDefaultComponents.register(in: self)
-    }
-  }
+  public init() {}
 
   public func register<Content: View>(
     _ name: String,

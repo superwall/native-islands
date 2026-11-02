@@ -1,15 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { defineNativeComponent, type NativeValue, useNativeSupport } from "../../../src/react";
 import {
   CloseButton,
-  defineNativeComponent,
   GlassButton,
   SegmentedControl,
   SystemSymbol,
   Toggle,
-  type NativeValue,
-  useNativeSupport,
-} from "../../../src/react";
+} from "../../support/components";
 import { eventNameOf, isNativeValue } from "../../../src/react/components/define";
 import {
   createWrapper,

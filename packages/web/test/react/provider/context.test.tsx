@@ -2,12 +2,8 @@ import * as React from "react";
 import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ISLAND_STYLE_ATTRIBUTE, NATIVE_ACK_TIMEOUT_MS, connectNativeIslands } from "../../../src";
-import {
-  GlassButton,
-  NativeIslandsProvider,
-  useNativeIslands,
-  useNativeIslandsReady,
-} from "../../../src/react";
+import { GlassButton } from "../../support/components";
+import { NativeIslandsProvider, useNativeIslands, useNativeIslandsReady } from "../../../src/react";
 import { createReadiness } from "../../../src/react/provider/context";
 import {
   fakeTransport,

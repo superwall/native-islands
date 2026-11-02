@@ -1,25 +1,24 @@
+import NativeIslands
 import SwiftUI
 
-enum NativeDefaultComponents {
-  static let names = ["glassButton", "closeButton", "toggle", "segmentedControl", "symbol"]
-
+enum DefaultComponents {
   @MainActor
-  static func register(in registry: NativeComponentRegistry) {
+  static func register(in registry: NativeComponentRegistry = .shared) {
     guard #available(iOS 26.0, macCatalyst 26.0, *) else { return }
     registry.register("glassButton", glass: glassButtonGlass) { component in
-      NativeGlassButtonView(component: component)
+      GlassButtonView(component: component)
     }
     registry.register("closeButton", glass: closeButtonGlass) { component in
-      NativeCloseButtonView(component: component)
+      CloseButtonView(component: component)
     }
     registry.register("toggle") { component in
-      NativeToggleView(component: component)
+      ToggleView(component: component)
     }
     registry.register("segmentedControl") { component in
-      NativeSegmentedControlView(component: component)
+      SegmentedControlView(component: component)
     }
     registry.register("symbol") { component in
-      NativeSymbolView(component: component)
+      SymbolView(component: component)
     }
   }
 
@@ -50,11 +49,4 @@ enum NativeDefaultComponents {
     "heavy": .heavy,
     "black": .black
   ]
-}
-
-extension NativeComponentProps {
-  func uiColor(_ key: String) -> UIColor? {
-    guard let rgba = string(key).flatMap(Self.rgba) else { return nil }
-    return UIColor(red: rgba.red, green: rgba.green, blue: rgba.blue, alpha: rgba.alpha)
-  }
 }

@@ -7,7 +7,7 @@ extension NativeBridgeTests {
   @Suite(.serialized)
   @MainActor
   struct WebViewTests {
-    static let defaults: [(id: String, component: String, props: String, sizing: String)] = [
+    static let islands: [(id: String, component: String, props: String, sizing: String)] = [
       ("cta", "glassButton", #"{"title":"Continue","systemImage":"sparkles","prominence":"prominent","tint":"rgb(10, 132, 255)","glassGroup":"bar"}"#, "web"),
       ("close", "closeButton", #"{"glassGroup":"bar"}"#, "web"),
       ("annual", "toggle", #"{"isOn":true,"tint":"rgba(52, 199, 89, 1)"}"#, "native"),
@@ -15,8 +15,21 @@ extension NativeBridgeTests {
       ("star", "symbol", #"{"name":"star.fill","tint":"rgb(255, 204, 0)","weight":"bold","pointSize":22}"#, "web")
     ]
 
+    static let registry: NativeComponentRegistry = {
+      let registry = NativeComponentRegistry()
+      for island in islands {
+        let glass: ((NativeComponentProps) -> NativeGlass?)? = island.component.hasSuffix("Button")
+          ? { NativeGlass(shape: .capsule, tint: $0.uiColor("tint")) }
+          : nil
+        registry.register(island.component, glass: glass) { _ in
+          Color.clear.frame(width: 51, height: 31)
+        }
+      }
+      return registry
+    }()
+
     static func page() -> String {
-      let operations = defaults.enumerated().map { index, island in
+      let operations = islands.enumerated().map { index, island in
         """
         {"op":"mount","id":"\(island.id)","component":"\(island.component)","version":1,\
         "props":\(island.props),"frame":{"x":20,"y":\(20 + index * 60),"width":200,"height":44},\
@@ -24,7 +37,7 @@ extension NativeBridgeTests {
         "accessibility":{"label":"\(island.id)","traits":["button"]}}
         """
       }
-      let wrappers = defaults.enumerated().map { index, island in
+      let wrappers = islands.enumerated().map { index, island in
         """
         <span data-island-id="\(island.id)" style="display:contents">\
         <div style="position:absolute;left:20px;top:\(20 + index * 60)px;width:200px;height:44px"></div></span>
@@ -57,17 +70,17 @@ extension NativeBridgeTests {
     }
 
     private func loaded() async throws -> (IslandWebView, UIWindow) {
-      let webView = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+      let webView = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), registry: Self.registry)
       let window = UIWindow(frame: webView.frame)
       window.addSubview(webView)
       window.isHidden = false
       webView.loadHTMLString(Self.page(), baseURL: nil)
-      try await until { webView.islands?.manager?.islands.count == Self.defaults.count }
+      try await until { webView.islands?.manager?.islands.count == Self.islands.count }
       return (webView, window)
     }
 
     @Test
-    func aPageMountsEveryDefaultAndHearsTheAck() async throws {
+    func aPageMountsEveryIslandAndHearsTheAck() async throws {
       let (webView, window) = try await loaded()
       defer { window.isHidden = true }
       let offered = try #require(try await evaluate(webView, "return window.offered") as? String)
@@ -93,8 +106,8 @@ extension NativeBridgeTests {
     @Test
     func webViewsSharingOneConfigurationEachDrawTheirOwnIslands() async throws {
       let configuration = WKWebViewConfiguration()
-      let first = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), configuration: configuration)
-      let second = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), configuration: configuration)
+      let first = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), configuration: configuration, registry: Self.registry)
+      let second = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), configuration: configuration, registry: Self.registry)
       #expect(first.configuration.userContentController === second.configuration.userContentController)
       let scripts = first.configuration.userContentController.userScripts.map(\.source)
       #expect(scripts.filter { $0 == NativeIslandsHost.documentStartScript }.count == 1)
@@ -104,19 +117,19 @@ extension NativeBridgeTests {
       window.isHidden = false
       defer { window.isHidden = true }
       first.loadHTMLString(Self.page(), baseURL: nil)
-      try await until { first.islands?.manager?.islands.count == Self.defaults.count }
+      try await until { first.islands?.manager?.islands.count == Self.islands.count }
       #expect(second.islands?.manager?.islands.isEmpty == true)
       second.loadHTMLString(Self.page(), baseURL: nil)
-      try await until { second.islands?.manager?.islands.count == Self.defaults.count }
+      try await until { second.islands?.manager?.islands.count == Self.islands.count }
       let frames = try await evaluate(
         second,
         "return await window.webkit.messageHandlers.nativeIslandsFrames.postMessage(null)"
       )
-      #expect((frames as? [[String: Any]])?.count == Self.defaults.count)
+      #expect((frames as? [[String: Any]])?.count == Self.islands.count)
       first.islands?.detach()
       let router = NativeIslandsRouter.of(configuration.userContentController)
       #expect(router.isListening)
-      #expect(second.islands?.manager?.islands.count == Self.defaults.count)
+      #expect(second.islands?.manager?.islands.count == Self.islands.count)
       second.islands?.detach()
       #expect(!router.isListening)
     }
@@ -142,7 +155,7 @@ extension NativeBridgeTests {
         "return await window.webkit.messageHandlers.nativeIslandsFrames.postMessage(null)"
       )
       let list = try #require(frames as? [[String: Any]])
-      #expect(Set(list.compactMap { $0["id"] as? String }) == Set(Self.defaults.map(\.id)))
+      #expect(Set(list.compactMap { $0["id"] as? String }) == Set(Self.islands.map(\.id)))
     }
 
     @Test
@@ -160,7 +173,7 @@ extension NativeBridgeTests {
       let (webView, window) = try await loaded()
       defer { window.isHidden = true }
       let alignments = await webView.islands?.alignment() ?? []
-      #expect(Set(alignments.map(\.id)) == Set(Self.defaults.map(\.id)))
+      #expect(Set(alignments.map(\.id)) == Set(Self.islands.map(\.id)))
       #expect(alignments.allSatisfy { $0.web?.width == 200 && $0.web?.height == 44 })
     }
 

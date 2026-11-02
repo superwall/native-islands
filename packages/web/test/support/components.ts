@@ -1,4 +1,4 @@
-import { defineNativeComponent } from "./define";
+import { defineNativeComponent } from "../../src/react";
 
 type GlassGroup = {
   glassGroup?: string;

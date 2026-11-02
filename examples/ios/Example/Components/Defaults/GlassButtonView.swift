@@ -1,8 +1,8 @@
+import NativeIslands
 import SwiftUI
 
 @available(iOS 26.0, macCatalyst 26.0, *)
-
-struct NativeGlassButtonView: View {
+struct GlassButtonView: View {
   @ObservedObject var component: NativeComponentContext
 
   static func ink(on tint: UIColor?) -> Color {

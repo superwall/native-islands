@@ -1,8 +1,8 @@
+import NativeIslands
 import SwiftUI
 
 @available(iOS 26.0, macCatalyst 26.0, *)
-
-struct NativeToggleView: View {
+struct ToggleView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var isOn: Bool?
 

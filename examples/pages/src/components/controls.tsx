@@ -1,9 +1,4 @@
-import {
-  CloseButton,
-  GlassButton,
-  SegmentedControl,
-  Toggle,
-} from "@superwall/native-islands/react";
+import { CloseButton, GlassButton, SegmentedControl, Toggle } from "./defaults";
 
 type GlassProps = {
   title: string;

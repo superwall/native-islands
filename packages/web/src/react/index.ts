@@ -1,11 +1,4 @@
 export {
-  CloseButton,
-  GlassButton,
-  SegmentedControl,
-  SystemSymbol,
-  Toggle,
-} from "./components/defaults";
-export {
   NativeIslandsProvider,
   useNativeIslands,
   useNativeIslandsReady,

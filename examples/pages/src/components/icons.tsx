@@ -1,4 +1,4 @@
-import { GlassButton, SystemSymbol } from "@superwall/native-islands/react";
+import { GlassButton, SystemSymbol } from "./defaults";
 import type { ReactNode } from "react";
 
 const PATHS: Record<string, ReactNode> = {

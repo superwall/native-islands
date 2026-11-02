@@ -1,8 +1,8 @@
+import NativeIslands
 import SwiftUI
 
 @available(iOS 26.0, macCatalyst 26.0, *)
-
-struct NativeSegmentedControlView: View {
+struct SegmentedControlView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var selected: Int?
 

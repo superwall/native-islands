@@ -133,7 +133,12 @@ Both sides speak one contract. `tests/fixtures/messages.json` holds an example o
 ## Use it on the page
 
 ```tsx
-import { GlassButton, NativeIslandsProvider } from "@superwall/native-islands/react";
+import { defineNativeComponent, NativeIslandsProvider } from "@superwall/native-islands/react";
+
+const GlassButton = defineNativeComponent<{
+  props: { title: string; prominence?: "regular" | "prominent" };
+  events: { press: undefined };
+}>("glassButton");
 
 <NativeIslandsProvider>
   <GlassButton title="Continue" prominence="prominent" onPress={purchase}>
@@ -143,7 +148,10 @@ import { GlassButton, NativeIslandsProvider } from "@superwall/native-islands/re
 ```
 
 The children are the web version. The host draws the native button over them
-when it offers `glassButton`, and the children show everywhere else.
+when the app registered `glassButton`, and the children show everywhere else.
+The packages ship no components of their own; the example app has a set of
+glass buttons and controls to copy from (`examples/ios/Example/Components/Defaults/`
+and `examples/pages/src/components/defaults.ts`).
 
 ## Use it in the app
 
@@ -155,8 +163,7 @@ webView.load(URLRequest(url: pageURL))
 ```
 
 `IslandWebView` is a `WKWebView` with a `NativeIslandsHost` attached. It offers
-the default components and anything you register on `NativeComponentRegistry.shared`
-before it loads a page:
+what you register on `NativeComponentRegistry.shared` before it loads a page:
 
 ```swift
 NativeComponentRegistry.shared.register("rating") { component in
