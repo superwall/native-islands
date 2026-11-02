@@ -33,8 +33,20 @@ that the other cannot read fails a test.
 ## Layout
 
 - `contract/` — the shared fixture.
-- `js/` — the page package: schemas and messages (`src/schemas.ts`,
-  `src/messages.ts`), tests in `test/`.
+- `js/` — the page package, tests in `test/`:
+  - `src/schemas.ts`, `src/messages.ts` — the contract in zod.
+  - `src/capability.ts` — reads `window.__NATIVE_ISLANDS__` leniently.
+  - `src/islands.ts` — the island controller: mounts, per-frame batching,
+    acks and stalls, state, requests and commands.
+  - `src/transport.ts`, `src/connect.ts` — the WebKit transport (posts to
+    `nativeIslands`, receives through `window.__nativeIslands.accept64`) and
+    `connectNativeIslands`, which wires a controller to it.
+  - `src/measure.ts`, `src/handoff.ts`, `src/watcher.ts` — where an island
+    sits, when it must show its web version, and when to measure again.
+  - `src/simulator.ts` (the `/simulator` entry) — the JS reference host, which
+    draws islands as outlines in a browser. The Swift host mirrors it.
+  - `src/attributes.ts` — the DOM attributes: pages set `data-island-phase`
+    on content that is entering or leaving.
 - `Sources/NativeIslands/`, `Tests/NativeIslandsTests/` — the host package and
   its Swift Testing suites.
 - `.github/workflows/ci.yml` — CI.
