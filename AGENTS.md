@@ -53,7 +53,25 @@ that the other cannot read fails a test.
     `useNativeIslandsReady`, which turns true once no island is still on its
     way to native. The provider adds the island style rules to the document.
 - `Sources/NativeIslands/`, `Tests/NativeIslandsTests/` — the host package and
-  its Swift Testing suites.
+  its Swift Testing suites. It mirrors `js/src/simulator.ts`:
+  - `NativeIslandsHost.swift` — attaches to any `WKWebView`: adds the
+    capability and document-start scripts and the `nativeIslands` handler,
+    delivers replies through `window.__nativeIslands.accept64`, and clears
+    islands whenever a new document starts.
+  - `IslandWebView.swift` — a `WKWebView` with a host that routes touches on
+    islands to them (WebKit never hands them to views in its scroll views).
+  - `NativeComponentRegistry.swift`, `NativeComponentContext.swift`,
+    `NativeComponentProps.swift` — what apps register and what their views get:
+    props, `emit`, `setState`, `request`, `onCommand`.
+  - `NativeIslandManager*.swift`, `NativeIsland.swift`,
+    `NativeHostSurface.swift` — draws islands on the page, the matching
+    `WKChildScrollView` or above the page, with acks, sequences, fades, glass
+    groups and reset.
+  - `NativeBuiltIns.swift`, `NativeGlass.swift` — the built-ins and their glass.
+  - `NativeFrameReporter.swift` — DEBUG only: the `nativeIslandsFrames`
+    handler, and the `-NativeIslandsAlignmentLog YES` log of native frames
+    beside DOM rects.
+  - `Tests/.swiftlint.yml` relaxes a few rules for tests only.
 - `.github/workflows/ci.yml` — CI.
 
 ## Commands

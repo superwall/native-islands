@@ -57,8 +57,12 @@ enum NativeHostMessage: Decodable, Equatable, Sendable {
     let data: Data
     if let string = body as? String {
       data = Data(string.utf8)
-    } else {
+    } else if JSONSerialization.isValidJSONObject(body) {
       data = try JSONSerialization.data(withJSONObject: body)
+    } else {
+      throw DecodingError.dataCorrupted(
+        DecodingError.Context(codingPath: [], debugDescription: "The message is not a JSON object.")
+      )
     }
     return try decoder.decode(NativeHostMessage.self, from: data)
   }

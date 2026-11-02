@@ -69,7 +69,9 @@ struct HostMessageTests {
       ["event_name": "native_component_command", "id": "a"],
       ["event_name": "native_component_response", "id": "a", "request_id": "r"],
       ["id": "a"],
-      "not json"
+      "not json",
+      42,
+      NSNull()
     ] {
       #expect(throws: (any Error).self) { try NativeHostMessage.decode(body: body) }
     }
