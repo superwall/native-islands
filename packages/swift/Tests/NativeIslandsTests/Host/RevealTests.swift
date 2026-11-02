@@ -160,10 +160,9 @@ extension NativeBridgeTests {
       webView.loadHTMLString(
         """
         <!doctype html><html><body><script>
-        requestAnimationFrame(() => requestAnimationFrame(() =>
-          window.webkit.messageHandlers.nativeIslands.postMessage({
-            event_name: "native_islands_ready", sequence: 0
-          })));
+        window.webkit.messageHandlers.nativeIslands.postMessage({
+          event_name: "native_islands_ready", sequence: 0
+        });
         </script></body></html>
         """,
         baseURL: nil
