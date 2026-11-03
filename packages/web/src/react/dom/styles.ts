@@ -15,7 +15,10 @@ export const ISLAND_STYLES = [
   // A running animation in the hidden web version makes WebKit composite it
   // and every box painted after it above the scroll view the native views
   // live in, covering them. Pausing keeps those layers; only removing it
-  // drops them. It also keeps a spinning box from turning its native view.
+  // drops them. The wrapper is `display: contents`, so this reaches the
+  // boxes the native view follows too: an animation on one of them, such as
+  // a spin, no longer turns or moves the native view. Animations on the
+  // island's ancestors still run and move it.
   `${SHOWN_ISLAND_SELECTOR} * { animation: none !important; }`,
 ].join("\n");
 

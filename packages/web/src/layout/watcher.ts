@@ -107,9 +107,10 @@ const isOwnMutation = (record: MutationRecord) =>
   record.target instanceof Element &&
   record.target.closest(`[${SIMULATOR_LAYER_ATTRIBUTE}]`) !== null;
 
-// Inside the hidden web version of an island whose native view shows: the
-// island styles stop its animations, and it moves nothing the page shows.
-// The island's own box still counts, since it carries the native view.
+// Inside an island whose native view shows: its wrapper is `display:
+// contents`, so this is its web version, boxes included. The island styles
+// stop every animation there, so nothing there moves. Animations on the
+// island's ancestors still move the boxes and count as usual.
 const inShownIsland = (element: Element) =>
   element.parentElement?.closest(SHOWN_ISLAND_SELECTOR) != null;
 

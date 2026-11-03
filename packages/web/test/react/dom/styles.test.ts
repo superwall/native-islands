@@ -32,8 +32,12 @@ describe("ISLAND_STYLES", () => {
     wrapper.setAttribute("data-island-shown", "");
     expect(child.matches(selector)).toBe(true);
     expect(deep.matches(selector)).toBe(true);
-    // The island's own box keeps its animations: they move the native view.
+    // The wrapper is `display: contents`; its child is the box the native
+    // view follows, and loses its animations too. An ancestor keeps them.
     expect(wrapper.matches(selector)).toBe(false);
+    const ancestor = document.createElement("div");
+    document.body.appendChild(ancestor).appendChild(wrapper);
+    expect(ancestor.matches(selector)).toBe(false);
   });
 
   it("is added to a document once", () => {
