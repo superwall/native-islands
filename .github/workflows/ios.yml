@@ -1,0 +1,45 @@
+name: iOS
+
+# Off on pull requests for now: while the repository is private its jobs wait
+# for GitHub's paid macOS arm64 runners, which are short on capacity and drop a
+# job no runner takes within about 15 minutes. Intel runners start at once but
+# run the WebKit tests too slowly for their 30 s waits.
+#
+# Start it by hand from the Actions tab or with `gh workflow run ios.yml
+# --ref <branch>`. Once the repository is public, add `pull_request:` and
+# `push: branches: [main]` here to run it on every change again.
+on:
+  workflow_dispatch:
+
+# Starting it again on the same branch cancels the run still going there.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-26
+    # The job takes about 7 minutes; the limit counts from when a runner picks
+    # it up, so time spent waiting in the queue does not count.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install swiftlint xcodegen
+      - run: swiftlint lint --quiet --strict packages/swift examples/ios
+      - name: Swift tests
+        run: xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      # Builds the Example app, so no separate build step is needed.
+      - name: Islands sit on their web elements
+        run: scripts/ui-tests.sh --devices "iPhone 17" --only AlignmentUITests
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ios-test-results
+          path: |
+            build/swift-tests.xcresult
+            build/ui-tests/results.xcresult
+          if-no-files-found: ignore
