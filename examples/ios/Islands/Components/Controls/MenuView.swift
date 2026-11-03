@@ -52,7 +52,7 @@ struct MenuView: View {
   }
 
   @ViewBuilder
-  private func title(of item: Item) -> some View {
+  private static func title(of item: Item) -> some View {
     if let symbol = item.systemImage {
       Label(item.title, systemImage: symbol)
     } else {
@@ -61,26 +61,26 @@ struct MenuView: View {
   }
 
   private func entries(_ items: [Item]) -> AnyView {
+    Self.entries(items) { component.emit("select", payload: ["id": $0]) }
+  }
+
+  /// The menu's items as SwiftUI menu content, sending each choice to `select`.
+  static func entries(_ items: [Item], select: @escaping @MainActor (String) -> Void) -> AnyView {
     AnyView(
       ForEach(Array(items.enumerated()), id: \.offset) { _, item in
         if let checked = item.checked {
-          Toggle(
-            isOn: Binding(
-              get: { checked },
-              set: { _ in component.emit("select", payload: ["id": item.id]) }
-            )
-          ) {
+          Toggle(isOn: Binding(get: { checked }, set: { _ in select(item.id) })) {
             title(of: item)
           }
         } else if item.children.isEmpty {
           Button(role: item.destructive ? .destructive : nil) {
-            component.emit("select", payload: ["id": item.id])
+            select(item.id)
           } label: {
             title(of: item)
           }
         } else {
           Menu {
-            entries(item.children)
+            entries(item.children, select: select)
           } label: {
             title(of: item)
           }

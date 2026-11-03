@@ -118,6 +118,20 @@ describe("translationOf", () => {
     expect(translationOf("translate3d(0, 0, 10px)", box)).toBeUndefined();
     expect(translationOf("translateX(1em)", box)).toBeUndefined();
     expect(translationOf("translateX(12)", box)).toBeUndefined();
+    expect(translationOf("translateX(.px)", box)).toBeUndefined();
+    expect(translationOf("translateX()", box)).toBeUndefined();
+    expect(translationOf("translateX(1px, 2px)", box)).toBeUndefined();
+    expect(translationOf("translateY(1em)", box)).toBeUndefined();
+    expect(translationOf("translateY()", box)).toBeUndefined();
+    expect(translationOf("translate()", box)).toBeUndefined();
+    expect(translationOf("translate3d(1px, 2px, 0px, 3px)", box)).toBeUndefined();
+    expect(
+      translationOf("matrix3d(2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 8, 0, 1)", box),
+    ).toBeUndefined();
+    expect(
+      translationOf("matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 8, 3, 1)", box),
+    ).toBeUndefined();
+    expect(translationOf("translateX(1px) ???", box)).toBeUndefined();
   });
 });
 
@@ -198,12 +212,59 @@ describe("slideOf", () => {
         ],
         { easing: "ease" },
       ],
+      [[{ offset: 0, transform: "translateX(100%)" }], { duration: "auto" as unknown as number }],
+      [[{ offset: 0, transform: "translateX(100%)" }], { easing: "steps(3)" }],
+      [[{ offset: 0, transform: undefined }], {}],
+      [
+        Array.from({ length: 17 }, (_, index) => ({
+          offset: index / 16,
+          transform: `translateX(${index}px)`,
+        })),
+        {},
+      ],
     ];
     for (const [keyframes, timing, extra] of cases) {
       const element = screen();
       animate(element, keyframes, timing, extra);
       expect(slideOf(element)).toBeUndefined();
     }
+  });
+
+  it("skips keyframes without a transform, and reads a missing delay or current time as none", () => {
+    const element = screen();
+    animate(
+      element,
+      [
+        { offset: 0, transform: "translateX(100%)" },
+        { offset: 0.5 },
+        { offset: 1, transform: "none" },
+      ],
+      { delay: undefined },
+      { currentTime: null },
+    );
+    expect(slideOf(element)?.motion).toMatchObject({
+      keyframes: [
+        { offset: 0, x: 400, y: 0 },
+        { offset: 1, x: 0, y: 0 },
+      ],
+      elapsed: 0,
+    });
+    const odd = screen();
+    animate(
+      odd,
+      [{ offset: 0, transform: "translateX(100%)" }],
+      {},
+      {
+        currentTime: Number.NaN,
+      },
+    );
+    expect(slideOf(odd)?.motion.elapsed).toBe(0);
+  });
+
+  it("refuses an element whose own transform does more than translate", () => {
+    const element = screen("matrix(2, 0, 0, 2, 0, 0)");
+    animate(element, [{ offset: 0, transform: "translateX(100%)" }]);
+    expect(slideOf(element)).toBeUndefined();
   });
 
   it("refuses a second animation that moves the element's box", () => {
@@ -383,5 +444,16 @@ describe("coversOf", () => {
     const still = document.createElement("div");
     over.parentElement?.appendChild(still);
     expect(coversOf(under, slideOf(under) ?? slide)).toHaveLength(1);
+  });
+
+  it("orders siblings by z-index, then by document order, and finds none for a detached page", () => {
+    const { under, over } = pushedScreens();
+    const slide = slideOf(over);
+    if (!slide) throw new Error("expected a slide");
+    overrideStyle(under, { zIndex: "2" });
+    expect(coversOf(over, slide)).toEqual([]);
+    overrideStyle(under, { zIndex: "5" });
+    expect(coversOf(over, slide)).toHaveLength(1);
+    expect(coversOf(document.createElement("section"), slide)).toEqual([]);
   });
 });

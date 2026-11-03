@@ -210,7 +210,8 @@ stage may be `inert` as it goes; its islands still ride along.
 
 `examples/` is **Islands**, an app in the style of a component catalogue whose
 every screen is one web page in a `WKWebView`. It looks and moves like an iOS 26
-app: large titles, inset grouped lists, push and swipe back, a floating Liquid
+app: large titles, inset grouped lists, push and swipe back, a native
+navigation bar that stays put while screens slide under it, a floating Liquid
 Glass tab bar with a search button. Where a web view falls short, the page puts
 a native island:
 

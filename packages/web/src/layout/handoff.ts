@@ -349,11 +349,11 @@ const relative = (
   keyframes: readonly TNativeMotionKeyframe[],
   base: readonly TNativeMotionKeyframe[],
 ): TNativeMotionKeyframe[] =>
-  keyframes.map((frame, index) => ({
-    offset: frame.offset,
-    x: frame.x - (base[index]?.x ?? 0),
-    y: frame.y - (base[index]?.y ?? 0),
-  }));
+  keyframes.map((frame, index) => {
+    // Slides in step have keyframes at the same offsets, one for one.
+    const under = Object.assign({ x: 0, y: 0 }, base[index]);
+    return { offset: frame.offset, x: frame.x - under.x, y: frame.y - under.y };
+  });
 
 /**
  * The motion to send for an island riding a slide, with the one sibling that

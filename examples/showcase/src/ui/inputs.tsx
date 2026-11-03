@@ -458,7 +458,8 @@ const WebMenuItems = ({
 };
 
 /** A glass button that opens a menu: UIMenu natively, a popover on the web. */
-export const Menu = ({
+/** The web version of a menu: a glass button that opens a popover of items. */
+export const WebMenu = ({
   label,
   title,
   symbol,
@@ -474,11 +475,52 @@ export const Menu = ({
   onSelect: (id: string) => void;
 }) => {
   const [open, setOpen] = React.useState(false);
-  const accent = useAccent();
   const select = (id: string) => {
     setOpen(false);
     onSelect(id);
   };
+  return (
+    <div className="web-menu">
+      <button
+        type="button"
+        className={title ? "glass-pill" : "glass-circle"}
+        data-prominent={prominent ? "" : undefined}
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        {symbol && <WebSymbol name={symbol} className="bar-symbol" />}
+        {title}
+      </button>
+      {open && (
+        <>
+          <div className="web-menu-backdrop" onClick={() => setOpen(false)} />
+          <div className="web-menu-popover" role="menu">
+            <WebMenuItems items={items} onSelect={select} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export const Menu = ({
+  label,
+  title,
+  symbol,
+  prominent,
+  items,
+  onSelect,
+}: {
+  label: string;
+  title?: string;
+  symbol?: string;
+  prominent?: boolean;
+  items: readonly MenuItem[];
+  onSelect: (id: string) => void;
+}) => {
+  const accent = useAccent();
   return (
     <NativeMenu
       title={title}
@@ -488,30 +530,16 @@ export const Menu = ({
       items={items}
       native={useNativeEnabled()}
       accessibility={{ label }}
-      onSelect={({ id }) => select(id)}
+      onSelect={({ id }) => onSelect(id)}
     >
-      <div className="web-menu">
-        <button
-          type="button"
-          className={title ? "glass-pill" : "glass-circle"}
-          data-prominent={prominent ? "" : undefined}
-          aria-label={label}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => setOpen(!open)}
-        >
-          {symbol && <WebSymbol name={symbol} className="bar-symbol" />}
-          {title}
-        </button>
-        {open && (
-          <>
-            <div className="web-menu-backdrop" onClick={() => setOpen(false)} />
-            <div className="web-menu-popover" role="menu">
-              <WebMenuItems items={items} onSelect={select} />
-            </div>
-          </>
-        )}
-      </div>
+      <WebMenu
+        label={label}
+        title={title}
+        symbol={symbol}
+        prominent={prominent}
+        items={items}
+        onSelect={onSelect}
+      />
     </NativeMenu>
   );
 };

@@ -1,20 +1,22 @@
 import * as React from "react";
 import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
 import { useNativeIslandsReady } from "@superwall/native-islands/react";
-import { BarButton } from "../ui/controls";
-import { Menu } from "../ui/inputs";
+import { NativeNavigationBar } from "../islands/definitions";
+import { WebSymbol } from "../ui/icons";
+import { WebMenu } from "../ui/inputs";
 import { TabBar } from "../ui/TabBar";
 import { NavProvider, ShowingProvider, type Nav, type ScreenSpec } from "./nav";
 import {
   canGoBack,
   initialState,
+  topOf,
   isLive,
   navigate,
   placeOf,
   type NavState,
   type ScreenPlace,
 } from "./navigation";
-import { usePreferences } from "./preferences";
+import { useNativeEnabled, usePreferences } from "./preferences";
 import { useSwipeBack } from "./useSwipeBack";
 import { viewModeItems, viewModeOf } from "./viewMode";
 
@@ -44,21 +46,22 @@ const Screen = ({
   live,
   parkedAt,
   motion,
-  back,
+  onScrolled,
 }: {
   spec: ScreenSpec;
   place: ScreenPlace;
   live: boolean;
   parkedAt: number;
   motion: Motion | undefined;
-  back?: () => void;
+  onScrolled: (screen: string, scrolled: boolean) => void;
 }) => {
   const onScroll = React.useCallback(
     (event: React.UIEvent<HTMLElement>) => {
       const scrolled = event.currentTarget.scrollTop > (spec.largeTitle ? 44 : 4);
       event.currentTarget.parentElement?.toggleAttribute("data-scrolled", scrolled);
+      onScrolled(spec.id, scrolled);
     },
-    [spec.largeTitle],
+    [spec.id, spec.largeTitle, onScrolled],
   );
   return (
     <section
@@ -81,39 +84,70 @@ const Screen = ({
           </ShowingProvider>
         </div>
       </div>
-      <header className="nav-bar">
-        <div className="nav-leading">
-          {back && (
-            <BarButton
-              symbol="chevron.left"
-              label="Back"
-              glassGroup={`nav-${spec.id}`}
-              onPress={back}
-            />
-          )}
-        </div>
-        <div className="nav-title">{spec.title}</div>
-        <div className="nav-trailing">
-          <ViewModeMenu />
-        </div>
-      </header>
+      <div className="nav-bar" aria-hidden />
     </section>
   );
 };
 
-/** The menu at the top right of every screen that switches how islands draw. */
-const ViewModeMenu = () => {
+/**
+ * The navigation bar over every screen. It is one bar for the whole app, as
+ * UINavigationBar is, so it stays put while screens slide under it, and only
+ * its items change: Back appears once the stack can go back, the title is the
+ * top screen's, and the View Mode menu sits at its right on every screen.
+ */
+const NavigationBar = ({
+  title,
+  titleShown,
+  showsBack,
+  onBack,
+}: {
+  title: string;
+  titleShown: boolean;
+  showsBack: boolean;
+  onBack: () => void;
+}) => {
   const { mode, set } = usePreferences();
+  const items = viewModeItems(mode);
+  const select = (id: string) => {
+    const next = viewModeOf(id);
+    if (next) set({ mode: next });
+  };
   return (
-    <Menu
-      label="View Mode"
-      symbol="square.stack.3d.up.fill"
-      items={viewModeItems(mode)}
-      onSelect={(id) => {
-        const next = viewModeOf(id);
-        if (next) set({ mode: next });
-      }}
-    />
+    <header className="app-nav">
+      <NativeNavigationBar
+        islandId="navigation-bar"
+        title={title}
+        titleShown={titleShown}
+        showsBack={showsBack}
+        systemImage="square.stack.3d.up.fill"
+        menuLabel="View Mode"
+        items={items}
+        native={useNativeEnabled()}
+        onBack={onBack}
+        onSelect={({ id }) => select(id)}
+      >
+        <div className="nav-items">
+          <div className="nav-leading">
+            {showsBack && (
+              <button type="button" className="glass-circle" aria-label="Back" onClick={onBack}>
+                <WebSymbol name="chevron.left" className="bar-symbol" />
+              </button>
+            )}
+          </div>
+          <div className="nav-title" data-shown={titleShown ? "" : undefined}>
+            {title}
+          </div>
+          <div className="nav-trailing">
+            <WebMenu
+              label="View Mode"
+              symbol="square.stack.3d.up.fill"
+              items={items}
+              onSelect={select}
+            />
+          </div>
+        </div>
+      </NativeNavigationBar>
+    </header>
   );
 };
 
@@ -178,6 +212,15 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
   );
 
   const swipeBack = React.useCallback(() => dispatch({ type: "pop", animated: false }), []);
+  const [scrolled, setScrolled] = React.useState<Readonly<Record<string, boolean>>>({});
+  const onScrolled = React.useCallback(
+    (screen: string, next: boolean) =>
+      setScrolled((current) =>
+        current[screen] === next ? current : { ...current, [screen]: next },
+      ),
+    [],
+  );
+  const top = specs.get(topOf(state));
   useSwipeBack(root, canGoBack(state) && !transition, swipeBack);
 
   return (
@@ -191,10 +234,16 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
             live={isLive(state, spec.tab, spec.id)}
             parkedAt={index}
             motion={motionOf(state, placeOf(state, spec.tab, spec.id))}
-            back={spec.id === spec.tab ? undefined : nav.back}
+            onScrolled={onScrolled}
           />
         ))}
       </div>
+      <NavigationBar
+        title={top?.title ?? ""}
+        titleShown={!top?.largeTitle || scrolled[top.id] === true}
+        showsBack={canGoBack(state)}
+        onBack={nav.back}
+      />
       <TabBar selected={state.tab} onSelect={(tab) => dispatch({ type: "select", tab })} />
     </NavProvider>
   );

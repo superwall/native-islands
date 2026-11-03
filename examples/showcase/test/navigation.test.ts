@@ -131,12 +131,19 @@ describe("select", () => {
     expect(topOf(back)).toBe("buttons");
   });
 
-  it("pops to the root when the current tab is selected again", () => {
+  it("slides back to the root when the current tab is selected again, as Back does", () => {
     const deep = pushed(pushed(start(), "buttons"), "toggles");
-    const root = navigate(deep, { type: "select", tab: "components" });
-    expect(root.stacks.components).toEqual(["components"]);
-    const again = navigate(root, { type: "select", tab: "components" });
-    expect(again).toBe(root);
+    const popping = navigate(deep, { type: "select", tab: "components" });
+    expect(popping.stacks.components).toEqual(["components"]);
+    expect(popping.transition).toMatchObject({ kind: "pop", screen: "toggles", stage: "moving" });
+    expect(placeOf(popping, "components", "toggles")).toBe("top");
+    expect(placeOf(popping, "components", "components")).toBe("below");
+    expect(placeOf(popping, "components", "buttons")).toBe("away");
+    expect(navigate(popping, { type: "select", tab: "components" })).toBe(popping);
+    const key = popping.transition?.key ?? -1;
+    const root = navigate(popping, { type: "finish", key });
+    expect(topOf(root)).toBe("components");
+    expect(navigate(root, { type: "select", tab: "components" })).toBe(root);
   });
 });
 

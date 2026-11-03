@@ -110,9 +110,11 @@ button {
 }
 
 /*
- * Navigation bar: a layer over its screen's scroller, with the soft edge iOS 26
- * draws under it. It stays out of the scroller: a native view inside a
- * sticky, composited layer would be drawn under it.
+ * Navigation bar. Each screen keeps the soft edge iOS 26 draws under the bar,
+ * so it slides with the screen; the bar's items are one native island for the
+ * whole app, fixed over every screen, as UINavigationBar is. It stays out of
+ * the scrollers: a native view inside a sticky, composited layer would be
+ * drawn under it.
  */
 
 .nav-bar {
@@ -122,11 +124,6 @@ button {
   left: 0;
   z-index: 3;
   height: calc(env(safe-area-inset-top, 0px) + var(--nav-height));
-  padding-top: env(safe-area-inset-top, 0px);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding-inline: var(--margin);
   pointer-events: none;
 }
 
@@ -134,7 +131,6 @@ button {
   content: "";
   position: absolute;
   inset: 0 0 -16px;
-  z-index: -1;
   opacity: 0;
   background: linear-gradient(var(--bg) 40%, transparent);
   -webkit-backdrop-filter: blur(6px);
@@ -148,8 +144,20 @@ button {
   opacity: 1;
 }
 
-.nav-bar > * {
-  pointer-events: auto;
+.app-nav {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  right: var(--margin);
+  left: var(--margin);
+  z-index: 5;
+  height: var(--nav-height);
+}
+
+.nav-items {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: var(--nav-height);
 }
 
 .nav-leading {
@@ -170,8 +178,7 @@ button {
   transition: opacity 0.15s;
 }
 
-.screen[data-scrolled] .nav-title,
-.screen[data-inline-title] .nav-title {
+.nav-title[data-shown] {
   opacity: 1;
 }
 

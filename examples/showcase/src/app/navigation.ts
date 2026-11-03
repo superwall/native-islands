@@ -99,11 +99,16 @@ export const navigate = (state: NavState, action: NavAction): NavState => {
     }
     case "select": {
       if (action.tab !== state.tab) return { ...state, tab: action.tab, transition: undefined };
-      if (stack.length < 2) return state;
+      // Selecting the tab that shows pops it to its root with the same slide
+      // as Back, straight from the screen on top.
+      const leaving = stack.at(-1);
+      if (state.transition || stack.length < 2 || !leaving) return state;
+      const key = state.key + 1;
       return {
         ...state,
+        key,
         stacks: { ...state.stacks, [state.tab]: [state.tab] },
-        transition: undefined,
+        transition: { key, kind: "pop", tab: state.tab, screen: leaving, stage: "moving" },
       };
     }
     case "open": {

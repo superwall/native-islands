@@ -79,7 +79,8 @@ const translationOfFunction = (
         return undefined;
       }
       if (values[14] !== 0 || values[15] !== 1) return undefined;
-      return { x: values[12] ?? 0, y: values[13] ?? 0 };
+      const [, , , , , , , , , , , , x = 0, y = 0] = values;
+      return { x, y };
     }
     default:
       return undefined;
@@ -91,10 +92,10 @@ const translationOfFunction = (
  * of the element's border box, or nothing when it does more than translate.
  */
 export const translationOf = (
-  transform: string | undefined,
+  transform: string,
   box: { width: number; height: number },
 ): Offset | undefined => {
-  const value = (transform ?? "none").trim();
+  const value = transform.trim();
   if (value === "" || value === "none") return { x: 0, y: 0 };
   let x = 0;
   let y = 0;
@@ -102,10 +103,12 @@ export const translationOf = (
   const step = /^\s*([a-zA-Z0-9]+)\(([^)]*)\)\s*/;
   while (rest.length > 0) {
     const match = step.exec(rest);
-    if (!match?.[1] || match[2] === undefined) return undefined;
+    if (!match) return undefined;
     const offset = translationOfFunction(
-      match[1],
-      match[2].split(",").map((arg) => arg.trim()),
+      String(match[1]),
+      String(match[2])
+        .split(",")
+        .map((arg) => arg.trim()),
       box,
     );
     if (!offset) return undefined;
@@ -150,7 +153,7 @@ const motionOfAnimation = (
   box: { width: number; height: number },
 ): TNativeMotion | undefined => {
   const timing = effect.getComputedTiming();
-  const duration = typeof timing.duration === "number" ? timing.duration : Number.NaN;
+  const duration = Number(timing.duration);
   if (
     !(duration > 0) ||
     timing.iterations !== 1 ||
@@ -174,17 +177,18 @@ const motionOfAnimation = (
     easings.push(easing);
   }
   const [first] = keyframes;
-  if (!first) return undefined;
+  const [firstEasing] = easings;
+  if (!first || !firstEasing) return undefined;
   // A CSS animation that leaves out its `from` or `to` keyframe runs from or
   // to the element's own transform, which a sliding page leaves at none.
   if (first.offset > 0) {
     keyframes.unshift({ offset: 0, x: 0, y: 0 });
-    easings.unshift(easings[0] ?? LINEAR);
+    easings.unshift(firstEasing);
   }
   const last = keyframes.at(-1);
   if (last && last.offset < 1) keyframes.push({ offset: 1, x: 0, y: 0 });
   easings.length = keyframes.length - 1;
-  if (keyframes.length < 2 || keyframes.length > 16) return undefined;
+  if (keyframes.length > 16) return undefined;
   const linearSegments = easings.every((easing) => easing.every((v, i) => v === LINEAR[i]));
   if (overall !== LINEAR && overall.some((v, i) => v !== LINEAR[i])) {
     // The effect's own easing warps the whole timeline; Core Animation can
@@ -192,8 +196,8 @@ const motionOfAnimation = (
     if (keyframes.length !== 2 || !linearSegments) return undefined;
     easings[0] = overall;
   }
-  const delay = typeof timing.delay === "number" ? timing.delay : 0;
-  const current = Number(animation.currentTime ?? 0);
+  const delay = timing.delay ?? 0;
+  const current = Number(animation.currentTime);
   const elapsed = (Number.isFinite(current) ? current : 0) - delay;
   const allLinear = easings.every((easing) => easing.every((v, i) => v === LINEAR[i]));
   const fill = fillOf(timing.fill);
@@ -217,19 +221,17 @@ export const slideOf = (element: Element): Slide | undefined => {
   if (typeof element.getAnimations !== "function" || !(element instanceof HTMLElement)) {
     return undefined;
   }
-  const own = element
-    .getAnimations()
-    .filter(
-      (animation) =>
-        animation.playState === "running" &&
-        isKeyframeEffect(animation.effect) &&
-        animation.effect.target === element &&
-        !animation.effect.pseudoElement,
-    );
+  const own = element.getAnimations().flatMap((animation) => {
+    const { effect } = animation;
+    return animation.playState === "running" &&
+      isKeyframeEffect(effect) &&
+      effect.target === element &&
+      !effect.pseudoElement
+      ? [{ animation, effect }]
+      : [];
+  });
   let found: { animation: Animation; effect: KeyframeEffect } | undefined;
-  for (const animation of own) {
-    const effect = animation.effect;
-    if (!isKeyframeEffect(effect)) continue;
+  for (const { animation, effect } of own) {
     const properties = animatedProperties(effect.getKeyframes());
     if (properties.has("transform")) {
       if (found || properties.size > 1) return undefined;

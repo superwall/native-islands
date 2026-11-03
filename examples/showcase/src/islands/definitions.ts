@@ -133,6 +133,23 @@ export const NativeMenu = defineNativeComponent<{
   events: { select: { id: string } };
 }>("menu", { colorProps: ["tint"] });
 
+/**
+ * The navigation bar over every screen, drawn natively so it stays put as
+ * screens slide under it: Back while the stack can go back, the inline
+ * title, and a menu of `items`.
+ */
+export const NativeNavigationBar = defineNativeComponent<{
+  props: {
+    title: string;
+    titleShown: boolean;
+    showsBack: boolean;
+    systemImage: string;
+    menuLabel: string;
+    items: readonly MenuItem[];
+  };
+  events: { back: undefined; select: { id: string } };
+}>("navigationBar");
+
 export type TextFieldKind = "plain" | "email" | "number" | "secure";
 
 export const NativeTextField = defineNativeComponent<{

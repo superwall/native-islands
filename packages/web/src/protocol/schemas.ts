@@ -85,6 +85,20 @@ export const NativeMotionKeyframeSchema = z.object({
 
 export const NativeEasingSchema = z.tuple([finite, finite, finite, finite]);
 
+const offsetsOf = (keyframes: readonly { offset: number }[]) =>
+  keyframes.map((frame) => frame.offset);
+
+const ascending = (keyframes: readonly { offset: number }[]) =>
+  offsetsOf(keyframes).every(
+    (offset, index, offsets) => offset >= Math.max(0, ...offsets.slice(0, index)),
+  );
+
+const MotionKeyframesSchema = z
+  .array(NativeMotionKeyframeSchema)
+  .min(2)
+  .max(16)
+  .refine(ascending, "Keyframe offsets must not go down.");
+
 /**
  * A slide the host runs on the native view itself, as WebKit runs the page's
  * CSS animation: the island's `frame` is where it rests, and each keyframe is
@@ -92,19 +106,37 @@ export const NativeEasingSchema = z.tuple([finite, finite, finite, finite]);
  * `cover` is a box above the island that slides with it, in the island's own
  * coordinates, which the host cuts out of it as it moves.
  */
-export const NativeMotionSchema = z.object({
-  keyframes: z.array(NativeMotionKeyframeSchema).min(2).max(16),
-  easings: z.array(NativeEasingSchema).max(15).optional(),
-  duration: z.number().positive().max(10_000),
-  elapsed: z.number().min(-10_000).max(10_000),
-  fill: z.enum(["none", "forwards", "backwards", "both"]).optional(),
-  cover: z
-    .object({
-      frame: NativeFrameSchema,
-      keyframes: z.array(NativeMotionKeyframeSchema).min(2).max(16),
-    })
-    .optional(),
-});
+export const NativeMotionSchema = z
+  .object({
+    keyframes: MotionKeyframesSchema,
+    easings: z
+      .array(
+        NativeEasingSchema.refine(
+          ([x1, , x2]) => x1 >= 0 && x1 <= 1 && x2 >= 0 && x2 <= 1,
+          "An easing's control points must lie within the slide's time.",
+        ),
+      )
+      .max(15)
+      .optional(),
+    duration: z.number().positive().max(10_000),
+    elapsed: z.number().min(-10_000).max(10_000),
+    fill: z.enum(["none", "forwards", "backwards", "both"]).optional(),
+    cover: z
+      .object({
+        frame: NativeFrameSchema,
+        keyframes: MotionKeyframesSchema,
+      })
+      .optional(),
+  })
+  .refine(
+    ({ keyframes, easings }) => !easings || easings.length === keyframes.length - 1,
+    "A slide needs one easing per segment.",
+  )
+  .refine(
+    ({ keyframes, cover }) =>
+      !cover || offsetsOf(cover.keyframes).join() === offsetsOf(keyframes).join(),
+    "A cover's keyframes must fall at the slide's own offsets.",
+  );
 
 export type TNativeMotion = z.infer<typeof NativeMotionSchema>;
 export type TNativeMotionKeyframe = z.infer<typeof NativeMotionKeyframeSchema>;

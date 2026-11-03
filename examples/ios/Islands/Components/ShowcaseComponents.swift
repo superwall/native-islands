@@ -19,6 +19,7 @@ enum ShowcaseComponents {
     add("tabBar", in: registry, glass: tabBarGlass) { TabBarView(component: $0) }
     add("searchField", in: registry, glass: tabBarGlass) { SearchFieldView(component: $0) }
     add("menu", in: registry, glass: glassButton) { MenuView(component: $0) }
+    add("navigationBar", in: registry) { NavigationBarView(component: $0) }
     add("slider", in: registry) { SliderView(component: $0) }
     add("stepper", in: registry) { StepperView(component: $0) }
     add("picker", in: registry) { PickerView(component: $0) }

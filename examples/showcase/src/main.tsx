@@ -26,6 +26,7 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
       tabBar: 1,
       searchField: 1,
       menu: 1,
+      navigationBar: 1,
       slider: 1,
       stepper: 1,
       picker: 1,
