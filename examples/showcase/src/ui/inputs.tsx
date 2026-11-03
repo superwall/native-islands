@@ -73,9 +73,7 @@ export const Slider = ({
         max={maximum}
         step={step ?? "any"}
         value={value}
-        style={
-          { "--fill": `${((value - minimum) / (maximum - minimum)) * 100}%` } as React.CSSProperties
-        }
+        style={{ "--fill": `${((value - minimum) / (maximum - minimum)) * 100}%` }}
         onChange={(event) => onChange(Number(event.target.value))}
       />
       {maximumSymbol && <WebSymbol name={maximumSymbol} className="web-slider-symbol" />}
@@ -405,7 +403,7 @@ export const ColorWell = ({
     accessibility={{ label }}
     onStateChange={({ color: next }) => next !== undefined && onChange(next)}
   >
-    <label className="web-color-well" style={{ "--well": color } as React.CSSProperties}>
+    <label className="web-color-well" style={{ "--well": color }}>
       <input
         type="color"
         aria-label={label}

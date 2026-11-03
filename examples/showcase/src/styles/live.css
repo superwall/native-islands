@@ -3,7 +3,8 @@
  * runtime: no tap highlight, no text selection, no focus rings, no
  * scrollbars, normalized elements. Copied as is, without the rules only
  * paywalls use (stacks, button animations, the safe-area box, the headless
- * layer). The showcase's own look is in ios.css.
+ * layer). The showcase's own look is in tokens.css, app.css,
+ * components.css and capabilities.css.
  */
 
 /* Android - Disable tap to highlight */

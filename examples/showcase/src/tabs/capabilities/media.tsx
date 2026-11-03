@@ -16,6 +16,10 @@ import {
 export const VIDEO_URL =
   "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8";
 
+/** A WebM clip for the web version in browsers without HLS. */
+export const WEB_VIDEO_URL =
+  "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.480p.vp9.webm";
+
 const STOPPED: VideoStatus = { playing: false, time: 0, duration: 0, pictureInPicture: false };
 
 const VideoDemo = () => {
@@ -25,7 +29,7 @@ const VideoDemo = () => {
     <>
       <div className="nav-gap" />
       <div className="media-card media-card--video">
-        <Video url={VIDEO_URL} onStatus={setStatus} handle={player} />
+        <Video url={VIDEO_URL} webUrl={WEB_VIDEO_URL} onStatus={setStatus} handle={player} />
       </div>
       <p className="list-footer">
         AVFoundation plays it, with Picture in Picture that carries on over other apps. Its controls

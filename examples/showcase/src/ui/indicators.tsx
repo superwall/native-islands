@@ -95,10 +95,7 @@ export const Gauge = ({
       native={useNativeEnabled()}
       accessibility={{ label, value: valueLabel }}
     >
-      <div
-        className="web-gauge"
-        style={{ "--tint": tint ?? "var(--accent)" } as React.CSSProperties}
-      >
+      <div className="web-gauge" style={{ "--tint": tint ?? "var(--accent)" }}>
         <WebGauge
           value={value}
           style={style}

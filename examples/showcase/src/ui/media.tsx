@@ -32,11 +32,15 @@ export type VideoHandle = { play: () => void; pause: () => void; pictureInPictur
  */
 export const Video = ({
   url,
+  webUrl,
   poster,
   onStatus,
   handle,
 }: {
+  /** An HLS stream, which AVFoundation and Safari play. */
   url: string;
+  /** A WebM copy for browsers that cannot play HLS, such as Chrome and Firefox. */
+  webUrl?: string;
   poster?: string;
   onStatus: (status: VideoStatus) => void;
   handle?: React.Ref<VideoHandle>;
@@ -99,7 +103,6 @@ export const Video = ({
         <video
           ref={video}
           className="web-video"
-          src={url}
           poster={poster}
           controls
           playsInline
@@ -108,7 +111,10 @@ export const Video = ({
           onPause={reportElement}
           onTimeUpdate={reportElement}
           onLoadedMetadata={reportElement}
-        />
+        >
+          <source src={url} type="application/vnd.apple.mpegurl" />
+          {webUrl && <source src={webUrl} type="video/webm" />}
+        </video>
       )}
     </NativeVideo>
   );
