@@ -5,6 +5,7 @@ import {
   ISLAND_SCROLLER_ATTRIBUTE,
   ISLAND_SHOWN_ATTRIBUTE,
   ISLAND_STYLE_ATTRIBUTE,
+  SHOWN_ISLAND_SELECTOR,
 } from "../../layout/attributes";
 
 export const ISLAND_STYLES = [
@@ -16,6 +17,14 @@ export const ISLAND_STYLES = [
   // Unless the scroller is a stacking context, those layers go above the
   // scroller's own view, so they cover the islands drawn in it.
   `[${ISLAND_SCROLLER_ATTRIBUTE}] { isolation: isolate; }`,
+  // A running animation in the hidden web version makes WebKit composite it
+  // and every box painted after it above the scroll view the native views
+  // live in, covering them. Pausing keeps those layers; only removing it
+  // drops them. The wrapper is `display: contents`, so this reaches the
+  // boxes the native view follows too: an animation on one of them, such as
+  // a spin, no longer turns or moves the native view. Animations on the
+  // island's ancestors still run and move it.
+  `${SHOWN_ISLAND_SELECTOR} * { animation: none !important; }`,
 ].join("\n");
 
 export const ensureIslandStyles = (document: Document) => {

@@ -376,9 +376,30 @@ button:focus-visible {
   animation: glow 1.6s ease-in-out infinite;
 }
 
+.spinner {
+  width: 52px;
+  height: 52px;
+  background: conic-gradient(from 0deg, transparent, var(--fg-muted));
+  mask: radial-gradient(circle, transparent 15px, #000 16px, #000 23px, transparent 24px);
+  animation: spin 1s steps(8) infinite;
+}
+
+.solid-card {
+  display: flex;
+  width: 100%;
+  padding: 16px;
+  background: var(--elevated);
+}
+
 @keyframes pulse {
   50% {
     transform: scale(1.04);
+  }
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
   }
 }
 
@@ -390,7 +411,8 @@ button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .pulse,
-  .glow {
+  .glow,
+  .spinner {
     animation: none;
   }
 }

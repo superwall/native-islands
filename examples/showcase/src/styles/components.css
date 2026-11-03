@@ -720,12 +720,3 @@
   fill: var(--label-secondary);
   text-anchor: middle;
 }
-
-/*
- * A web version stays laid out under its native view. An endless animation
- * there would keep the islands' layout watcher busy for nothing, so web
- * versions only animate while they are what shows.
- */
-[data-island-mode]:not([data-island-mode="web"]) :is(.web-spinner, .web-symbol-effect-image) {
-  animation: none !important;
-}
