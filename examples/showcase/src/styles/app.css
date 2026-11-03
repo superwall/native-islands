@@ -571,3 +571,12 @@ button {
   margin: 0;
   color: var(--label-secondary);
 }
+
+/* Outlines mode: the web versions, each marked where its native view would sit, as the
+   browser simulator marks them. A web version's wrapper has no box of its own, so its
+   children carry the mark. */
+html[data-view-mode="outlines"] [data-island] > * {
+  outline: 2px solid #d63af9;
+  outline-offset: -2px;
+  background-image: linear-gradient(rgb(214 58 249 / 18%), rgb(214 58 249 / 18%));
+}

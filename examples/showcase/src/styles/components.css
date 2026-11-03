@@ -226,6 +226,12 @@
   animation: menu-in 0.3s var(--ease-push);
 }
 
+.nav-trailing .web-menu-popover {
+  right: 0;
+  left: auto;
+  translate: none;
+}
+
 @keyframes menu-in {
   from {
     opacity: 0;

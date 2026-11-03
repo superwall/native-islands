@@ -1,5 +1,6 @@
 import * as React from "react";
 import { postToHost } from "./host";
+import type { ViewMode } from "./viewMode";
 
 export type Appearance = "system" | "light" | "dark";
 
@@ -26,7 +27,7 @@ export const ACCENTS: readonly Accent[] = [
 export type Preferences = {
   appearance: Appearance;
   accent: Accent;
-  native: boolean;
+  mode: ViewMode;
 };
 
 type PreferencesValue = Preferences & {
@@ -36,15 +37,16 @@ type PreferencesValue = Preferences & {
 const DEFAULTS: Preferences = {
   appearance: "system",
   accent: ACCENTS[0] ?? { name: "Blue", light: "#007aff", dark: "#0a84ff" },
-  native: true,
+  mode: "native",
 };
 
 const PreferencesContext = React.createContext<PreferencesValue>({ ...DEFAULTS, set: () => {} });
 
 export const usePreferences = (): PreferencesValue => React.useContext(PreferencesContext);
 
-/** Whether islands draw natively; Settings can switch them all to their web versions. */
-export const useNativeEnabled = (): boolean => React.useContext(PreferencesContext).native;
+/** Whether islands draw natively; the view mode menu can switch them all to their web versions. */
+export const useNativeEnabled = (): boolean =>
+  React.useContext(PreferencesContext).mode === "native";
 
 /**
  * Holds the app's settings for the session and applies them to the document:
@@ -57,9 +59,10 @@ export const PreferencesProvider = ({ children }: React.PropsWithChildren) => {
   React.useLayoutEffect(() => {
     const root = document.documentElement;
     root.dataset.appearance = preferences.appearance;
+    root.dataset.viewMode = preferences.mode;
     root.style.setProperty("--accent-light", preferences.accent.light);
     root.style.setProperty("--accent-dark", preferences.accent.dark);
-  }, [preferences.appearance, preferences.accent]);
+  }, [preferences.appearance, preferences.accent, preferences.mode]);
 
   React.useEffect(() => {
     postToHost({ type: "appearance", value: preferences.appearance });

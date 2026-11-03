@@ -4,7 +4,7 @@ import { Segmented, Toggle } from "../ui/controls";
 import { Row, Section } from "../ui/List";
 
 const Settings = () => {
-  const { appearance, accent, native, set } = usePreferences();
+  const { appearance, accent, mode, set } = usePreferences();
   const { push } = useNav();
   const appearanceIndex = APPEARANCES.findIndex((option) => option.value === appearance);
   return (
@@ -30,7 +30,7 @@ const Settings = () => {
       </Section>
       <Section
         header="Islands"
-        footer="Off draws the web version of every island in its place: the same page, without native views."
+        footer="Off draws the web version of every island in its place: the same page, without native views. The menu at the top right of every screen also outlines where the native views go."
       >
         <Row
           title="Native Islands"
@@ -38,8 +38,8 @@ const Settings = () => {
           accessory={
             <Toggle
               label="Native Islands"
-              isOn={native}
-              onChange={(next) => set({ native: next })}
+              isOn={mode === "native"}
+              onChange={(next) => set({ mode: next ? "native" : "web" })}
             />
           }
         />

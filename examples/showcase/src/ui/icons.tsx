@@ -25,6 +25,34 @@ const PATHS: Record<string, React.ReactNode> = {
       />
     </>
   ),
+  iphone: (
+    <>
+      <rect x="6" y="2.5" width="12" height="19" rx="3" fill="none" strokeWidth="2" />
+      <path d="M10.5 5.5h3" fill="none" strokeWidth="1.8" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" fill="none" strokeWidth="1.8" />
+      <path
+        d="M3 12h18M12 3c-3 3.2-3 14.8 0 18M12 3c3 3.2 3 14.8 0 18"
+        fill="none"
+        strokeWidth="1.6"
+      />
+    </>
+  ),
+  "square.dashed": (
+    <rect
+      x="3.5"
+      y="3.5"
+      width="17"
+      height="17"
+      rx="3"
+      fill="none"
+      strokeWidth="2"
+      strokeDasharray="3 3"
+    />
+  ),
   checkmark: <path d="m4 12.5 5 5L20 6" fill="none" strokeWidth="2.6" />,
   "shippingbox.fill": (
     <>

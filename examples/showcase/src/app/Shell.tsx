@@ -2,6 +2,7 @@ import * as React from "react";
 import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
 import { useNativeIslandsReady } from "@superwall/native-islands/react";
 import { BarButton } from "../ui/controls";
+import { Menu } from "../ui/inputs";
 import { TabBar } from "../ui/TabBar";
 import { NavProvider, ShowingProvider, type Nav, type ScreenSpec } from "./nav";
 import {
@@ -13,7 +14,9 @@ import {
   type NavState,
   type ScreenPlace,
 } from "./navigation";
+import { usePreferences } from "./preferences";
 import { useSwipeBack } from "./useSwipeBack";
+import { viewModeItems, viewModeOf } from "./viewMode";
 
 const PUSH_MS = 500;
 
@@ -90,9 +93,27 @@ const Screen = ({
           )}
         </div>
         <div className="nav-title">{spec.title}</div>
-        <div className="nav-trailing" />
+        <div className="nav-trailing">
+          <ViewModeMenu />
+        </div>
       </header>
     </section>
+  );
+};
+
+/** The menu at the top right of every screen that switches how islands draw. */
+const ViewModeMenu = () => {
+  const { mode, set } = usePreferences();
+  return (
+    <Menu
+      label="View Mode"
+      symbol="square.stack.3d.up.fill"
+      items={viewModeItems(mode)}
+      onSelect={(id) => {
+        const next = viewModeOf(id);
+        if (next) set({ mode: next });
+      }}
+    />
   );
 };
 
