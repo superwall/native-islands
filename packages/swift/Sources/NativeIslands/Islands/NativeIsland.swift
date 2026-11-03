@@ -26,6 +26,7 @@ final class NativeIsland {
   var shadeHost: UIView?
   var silhouetteCache: NativeSilhouette?
   var reportedSize: CGSize?
+  var sizeObservation: NSKeyValueObservation?
   private(set) var topCut: CGFloat = 0
 
   var isShown: Bool {
@@ -257,23 +258,6 @@ final class NativeIsland {
 
   func applyAccessibility() {
     view.accessibilityElementsHidden = context.accessibility?.isHidden == true
-  }
-
-  func measure() -> NativeSize? {
-    let fitted = host.sizeThatFits(
-      in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-    )
-    guard
-      fitted.width.isFinite,
-      fitted.height.isFinite,
-      fitted.width >= 0,
-      fitted.height >= 0,
-      fitted != reportedSize
-    else {
-      return nil
-    }
-    reportedSize = fitted
-    return NativeSize(width: Double(fitted.width), height: Double(fitted.height))
   }
 }
 

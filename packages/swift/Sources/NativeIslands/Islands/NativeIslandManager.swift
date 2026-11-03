@@ -112,13 +112,6 @@ final class NativeIslandManager: NativeIslandMessaging {
       .map(\.element)
   }
 
-  func reportSizes(of ids: [String]) {
-    for id in ids {
-      guard let island = islands[id], island.sizing == .native, let size = island.measure() else { continue }
-      outbox.append(.size(id: id, size: size, sequence: island.context.sequence))
-    }
-  }
-
   func mountIsland(_ mount: NativeMount, sequence: Int) -> NativeReply? {
     func failure(_ reason: NativeErrorReason, _ message: String) -> NativeReply {
       .error(id: mount.id, reason: reason, message: message, sequence: sequence)
@@ -146,11 +139,17 @@ final class NativeIslandManager: NativeIslandMessaging {
       host: self
     )
     let host = UIHostingController(rootView: NativeIslandRoot(context: context, make: entry.make))
+    let island = NativeIsland(context: context, host: host, mount: mount, glass: entry.glass)
+    if mount.sizing == .native {
+      island.watchSize { [weak self, weak island] in
+        guard let self, let island else { return }
+        contentSizeChanged(island)
+      }
+    }
     host.view.backgroundColor = .clear
     if #available(iOS 16.4, *) {
       host.safeAreaRegions = []
     }
-    let island = NativeIsland(context: context, host: host, mount: mount, glass: entry.glass)
     islands[mount.id] = island
     attach(island, to: container)
     island.layOut()
@@ -249,6 +248,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   func remove(_ id: String) {
     parked[id] = nil
     guard let island = islands.removeValue(forKey: id) else { return }
+    island.sizeObservation?.invalidate()
     detachFromParent(island.host)
     island.view.removeFromSuperview()
     island.removeShades()
