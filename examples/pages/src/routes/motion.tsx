@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useRouter } from "../router";
 import { Glass } from "../components/controls";
+import { GlassButton } from "../components/defaults";
 import { Scenario } from "../components/Scenario";
 
 export default function Motion() {
@@ -23,6 +24,17 @@ export default function Motion() {
       <Scenario id="S26" title="Inside something that keeps pulsing" expect="native" moving>
         <div className="pulse">
           <Glass title="Always moving" />
+        </div>
+      </Scenario>
+      <Scenario id="S55" title="Below an island whose web version spins" expect="native">
+        <GlassButton systemImage="arrow.triangle.2.circlepath">
+          <div className="spinner" role="progressbar" aria-busy />
+        </GlassButton>
+        <div className="solid-card">
+          <Glass title="Below the spinner" />
+        </div>
+        <div className="solid-card">
+          <Glass title="Further below" />
         </div>
       </Scenario>
       <Scenario id="S27" title="Inside something whose colour animates" expect="native">

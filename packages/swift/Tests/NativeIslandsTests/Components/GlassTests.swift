@@ -72,6 +72,36 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func aGroupedIslandFollowsItsScrollerAndLeavesNoEmptyGroupBehind() {
+      let harness = glassHarness()
+      let parked = harness.surface.addScroller(
+        frame: CGRect(x: 800, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 1600)
+      )
+      let size = NativeSize(width: 400, height: 1600)
+      harness.manager.apply(
+        batch(
+          1,
+          mountOp(
+            props: ["title": .string("A"), "glassGroup": .string("g")],
+            anchor: scroller("screen", frame: NativeFrame(x: 800, y: 0, width: 400, height: 800), contentSize: size)
+          )
+        )
+      )
+      #expect(parked.subviews.compactMap { $0 as? NativeGlassGroupView }.count == 1)
+
+      let shown = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 1600)
+      )
+      let landed = scroller("screen", frame: NativeFrame(x: 0, y: 0, width: 400, height: 800), contentSize: size)
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: landed))))
+      let group = shown.subviews.compactMap { $0 as? NativeGlassGroupView }.first
+      #expect(harness.island("cta")?.view.superview === group?.contentView)
+      #expect(parked.subviews.compactMap { $0 as? NativeGlassGroupView }.isEmpty)
+    }
+
+    @Test
     func aGroupLetsTouchesThroughWhereThereIsNoIsland() {
       let group = NativeGlassGroupView(name: "g")
       group.frame = CGRect(x: 0, y: 0, width: 200, height: 200)

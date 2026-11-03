@@ -85,6 +85,13 @@ public final class NativeIslandsHost {
     manager != nil
   }
 
+  /// Call when the web view moves to a window or to another view
+  /// controller, so islands present from the controller that shows them.
+  /// `IslandWebView` calls it itself.
+  public func webViewDidMoveToWindow() {
+    manager?.adoptIslands()
+  }
+
   public func detach() {
     release()
     alignmentProbe?.stop()

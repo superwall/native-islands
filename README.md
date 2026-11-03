@@ -174,8 +174,22 @@ NativeComponentRegistry.shared.register("rating") { component in
 ```
 
 With a web view of your own, attach `NativeIslandsHost(webView:)` before the
-first load and call its `hitTest(_:with:webHit:)` from your `hitTest(_:with:)`,
-so islands in inner scrolling areas take their taps.
+first load and forward two calls to it, as `IslandWebView` does:
+
+- its `hitTest(_:with:webHit:)` from your `hitTest(_:with:)`, so islands in
+  inner scrolling areas take their taps;
+- its `webViewDidMoveToWindow()` from your `didMoveToWindow()`, so each
+  island's hosting controller becomes a child of the view controller that
+  shows the web view. Without it, islands mounted before the web view had a
+  controller present (a `ColorPicker`, a sheet, a menu) from a detached
+  controller until their next update.
+
+```swift
+override func didMoveToWindow() {
+  super.didMoveToWindow()
+  islands.webViewDidMoveToWindow()
+}
+```
 
 ## No web flash
 

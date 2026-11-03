@@ -19,3 +19,6 @@ export const ISLAND_SHOWN_ATTRIBUTE = "data-island-shown";
 export const ISLAND_CONCEALED_ATTRIBUTE = "data-island-concealed";
 
 export const ISLAND_STYLE_ATTRIBUTE = "data-island-styles";
+
+// An island whose native view shows; its children are the hidden web version.
+export const SHOWN_ISLAND_SELECTOR = `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_SHOWN_ATTRIBUTE}]`;
