@@ -414,6 +414,42 @@ describe("native sizing", () => {
     expect(island.style.width).toBe("51px");
   });
 
+  it("moves the island when the native view reports a new size", async () => {
+    // A trailing-aligned row 300 wide: the island's box ends at x 300, so
+    // its x follows its width, as WebKit would lay it out.
+    const layout = vi.mocked(HTMLElement.prototype.getBoundingClientRect);
+    const measured = layout.getMockImplementation() as (this: HTMLElement) => DOMRect;
+    layout.mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.island !== "toggle" || this.style.display !== "inline-block") {
+        return measured.call(this);
+      }
+      const width = Number.parseFloat(this.style.width);
+      const height = Number.parseFloat(this.style.height);
+      this.dataset.rect = rectAttribute(300 - width, 0, width, height);
+      return measured.call(this);
+    });
+    const view = renderNative(
+      <Toggle isOn onChange={() => undefined}>
+        <input type="checkbox" data-rect={rectAttribute(280, 0, 20, 20)} />
+      </Toggle>,
+    );
+    await view.nextFrame();
+    const id = view.operations()[0]?.id as string;
+    view.send({ event_name: "native_component_size", id, size: { width: 20, height: 20 } });
+    view.send({ event_name: "native_component_ack", sequence: 1, ids: [id] });
+    await view.nextFrame();
+    const island = islandOf(view.container, "toggle");
+    expect(island.style.width).toBe("20px");
+    view.send({ event_name: "native_component_size", id, size: { width: 80, height: 20 } });
+    expect(island.style.width).toBe("80px");
+    await view.nextFrame();
+    expect(view.operations().at(-1)).toEqual({
+      op: "update",
+      id,
+      frame: { x: 220, y: 0, width: 80, height: 20 },
+    });
+  });
+
   it("routes change events with their payload", async () => {
     const onChange = vi.fn();
     const view = renderNative(
