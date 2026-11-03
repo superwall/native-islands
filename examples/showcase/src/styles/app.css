@@ -1,0 +1,589 @@
+html,
+body {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--label);
+  font: var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  position: absolute;
+  inset: 0;
+}
+
+button {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+}
+
+/* Screens: every screen of every tab's stack is its own scroller. */
+
+.screens {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.screen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.screen-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.screen[data-place="top"] {
+  z-index: 2;
+}
+
+.screen[data-place="below"] {
+  z-index: 1;
+}
+
+.screen-content {
+  min-height: calc(100% + 1px);
+  padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 24px);
+}
+
+.screen[data-motion="push-in"],
+.screen[data-motion="pop-out"],
+.screen[data-place="top"][data-swiping] {
+  box-shadow: -6px 0 24px rgb(0 0 0 / 10%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen[data-motion="push-in"] {
+    animation: push-in var(--push-duration) var(--ease-push) both;
+  }
+
+  .screen[data-motion="push-under"] {
+    animation: push-under var(--push-duration) var(--ease-push) both;
+  }
+
+  .screen[data-motion="pop-out"] {
+    animation: pop-out var(--push-duration) var(--ease-push) both;
+  }
+
+  .screen[data-motion="pop-under"] {
+    animation: pop-under var(--push-duration) var(--ease-push) both;
+  }
+}
+
+@keyframes push-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes push-under {
+  to {
+    transform: translateX(-30%);
+  }
+}
+
+@keyframes pop-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pop-under {
+  from {
+    transform: translateX(-30%);
+  }
+}
+
+/*
+ * Navigation bar. Each screen keeps the soft edge iOS 26 draws under the bar,
+ * so it slides with the screen; the bar's items are one native island for the
+ * whole app, fixed over every screen, as UINavigationBar is. It stays out of
+ * the scrollers: a native view inside a sticky, composited layer would be
+ * drawn under it.
+ */
+
+.nav-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: calc(env(safe-area-inset-top, 0px) + var(--nav-height));
+  pointer-events: none;
+}
+
+.nav-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -16px;
+  opacity: 0;
+  background: linear-gradient(var(--bg) 40%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  mask-image: linear-gradient(black 55%, transparent);
+  transition: opacity 0.2s;
+}
+
+.screen[data-scrolled] .nav-bar::before,
+.screen[data-inline-title] .nav-bar::before {
+  opacity: 1;
+}
+
+.app-nav {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  right: var(--margin);
+  left: var(--margin);
+  z-index: 5;
+  height: var(--nav-height);
+}
+
+.nav-items {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: var(--nav-height);
+}
+
+.nav-leading {
+  justify-self: start;
+}
+
+.nav-trailing {
+  justify-self: end;
+}
+
+.nav-title {
+  font: var(--headline);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.nav-title[data-shown] {
+  opacity: 1;
+}
+
+.nav-spacer {
+  height: calc(env(safe-area-inset-top, 0px) + var(--nav-height));
+}
+
+.large-title {
+  margin: 0;
+  padding: 2px calc(var(--margin) + 4px) 8px;
+  font: var(--large-title);
+  letter-spacing: 0.4px;
+}
+
+/* Glass circle: the back button's web version. */
+
+.glass-circle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--glass);
+  box-shadow:
+    inset 0 0 0 0.5px var(--glass-edge),
+    0 4px 16px rgb(0 0 0 / 8%);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  color: var(--label);
+}
+
+.glass-circle:active {
+  transform: scale(0.94);
+}
+
+/* Inset grouped list */
+
+.list-header {
+  margin: 20px calc(var(--margin) + var(--row-inset)) 8px;
+  font: 600 17px / 22px var(--font);
+  color: var(--label-secondary);
+}
+
+.list-section {
+  margin: 0 var(--margin);
+  border-radius: var(--cell-radius);
+  background: var(--cell);
+  overflow: hidden;
+}
+
+.list-section + .list-section,
+.list-footer + .list-section {
+  margin-top: 32px;
+}
+
+.list-footer {
+  margin: 8px calc(var(--margin) + var(--row-inset)) 0;
+  font: var(--footnote);
+  color: var(--label-secondary);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--row-height);
+  padding: 8px var(--row-inset);
+  text-align: left;
+  background: var(--cell);
+  transition: background-color 0.35s;
+}
+
+.row[data-pressable]:active {
+  background: var(--cell-pressed);
+  transition: none;
+}
+
+.row + .row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: var(--row-inset);
+  left: var(--row-inset);
+  height: 0.5px;
+  background: var(--separator);
+}
+
+.row[data-has-icon] + .row::before,
+.row + .row[data-has-icon]::before {
+  left: var(--icon-column);
+}
+
+.row-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-inline: -2px 2px;
+  color: var(--accent);
+}
+
+.row-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-title {
+  font: var(--body);
+}
+
+.row-subtitle {
+  font: var(--subheadline);
+  color: var(--label-secondary);
+}
+
+.row-detail {
+  flex: none;
+  font: var(--body);
+  color: var(--label-secondary);
+}
+
+.row-chevron {
+  flex: none;
+  width: 9px;
+  height: 15px;
+  margin-right: -2px;
+  color: var(--label-tertiary);
+}
+
+.row-check {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+/* A hero card at the top of a tab: what the tab shows. */
+
+.hero {
+  margin: 4px var(--margin) 0;
+  padding: 18px var(--row-inset);
+  border-radius: var(--cell-radius);
+  background: var(--cell);
+}
+
+.hero-title {
+  margin: 0 0 4px;
+  font: var(--headline);
+}
+
+.hero-text {
+  margin: 0;
+  font: var(--subheadline);
+  color: var(--label-secondary);
+}
+
+.prose {
+  margin: 0 calc(var(--margin) + 4px);
+  font: var(--body);
+}
+
+.prose p {
+  margin: 0 0 14px;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+/* Swatches */
+
+.swatch {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 12%);
+}
+
+/* Web versions of the controls */
+
+.web-toggle {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 28px;
+  border-radius: 14px;
+  background: var(--fill);
+  transition: background-color 0.25s;
+}
+
+.web-toggle[aria-checked="true"] {
+  background: var(--system-green);
+}
+
+.web-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 38px;
+  height: 24px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 15%);
+  transition: transform 0.25s var(--ease-push);
+}
+
+.web-toggle[aria-checked="true"]::after {
+  transform: translateX(22px);
+}
+
+.web-segmented {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  padding: 2px;
+  border-radius: 16px;
+  background: var(--fill-tertiary);
+}
+
+.web-segmented button {
+  flex: 1;
+  border-radius: 14px;
+  font: 500 13px / 18px var(--font);
+}
+
+.web-segmented button[aria-pressed="true"] {
+  background: var(--cell);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  font-weight: 600;
+}
+
+/* Tab bar */
+
+.tab-bar {
+  position: fixed;
+  z-index: 10;
+  left: 21px;
+  right: 21px;
+  bottom: var(--tab-bar-bottom);
+  height: var(--tab-bar-height);
+  display: flex;
+  gap: 12px;
+}
+
+.tab-bar-tabs {
+  flex: 1;
+  min-width: 0;
+}
+
+.tab-bar-search.glass-circle {
+  flex: none;
+  width: var(--tab-bar-height);
+  height: var(--tab-bar-height);
+  box-shadow:
+    inset 0 0 0 0.5px var(--glass-edge),
+    0 8px 32px rgb(0 0 0 / 12%);
+}
+
+.tab-bar-search svg {
+  width: 24px;
+  height: 24px;
+}
+
+.tab-bar-search[aria-selected="true"] {
+  color: var(--accent);
+}
+
+.web-tab-bar {
+  display: flex;
+  height: 100%;
+  padding: 4px;
+  border-radius: calc(var(--tab-bar-height) / 2);
+  background: var(--glass);
+  box-shadow:
+    inset 0 0 0 0.5px var(--glass-edge),
+    0 8px 32px rgb(0 0 0 / 12%);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+}
+
+.web-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: calc((var(--tab-bar-height) - 8px) / 2);
+  font: 600 10px / 12px var(--font);
+}
+
+.web-tab svg {
+  width: 26px;
+  height: 26px;
+}
+
+.web-tab[aria-selected="true"] {
+  background: var(--fill-tertiary);
+  color: var(--accent);
+}
+
+.bar-symbol {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-gap {
+  height: 12px;
+}
+
+.prose code {
+  font:
+    500 15px / 20px ui-monospace,
+    monospace;
+}
+
+/* Search */
+
+.search-bar {
+  margin: 0 var(--margin) 4px;
+  height: 44px;
+}
+
+.web-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 14px;
+  border-radius: 22px;
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+}
+
+.web-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  font: var(--body);
+  color: var(--label);
+  caret-color: var(--accent);
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.web-search input::placeholder {
+  color: var(--label-tertiary);
+}
+
+.web-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.web-search-glass,
+.web-search-clear svg {
+  width: 18px;
+  height: 18px;
+}
+
+.web-search-clear {
+  display: grid;
+  place-items: center;
+  color: var(--label-tertiary);
+}
+
+.no-results {
+  padding: 72px 40px 0;
+  text-align: center;
+}
+
+.no-results-symbol {
+  width: 48px;
+  height: 48px;
+  color: var(--label-tertiary);
+}
+
+.no-results-title {
+  margin: 12px 0 4px;
+  font: var(--title3, 600 20px / 25px var(--font));
+}
+
+.no-results-text {
+  margin: 0;
+  color: var(--label-secondary);
+}
+
+/* Outlines mode: the app outlines each native view itself. Where an island shows its web
+   version instead, as in a browser, the web version carries the same mark. A web
+   version's wrapper has no box of its own, so its children carry it. */
+html[data-view-mode="outlines"] [data-island] > * {
+  outline: 2px solid #d63af9;
+  outline-offset: -2px;
+  background-image: linear-gradient(rgb(214 58 249 / 18%), rgb(214 58 249 / 18%));
+}

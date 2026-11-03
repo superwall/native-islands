@@ -2,6 +2,7 @@ import {
   ISLAND_COMPONENT_ATTRIBUTE,
   ISLAND_CONCEALED_ATTRIBUTE,
   ISLAND_PROBE_ATTRIBUTE,
+  ISLAND_SCROLLER_ATTRIBUTE,
   ISLAND_SHOWN_ATTRIBUTE,
   ISLAND_STYLE_ATTRIBUTE,
   SHOWN_ISLAND_SELECTOR,
@@ -12,6 +13,10 @@ export const ISLAND_STYLES = [
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_SHOWN_ATTRIBUTE}] > * { opacity: 0; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_CONCEALED_ATTRIBUTE}]:not([${ISLAND_PROBE_ATTRIBUTE}]) { visibility: hidden; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_PROBE_ATTRIBUTE}] * { pointer-events: auto !important; }`,
+  // While content in a scroller animates, WebKit composites what follows it.
+  // Unless the scroller is a stacking context, those layers go above the
+  // scroller's own view, so they cover the islands drawn in it.
+  `[${ISLAND_SCROLLER_ATTRIBUTE}] { isolation: isolate; }`,
   // A running animation in the hidden web version makes WebKit composite it
   // and every box painted after it above the scroll view the native views
   // live in, covering them. Pausing keeps those layers; only removing it

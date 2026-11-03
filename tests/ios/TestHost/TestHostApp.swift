@@ -1,18 +1,18 @@
 import NativeIslands
 import SwiftUI
 
-/// Loads the test pages in `examples/pages/` into an ``IslandWebView`` and draws their
+/// Loads the test pages in `tests/pages/` into an ``IslandWebView`` and draws their
 /// islands natively. No account or network is needed: the pages are bundled.
 ///
 /// Launch arguments:
 /// - `-route <name>` opens one page directly, such as `-route buttons`.
-/// - `-pagesURL http://<mac>:<port>/` loads the pages from `bun run --cwd examples/pages dev` instead.
+/// - `-pagesURL http://<mac>:<port>/` loads the pages from `bun run --cwd tests/pages dev` instead.
 /// - `-route perf -count 50` opens the performance page with 50 islands.
 /// - `-UITestReport YES` exposes a JSON summary of the page to the UI tests;
 ///   `-perf YES` also runs the performance measurements.
 /// - `-NativeIslandsAlignmentLog YES` logs every native frame beside its DOM rect (Debug builds).
 @main
-struct ExampleApp: App {
+struct TestHostApp: App {
   init() {
     AppComponents.register()
   }

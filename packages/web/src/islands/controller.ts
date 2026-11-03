@@ -8,6 +8,7 @@ import {
   type TNativeErrorReason,
   type TNativeFrame,
   type TNativeShade,
+  type TNativeMotion,
   type TNativeTransform,
   type TNativeSticky,
   type TNativeOperation,
@@ -72,6 +73,7 @@ export type NativeIslandSpec = {
   shades?: TNativeShade[];
   transform?: TNativeTransform;
   opacity?: number;
+  motion?: TNativeMotion;
 };
 
 export type NativeIslandPatch = Partial<
@@ -89,6 +91,7 @@ export type NativeIslandPatch = Partial<
     | "shades"
     | "transform"
     | "opacity"
+    | "motion"
   >
 >;
 
@@ -232,6 +235,7 @@ const layerOf = (spec: NativeIslandSpec) =>
     shades: spec.shades,
     transform: spec.transform,
     opacity: spec.opacity,
+    motion: spec.motion,
   });
 
 const defaultScheduler: NativeScheduler = (flush) => {
@@ -469,6 +473,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
             shades: patch.shades,
             transform: patch.transform,
             opacity: patch.opacity,
+            motion: patch.motion,
           };
     island.spec = { ...island.spec, ...rest, ...geometry, props };
     return true;

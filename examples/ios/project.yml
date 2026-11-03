@@ -1,4 +1,4 @@
-name: Example
+name: Islands
 options:
   bundleIdPrefix: com.superwall.nativeislands
   deploymentTarget:
@@ -7,25 +7,25 @@ packages:
   NativeIslands:
     path: ../..
 targets:
-  Example:
+  Islands:
     type: application
     platform: iOS
     sources:
-      - Example
+      - Islands
     dependencies:
       - package: NativeIslands
     preBuildScripts:
-      - name: Bundle the test pages
+      - name: Bundle the showcase
         basedOnDependencyAnalysis: false
         script: |
           set -euo pipefail
           export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-          PAGES="$SRCROOT/../pages"
+          PAGES="$SRCROOT/../showcase"
           if command -v bun >/dev/null; then
             (cd "$SRCROOT/../.." && bun install --frozen-lockfile >/dev/null)
             bun run --cwd "$PAGES" build >/dev/null
           elif [ ! -f "$PAGES/dist/index.html" ]; then
-            echo "error: install bun, or build the pages first: bun run --cwd examples/pages build"
+            echo "error: install bun, or build the showcase first: bun run --cwd examples/showcase build"
             exit 1
           fi
           DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/pages"
@@ -33,14 +33,20 @@ targets:
           mkdir -p "$DEST"
           cp -R "$PAGES/dist/" "$DEST/"
     info:
-      path: Example/Info.plist
+      path: Islands/Info.plist
       properties:
-        CFBundleDisplayName: NativeIslands
-        UILaunchScreen: {}
+        CFBundleDisplayName: Islands
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        UIBackgroundModes: [audio]
+        NSCameraUsageDescription: Islands shows the live camera inside a web page.
+        NSMicrophoneUsageDescription: Islands shows how a web page asks for the microphone.
+        NSLocationWhenInUseUsageDescription: Islands shows where you are on the map.
+        NSPhotoLibraryUsageDescription: Islands shows how a web page asks for your photo library.
     settings:
       base:
         CODE_SIGN_STYLE: Automatic
@@ -48,28 +54,11 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_USER_SCRIPT_SANDBOXING: NO
-  ExampleUITests:
-    type: bundle.ui-testing
-    platform: iOS
-    sources:
-      - ExampleUITests
-    dependencies:
-      - target: Example
-    settings:
-      base:
-        CODE_SIGN_STYLE: Automatic
-        SWIFT_VERSION: "6.0"
-        TARGETED_DEVICE_FAMILY: "1"
-        GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
 schemes:
-  Example:
+  Islands:
     build:
       targets:
-        Example: all
-        ExampleUITests: [test]
+        Islands: all
     run:
       config: Debug
-    test:
-      config: Debug
-      targets:
-        - ExampleUITests

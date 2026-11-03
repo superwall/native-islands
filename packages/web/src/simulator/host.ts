@@ -11,6 +11,7 @@ import {
   type TNativeAnchor,
   type TNativeFrame,
   type TNativeSticky,
+  type TNativeMotion,
   type TNativeTransform,
   type TNativeOperation,
   type TNativeScroller,
@@ -49,6 +50,8 @@ export type SimulatedIsland = {
   clip?: TNativeFrame;
   transform?: TNativeTransform;
   opacity?: number;
+  motion?: TNativeMotion;
+  slide?: Animation;
 };
 
 export type SimulatedAlignment = {
@@ -100,6 +103,32 @@ const labelOf = (component: string, props: Readonly<Record<string, unknown>>) =>
   return typeof title === "string" ? `${component} · ${title}` : component;
 };
 
+const sameSlide = (left: TNativeMotion | undefined, right: TNativeMotion | undefined) =>
+  JSON.stringify(left && { ...left, elapsed: 0 }) ===
+  JSON.stringify(right && { ...right, elapsed: 0 });
+
+/** Runs a slide the page sent on the outline, as the host runs it on a native view. */
+const slide = (island: SimulatedIsland, motion: TNativeMotion | undefined) => {
+  if (sameSlide(island.motion, motion)) return;
+  island.motion = motion;
+  island.slide?.cancel();
+  island.slide = undefined;
+  if (!motion || typeof island.element.animate !== "function") return;
+  const animation = island.element.animate(
+    motion.keyframes.map((frame, index) => {
+      const easing = motion.easings?.[index];
+      return {
+        offset: frame.offset,
+        translate: `${frame.x}px ${frame.y}px`,
+        ...(easing ? { easing: `cubic-bezier(${easing.join(", ")})` } : {}),
+      };
+    }),
+    { duration: motion.duration, fill: motion.fill ?? "none" },
+  );
+  animation.currentTime = Math.max(0, motion.elapsed);
+  island.slide = animation;
+};
+
 const place = (
   island: SimulatedIsland,
   frame: TNativeFrame,
@@ -107,6 +136,7 @@ const place = (
   clip?: TNativeFrame,
   transform?: TNativeTransform,
   opacity?: number,
+  motion?: TNativeMotion,
 ) => {
   island.frame = frame;
   island.sticky = sticky;
@@ -114,6 +144,7 @@ const place = (
   island.transform = transform;
   island.opacity = opacity;
   relayOut(island);
+  slide(island, motion);
 };
 
 const relayOut = (island: SimulatedIsland) => {
@@ -319,6 +350,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         operation.clip,
         operation.transform,
         operation.opacity,
+        operation.motion,
       );
       show(island);
       const size = operation.sizing === "native" ? sizes[operation.component] : undefined;
@@ -347,6 +379,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         operation.clip,
         operation.transform,
         operation.opacity,
+        operation.motion,
       );
     }
     const echoed = operation.state_revision;
@@ -425,7 +458,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     protocol: NATIVE_PROTOCOL_VERSION,
     components: { ...components },
     anchors: ["page", "scroller", "screen"],
-    features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform"],
+    features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform", "motion"],
   };
 
   return {

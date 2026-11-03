@@ -39,7 +39,7 @@
         "**/*.test.ts",
         "**/*.test.tsx",
         "performance/**",
-        "examples/pages/src/perf.ts"
+        "tests/pages/src/perf.ts"
       ],
       "rules": {
         "unicorn/consistent-function-scoping": "off",

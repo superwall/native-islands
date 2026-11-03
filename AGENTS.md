@@ -55,18 +55,33 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Debug/              frame reporter and alignment
     Extensions/, Support/
   Tests/NativeIslandsTests/  mirrors Sources/
-examples/pages/         local test pages (Vite + React)
-examples/ios/           the iOS example app and its UI tests; its
-                        Components/Defaults/ holds ready-made glass views
+tests/pages/            the scenario gallery: regression pages (Vite + React)
+tests/ios/              TestHost, the app that bundles the gallery, with its
+                        UI tests and screenshot baselines
+examples/showcase/      Islands, the example app's web side (Vite + React):
+                        src/app/ the shell, navigation, search and preferences;
+                        src/tabs/ one file per demo section; src/ui/ each
+                        island with its web version; src/styles/live.css
+examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
+                        island, registered in ShowcaseComponents.swift, and
+                        Components/Defaults/ the glass views TestHost shares
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers and parallel UI test runs
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never
 hands touches to views in its scroll views, so `IslandWebView` routes them.
-`examples/pages/src/router.tsx` renders every page at once and parks the ones
+`tests/pages/src/router.tsx` renders every page at once and parks the ones
 not showing off to the side, each at its own spot, so their islands are drawn
 before they slide in. `?native=simulate` installs the JS reference host.
+
+The showcase's `src/app/Shell.tsx` does the same for every screen of every
+tab, so a demo that holds a device (camera, video) checks `useScreenShowing()`
+and lets go while hidden. A new island needs its name in both
+`src/islands/definitions.ts` and `ShowcaseComponents.swift`, a web version that
+behaves the same, and an entry in `main.tsx`'s simulator list. A new demo is a
+row in its section's `demoScreens(...)` with `keywords` for Search, and its
+symbol needs a web drawing in `src/ui/icons.tsx` (a test checks).
 
 ## Commands
 
@@ -74,11 +89,13 @@ Run only what your change touches; never a whole suite by hand.
 
 - JS tests: `bun run --cwd packages/web test:run test/<file>`
 - JS types: `bun run --cwd packages/web typecheck`
-- JS lint and format: `bunx oxlint --deny-warnings packages/web examples/pages performance`, `bunx oxfmt --check packages/web examples/pages tests performance`
+- JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
-- SwiftLint: `swiftlint lint --quiet --strict packages/swift examples/ios`
-- Pages: `bun run --cwd examples/pages build`; in a browser `bun run --cwd examples/pages dev`
-- Example app: `cd examples/ios && xcodegen -q && xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet`
+- SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
+- Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
+- Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
+- Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test test`; in a browser `bun run --cwd examples/showcase dev`
+- Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`; record screenshots with `--record` only after a deliberate visual change
 - Performance: `performance/run.sh`; its comparison: `bun test performance`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.

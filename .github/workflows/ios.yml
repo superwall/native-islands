@@ -25,14 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install swiftlint xcodegen
-      - run: swiftlint lint --quiet --strict packages/swift examples/ios
+      - run: swiftlint lint --quiet --strict packages/swift tests/ios examples/ios
       - name: Swift tests
         run: xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
-      # Builds the Example app, so no separate build step is needed.
+      - name: Islands app
+        run: |
+          cd examples/ios && xcodegen -q
+          xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet
+      # Builds the TestHost app, so no separate build step is needed for it.
       - name: Islands sit on their web elements
         run: scripts/ui-tests.sh --devices "iPhone 17" --only AlignmentUITests
       - uses: actions/upload-artifact@v4

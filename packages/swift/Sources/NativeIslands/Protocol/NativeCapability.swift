@@ -39,6 +39,7 @@ enum NativeFeature: String, Codable, CaseIterable, Sendable {
   case sticky
   case clip
   case transform
+  case motion
 }
 
 extension NativeCapability {

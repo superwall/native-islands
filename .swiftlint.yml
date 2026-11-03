@@ -2,7 +2,7 @@ excluded:
   - ${PWD}/.build
   - ${PWD}/node_modules
   - ${PWD}/packages/web
-  - ${PWD}/examples/pages
+  - ${PWD}/tests/pages
 
 disabled_rules:
   - discarded_notification_center_observer

@@ -13,6 +13,7 @@ import {
   scrollerIdOf,
   unionRect,
 } from "../../src/layout/measure";
+import { ISLAND_SCROLLER_ATTRIBUTE } from "../../src/layout/attributes";
 import {
   mockLayout,
   overrideStyle,
@@ -210,6 +211,7 @@ describe("placementOf", () => {
         },
       },
     });
+    expect(list.hasAttribute(ISLAND_SCROLLER_ATTRIBUTE)).toBe(true);
   });
 
   it("measures nothing for an empty wrapper", () => {

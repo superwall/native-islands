@@ -9,7 +9,16 @@
       "symbol": 1
     },
     "anchors": ["page", "scroller", "screen"],
-    "features": ["state", "requests", "commands", "layered", "sticky", "clip", "transform"]
+    "features": [
+      "state",
+      "requests",
+      "commands",
+      "layered",
+      "sticky",
+      "clip",
+      "transform",
+      "motion"
+    ]
   },
   "toHost": [
     {
@@ -183,6 +192,54 @@
             "d": 0.9976
           },
           "opacity": 0.5
+        },
+        {
+          "op": "update",
+          "id": "back",
+          "frame": {
+            "x": 16,
+            "y": 62,
+            "width": 44,
+            "height": 44
+          },
+          "motion": {
+            "keyframes": [
+              {
+                "offset": 0,
+                "x": 402,
+                "y": 0
+              },
+              {
+                "offset": 1,
+                "x": 0,
+                "y": 0
+              }
+            ],
+            "easings": [[0.32, 0.72, 0, 1]],
+            "duration": 500,
+            "elapsed": 16,
+            "fill": "both",
+            "cover": {
+              "frame": {
+                "x": -16,
+                "y": -62,
+                "width": 402,
+                "height": 874
+              },
+              "keyframes": [
+                {
+                  "offset": 0,
+                  "x": 402,
+                  "y": 0
+                },
+                {
+                  "offset": 1,
+                  "x": 120.6,
+                  "y": 0
+                }
+              ]
+            }
+          }
         },
         {
           "op": "unmount",

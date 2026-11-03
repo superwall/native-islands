@@ -49,6 +49,10 @@ moves it for free:
 - **Stacking:** web content WebKit draws above that scroll view (a footer, a
   sheet, the next page) covers the native view the way it would cover the web
   element. A plan card half behind the footer stays glass, cut by the footer.
+  Content inside the same scroll view stays under its islands: the React
+  bindings make every scroller that holds one a stacking context
+  (`isolation: isolate`), so WebKit never lifts the rest of that scroller
+  above them while something in it animates.
 - **Real glass:** Liquid Glass samples what is drawn behind it. Here that is
   the actual web content, so a glass button bends the page's own gradients,
   images and video.
@@ -95,6 +99,12 @@ itself:
   see-through box is sent with the box's 2D transform and opacity, and the app
   draws the native view turned and faded the same way (the `transform`
   feature). A 3D transform, a filter or a clip path still shows the web copy.
+- **Sliding pages.** An island outside any scrolling area, such as a nav bar
+  button, rides its page as it slides on or off stage too. The page sends the
+  CSS animation that slides it (translate-only keyframes, Bézier easing, how
+  far in it is), and the app runs the same slide on the native view in Core
+  Animation. Where the next page slides over it, the view hides as it is
+  covered (the `motion` feature).
 
 ### Never a flash
 
@@ -150,8 +160,8 @@ const GlassButton = defineNativeComponent<{
 The children are the web version. The host draws the native button over them
 when the app registered `glassButton`, and the children show everywhere else.
 The packages ship no components of their own; the example app has a set of
-glass buttons and controls to copy from (`examples/ios/Example/Components/Defaults/`
-and `examples/pages/src/components/defaults.ts`).
+glass buttons and controls to copy from (`examples/ios/Islands/Components/Defaults/`),
+and a native island with a web version for every control in `examples/showcase`.
 
 ## Use it in the app
 
@@ -211,18 +221,54 @@ flow, keep their islands placed when the host draws islands inside the page's
 scrolling areas (the `layered` feature). Mark such a page with
 `data-island-phase` or `inert` and lay it out (off screen or underneath),
 rather than `display: none`: its islands mount right away, ride along when it
-slides in, and need no swap to native when it arrives.
+slides in, and need no swap to native when it arrives. A page sliding off
+stage may be `inert` as it goes; its islands still ride along.
 
 ## Try it
 
-`examples/pages/` is a set of local test pages covering every scenario, plus a
+`examples/` is **Islands**, an app in the style of a component catalogue whose
+every screen is one web page in a `WKWebView`. It looks and moves like an iOS 26
+app: large titles, inset grouped lists, push and swipe back, a native
+navigation bar that stays put while screens slide under it, a floating Liquid
+Glass tab bar with a search button. Where a web view falls short, the page puts
+a native island:
+
+- **Components:** glass buttons, menus, toggles, segmented controls, sliders,
+  steppers, wheel and menu pickers, date and colour pickers, text fields,
+  gauges, SF Symbol effects and Swift Charts.
+- **Capabilities:** a MapKit map, AVFoundation video with Picture in Picture,
+  the live camera, the photo picker handing photos back to the page, real
+  permission prompts, haptics and the share sheet.
+- **Search:** a native search field that filters every demo as you type.
+- **Settings:** light, dark or system appearance and the accent colour, which
+  the native views follow, and a **Native Islands** switch that shows the web
+  version of every island in place.
+
+Its styles start from `live.css`, which makes a page behave like an app: no
+text selection, tap highlight, callouts, scrollbars or focus rings.
+
+```bash run
+bun install
+cd examples/ios && xcodegen && open Islands.xcodeproj   # run on an iOS 26 simulator or device
+```
+
+```bash
+bun run --cwd examples/showcase dev     # http://localhost:5173/?native=simulate in a browser
+```
+
+The app bundles the page, so it needs no network, except for the sample video
+stream. Launch it with `-screen <id>` (such as `-screen maps`) or `-tab <id>`
+to open one screen, and in a browser use `?screen=<id>` or `?tab=<id>`. Camera
+and Picture in Picture need a real iPhone.
+
+`tests/pages/` is the scenario gallery: regression pages covering every scenario, plus a
 three-page flow that shows islands sliding in with their page.
-`examples/ios/` is an iOS 26+ app that bundles them; it needs no account or network.
+`tests/ios/` is TestHost, an iOS 26+ app that bundles them; it needs no account or network.
 
 ```bash
 bun install
-bun run --cwd examples/pages dev        # http://localhost:5173/?native=simulate in a browser
-cd examples/ios && xcodegen && open Example.xcodeproj
+bun run --cwd tests/pages dev           # http://localhost:5173/?native=simulate in a browser
+cd tests/ios && xcodegen && open TestHost.xcodeproj
 ```
 
 In a browser, `?native=simulate` draws each native view as a magenta outline,
@@ -242,17 +288,17 @@ in the same place.
 ```bash
 scripts/ui-tests.sh                     # alignment and screenshots, iPhone 17 and iPhone Air at once
 scripts/ui-tests.sh --devices "iPhone 17,iPhone 17e,iPhone Air"
-scripts/ui-tests.sh --record            # rewrite examples/ios/Baselines after a deliberate visual change
+scripts/ui-tests.sh --record            # rewrite tests/ios/Baselines after a deliberate visual change
 performance/run.sh                      # 10, 50 and 100 islands against performance/baseline.json
 performance/run.sh --device "iPhone Air" --record
 ```
 
-- **Alignment** (`examples/ios/ExampleUITests/AlignmentUITests.swift`) opens every
+- **Alignment** (`tests/ios/TestHostUITests/AlignmentUITests.swift`) opens every
   page and fails when a drawn island is more than 0.5 pt from its web element,
   when an island has no web element, or when a scenario that expects native
   still shows its web version. It also scrolls, and pushes and pops the flow.
 - **Screenshots** (`ScreenshotUITests.swift`) compare each still page with
-  `examples/ios/Baselines/<model>-<width>x<height>/`. A pixel counts as different
+  `tests/ios/Baselines/<model>-<width>x<height>/`. A pixel counts as different
   when a channel moves by more than 24 of 255; a page fails above 0.2%.
 - **Performance** (`PerformanceUITests.swift`) records, for 10, 50 and 100
   islands: the time until the page is shown with its islands drawn, the memory
@@ -287,6 +333,6 @@ result bundle in `build/ui-tests/results.xcresult`.
 bun install
 bun run --cwd packages/web test:run
 bun run --cwd packages/web typecheck
-bun run --cwd examples/pages build
+bun run --cwd tests/pages build
 xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

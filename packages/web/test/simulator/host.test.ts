@@ -82,7 +82,16 @@ describe("installNativeSimulator", () => {
       protocol: 1,
       components: SIMULATED_COMPONENTS,
       anchors: ["page", "scroller", "screen"],
-      features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform"],
+      features: [
+        "state",
+        "requests",
+        "commands",
+        "layered",
+        "sticky",
+        "clip",
+        "transform",
+        "motion",
+      ],
     });
     expect(() => installNativeSimulator()).toThrow(/already present/);
   });
@@ -455,6 +464,54 @@ describe("installNativeSimulator", () => {
     expect(drawn().textContent).toBe("glassButton · Again");
   });
 
+  it("runs the slide the page sends on the outline, once per slide, and stops it when it ends", () => {
+    simulator = installNativeSimulator();
+    const slide = {
+      keyframes: [
+        { offset: 0, x: 400, y: 0 },
+        { offset: 1, x: 0, y: 0 },
+      ],
+      easings: [[0.32, 0.72, 0, 1] as [number, number, number, number]],
+      duration: 500,
+      elapsed: 120,
+    };
+    post([mount({ id: "still", motion: slide })]);
+    expect(simulator.islands()[0]?.slide).toBeUndefined();
+    const cancel = vi.fn();
+    const animate = vi.fn(() => ({ cancel, currentTime: 0 }) as unknown as Animation);
+    Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
+    try {
+      post([mount({ motion: slide })]);
+      expect(animate).toHaveBeenCalledWith(
+        [
+          { offset: 0, translate: "400px 0px", easing: "cubic-bezier(0.32, 0.72, 0, 1)" },
+          { offset: 1, translate: "0px 0px" },
+        ],
+        { duration: 500, fill: "none" },
+      );
+      expect(simulator.islands()[1]?.slide?.currentTime).toBe(120);
+      const frame = { x: 10, y: 20, width: 100, height: 44 };
+      post([{ op: "update", id: "cta", frame, motion: { ...slide, elapsed: 240 } }]);
+      expect(animate).toHaveBeenCalledTimes(1);
+      post([
+        { op: "update", id: "cta", frame, motion: { ...slide, easings: undefined, fill: "both" } },
+      ]);
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(animate).toHaveBeenLastCalledWith(
+        [
+          { offset: 0, translate: "400px 0px" },
+          { offset: 1, translate: "0px 0px" },
+        ],
+        { duration: 500, fill: "both" },
+      );
+      post([{ op: "update", id: "cta", frame }]);
+      expect(cancel).toHaveBeenCalledTimes(2);
+      expect(simulator.islands()[1]?.slide).toBeUndefined();
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, "animate");
+    }
+  });
+
   it("drops an island whose new scroller cannot be found", () => {
     simulator = installNativeSimulator();
     post([mount()]);
@@ -554,7 +611,16 @@ describe("simulated state, requests and commands", () => {
   it("advertises the features", () => {
     simulator = installNativeSimulator();
     expect(global.__NATIVE_ISLANDS__).toMatchObject({
-      features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform"],
+      features: [
+        "state",
+        "requests",
+        "commands",
+        "layered",
+        "sticky",
+        "clip",
+        "transform",
+        "motion",
+      ],
     });
   });
 
