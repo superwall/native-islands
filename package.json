@@ -3,11 +3,11 @@
   "private": true,
   "workspaces": [
     "packages/web",
-    "examples/pages"
+    "tests/pages"
   ],
   "type": "module",
   "scripts": {
-    "lint": "oxlint packages/web examples/pages scripts",
+    "lint": "oxlint packages/web tests/pages scripts",
     "format": "oxfmt",
     "format:check": "oxfmt --check"
   },

@@ -1,4 +1,4 @@
-name: Example
+name: TestHost
 options:
   bundleIdPrefix: com.superwall.nativeislands
   deploymentTarget:
@@ -7,11 +7,11 @@ packages:
   NativeIslands:
     path: ../..
 targets:
-  Example:
+  TestHost:
     type: application
     platform: iOS
     sources:
-      - Example
+      - TestHost
     dependencies:
       - package: NativeIslands
     preBuildScripts:
@@ -25,7 +25,7 @@ targets:
             (cd "$SRCROOT/../.." && bun install --frozen-lockfile >/dev/null)
             bun run --cwd "$PAGES" build >/dev/null
           elif [ ! -f "$PAGES/dist/index.html" ]; then
-            echo "error: install bun, or build the pages first: bun run --cwd examples/pages build"
+            echo "error: install bun, or build the pages first: bun run --cwd tests/pages build"
             exit 1
           fi
           DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/pages"
@@ -33,9 +33,9 @@ targets:
           mkdir -p "$DEST"
           cp -R "$PAGES/dist/" "$DEST/"
     info:
-      path: Example/Info.plist
+      path: TestHost/Info.plist
       properties:
-        CFBundleDisplayName: NativeIslands
+        CFBundleDisplayName: Island Tests
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -48,13 +48,13 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_USER_SCRIPT_SANDBOXING: NO
-  ExampleUITests:
+  TestHostUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
-      - ExampleUITests
+      - TestHostUITests
     dependencies:
-      - target: Example
+      - target: TestHost
     settings:
       base:
         CODE_SIGN_STYLE: Automatic
@@ -62,14 +62,14 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
 schemes:
-  Example:
+  TestHost:
     build:
       targets:
-        Example: all
-        ExampleUITests: [test]
+        TestHost: all
+        TestHostUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - ExampleUITests
+        - TestHostUITests

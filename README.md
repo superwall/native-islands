@@ -149,9 +149,9 @@ const GlassButton = defineNativeComponent<{
 
 The children are the web version. The host draws the native button over them
 when the app registered `glassButton`, and the children show everywhere else.
-The packages ship no components of their own; the example app has a set of
-glass buttons and controls to copy from (`examples/ios/Example/Components/Defaults/`
-and `examples/pages/src/components/defaults.ts`).
+The packages ship no components of their own; the test host has a set of
+glass buttons and controls to copy from (`tests/ios/TestHost/Components/Defaults/`
+and `tests/pages/src/components/defaults.ts`).
 
 ## Use it in the app
 
@@ -201,14 +201,14 @@ slides in, and need no swap to native when it arrives.
 
 ## Try it
 
-`examples/pages/` is a set of local test pages covering every scenario, plus a
+`tests/pages/` is the scenario gallery: regression pages covering every scenario, plus a
 three-page flow that shows islands sliding in with their page.
-`examples/ios/` is an iOS 26+ app that bundles them; it needs no account or network.
+`tests/ios/` is TestHost, an iOS 26+ app that bundles them; it needs no account or network.
 
 ```bash
 bun install
-bun run --cwd examples/pages dev        # http://localhost:5173/?native=simulate in a browser
-cd examples/ios && xcodegen && open Example.xcodeproj
+bun run --cwd tests/pages dev           # http://localhost:5173/?native=simulate in a browser
+cd tests/ios && xcodegen && open TestHost.xcodeproj
 ```
 
 In a browser, `?native=simulate` draws each native view as a magenta outline,
@@ -228,17 +228,17 @@ in the same place.
 ```bash
 scripts/ui-tests.sh                     # alignment and screenshots, iPhone 17 and iPhone Air at once
 scripts/ui-tests.sh --devices "iPhone 17,iPhone 17e,iPhone Air"
-scripts/ui-tests.sh --record            # rewrite examples/ios/Baselines after a deliberate visual change
+scripts/ui-tests.sh --record            # rewrite tests/ios/Baselines after a deliberate visual change
 performance/run.sh                      # 10, 50 and 100 islands against performance/baseline.json
 performance/run.sh --device "iPhone Air" --record
 ```
 
-- **Alignment** (`examples/ios/ExampleUITests/AlignmentUITests.swift`) opens every
+- **Alignment** (`tests/ios/TestHostUITests/AlignmentUITests.swift`) opens every
   page and fails when a drawn island is more than 0.5 pt from its web element,
   when an island has no web element, or when a scenario that expects native
   still shows its web version. It also scrolls, and pushes and pops the flow.
 - **Screenshots** (`ScreenshotUITests.swift`) compare each still page with
-  `examples/ios/Baselines/<model>-<width>x<height>/`. A pixel counts as different
+  `tests/ios/Baselines/<model>-<width>x<height>/`. A pixel counts as different
   when a channel moves by more than 24 of 255; a page fails above 0.2%.
 - **Performance** (`PerformanceUITests.swift`) records, for 10, 50 and 100
   islands: the time until the page is shown with its islands drawn, the memory
@@ -273,6 +273,6 @@ result bundle in `build/ui-tests/results.xcresult`.
 bun install
 bun run --cwd packages/web test:run
 bun run --cwd packages/web typecheck
-bun run --cwd examples/pages build
+bun run --cwd tests/pages build
 xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17'
 ```

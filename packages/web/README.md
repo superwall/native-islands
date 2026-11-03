@@ -32,7 +32,7 @@ Types a component the app registered. Everything in the spec is optional.
 Colours in `colorProps` can be any CSS colour or `var(--token)`; they are
 resolved before they reach native. Islands that share a `glassGroup` prop blend
 like system glass. The example pages define a set of glass buttons and controls
-in `examples/pages/src/components/defaults.ts`.
+in `tests/pages/src/components/defaults.ts`.
 
 ```tsx
 const SignupForm = defineNativeComponent<{
