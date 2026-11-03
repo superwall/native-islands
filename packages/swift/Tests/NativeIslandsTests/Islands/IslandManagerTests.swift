@@ -344,3 +344,76 @@ extension NativeBridgeTests {
     }
   }
 }
+
+extension NativeBridgeTests {
+  @Suite
+  @MainActor
+  struct HostingControllerTests {
+    @Test
+    func aMountedIslandIsAChildOfTheWebViewsController() throws {
+      let harness = NativeTestHarness()
+      let controller = UIViewController()
+      controller.view.addSubview(harness.surface.viewport)
+      harness.manager.apply(batch(1, mountOp(), mountOp("toast", anchor: .screen)))
+      let page = try #require(harness.island("cta"))
+      let screen = try #require(harness.island("toast"))
+      #expect(page.host.parent === controller)
+      #expect(screen.host.parent === controller)
+      #expect(controller.children.count == 2)
+    }
+
+    @Test
+    func removingAnIslandReleasesItsController() throws {
+      let harness = NativeTestHarness()
+      let controller = UIViewController()
+      controller.view.addSubview(harness.surface.viewport)
+      harness.manager.apply(batch(1, mountOp()))
+      let host = try #require(harness.island("cta")?.host)
+      harness.manager.apply(batch(2, .unmount(id: "cta")))
+      #expect(host.parent == nil)
+      #expect(controller.children.isEmpty)
+      harness.manager.apply(batch(3, mountOp("a"), mountOp("b")))
+      harness.manager.clear(notifyPage: false)
+      #expect(controller.children.isEmpty)
+    }
+
+    @Test
+    func islandsMountedBeforeTheWebViewHadAControllerAreAdoptedLater() throws {
+      let harness = NativeTestHarness()
+      harness.manager.apply(batch(1, mountOp()))
+      let host = try #require(harness.island("cta")?.host)
+      #expect(host.parent == nil)
+
+      let first = UIViewController()
+      first.view.addSubview(harness.surface.viewport)
+      harness.manager.adoptIslands()
+      #expect(host.parent === first)
+
+      let second = UIViewController()
+      second.view.addSubview(harness.surface.viewport)
+      harness.manager.adoptIslands()
+      #expect(host.parent === second)
+      #expect(first.children.isEmpty)
+    }
+
+    @Test
+    func anIslandWebViewAdoptsItsIslandsWhenItEntersAWindow() throws {
+      let registry = NativeComponentRegistry()
+      registry.register("glassButton") { _ in Color.clear }
+      let webView = IslandWebView(frame: CGRect(x: 0, y: 0, width: 400, height: 800), registry: registry)
+      let manager = try #require(webView.islands?.manager)
+      manager.apply(batch(1, mountOp()))
+      let host = try #require(manager.islands["cta"]?.host)
+      #expect(host.parent == nil)
+
+      let controller = UIViewController()
+      controller.view.frame = webView.frame
+      let window = UIWindow(frame: webView.frame)
+      window.rootViewController = controller
+      window.isHidden = false
+      defer { window.isHidden = true }
+      controller.view.addSubview(webView)
+      #expect(host.parent === controller)
+    }
+  }
+}
