@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   canGoBack,
   initialState,
+  isLive,
   navigate,
   placeOf,
   renderedScreens,
@@ -192,5 +193,33 @@ describe("open", () => {
 
     const busy = navigate(start(), { type: "push", screen: "buttons" });
     expect(navigate(busy, { type: "open", tab: "settings", screen: "appearance" })).toBe(busy);
+  });
+});
+
+describe("isLive", () => {
+  it("makes a pushed screen live while it waits off to the side, so its islands are measured", () => {
+    const mounting = navigate(start(), { type: "push", screen: "buttons" });
+    expect(placeOf(mounting, "components", "buttons")).toBe("away");
+    expect(isLive(mounting, "components", "buttons")).toBe(true);
+    expect(isLive(mounting, "components", "components")).toBe(true);
+    expect(isLive(mounting, "components", "toggles")).toBe(false);
+  });
+
+  it("holds both screens still while one slides over the other", () => {
+    const mounting = navigate(start(), { type: "push", screen: "buttons" });
+    const moving = navigate(mounting, { type: "move", key: mounting.transition?.key ?? -1 });
+    expect(isLive(moving, "components", "buttons")).toBe(false);
+    expect(isLive(moving, "components", "components")).toBe(false);
+
+    const popping = navigate(pushed(start(), "buttons"), { type: "pop", animated: true });
+    expect(isLive(popping, "components", "buttons")).toBe(false);
+    expect(isLive(popping, "components", "components")).toBe(false);
+  });
+
+  it("leaves only the top screen of the showing tab live once settled", () => {
+    const state = pushed(start(), "buttons");
+    expect(isLive(state, "components", "buttons")).toBe(true);
+    expect(isLive(state, "components", "components")).toBe(false);
+    expect(isLive(state, "settings", "settings")).toBe(false);
   });
 });

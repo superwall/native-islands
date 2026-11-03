@@ -7,6 +7,7 @@ import { NavProvider, ShowingProvider, type Nav, type ScreenSpec } from "./nav";
 import {
   canGoBack,
   initialState,
+  isLive,
   navigate,
   placeOf,
   type NavState,
@@ -37,12 +38,14 @@ const ScreenBody = React.memo(({ Component }: { Component: React.ComponentType }
 const Screen = ({
   spec,
   place,
+  live,
   parkedAt,
   motion,
   back,
 }: {
   spec: ScreenSpec;
   place: ScreenPlace;
+  live: boolean;
   parkedAt: number;
   motion: Motion | undefined;
   back?: () => void;
@@ -62,7 +65,7 @@ const Screen = ({
       data-motion={motion}
       data-inline-title={spec.largeTitle ? undefined : ""}
       style={{ left: place === "away" ? `${(parkedAt + 1) * 100}%` : 0 }}
-      inert={place !== "top" || motion !== undefined}
+      inert={!live}
       aria-hidden={place !== "top"}
       {...(motion ? { [ISLAND_PHASE_ATTRIBUTE]: motion } : {})}
     >
@@ -116,7 +119,14 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
     const { key } = transition;
     const move = () => dispatch({ type: "move", key });
     if (ready) {
-      const frame = requestAnimationFrame(() => requestAnimationFrame(move));
+      // The screen went live this render: one frame for the layout watcher to
+      // measure its islands, one for their frames to reach the host, and one
+      // for the host to place them before the screen starts to move.
+      let frame = 0;
+      const after = (frames: number) => {
+        frame = requestAnimationFrame(() => (frames > 1 ? after(frames - 1) : move()));
+      };
+      after(3);
       return () => cancelAnimationFrame(frame);
     }
     const timer = setTimeout(move, MOUNT_WAIT_MS);
@@ -157,6 +167,7 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
             key={spec.id}
             spec={spec}
             place={placeOf(state, spec.tab, spec.id)}
+            live={isLive(state, spec.tab, spec.id)}
             parkedAt={index}
             motion={motionOf(state, placeOf(state, spec.tab, spec.id))}
             back={spec.id === spec.tab ? undefined : nav.back}

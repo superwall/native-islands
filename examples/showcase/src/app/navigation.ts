@@ -162,3 +162,19 @@ export const placeOf = (state: NavState, tab: TabId, screen: string): ScreenPlac
   if (index === shown.length - 2) return "below";
   return "away";
 };
+
+/**
+ * Whether a screen takes part in layout: the one on top once it settles, and
+ * a screen being pushed while it still waits off to the side. Islands on an
+ * inert screen keep the frame they were last measured at, so a pushed screen
+ * goes live before it moves, or its islands slide in where its content used
+ * to be and jump into place when the push ends.
+ */
+export const isLive = (state: NavState, tab: TabId, screen: string): boolean => {
+  const { transition } = state;
+  if (transition && transition.tab === tab && transition.screen === screen)
+    return transition.kind === "push" && transition.stage === "mounting";
+  if (transition?.stage === "moving" && transition.tab === state.tab && tab === state.tab)
+    return false;
+  return placeOf(state, tab, screen) === "top";
+};
