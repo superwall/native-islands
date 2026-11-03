@@ -5,9 +5,17 @@ on:
   push:
     branches: [main]
 
+# A new push to a PR cancels that PR's older run, so it gives up its macOS
+# runner. Pushes to main each get their own group (by commit), so none is ever
+# cancelled or replaced while it waits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   js:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -23,6 +31,9 @@ jobs:
 
   ios:
     runs-on: macos-26
+    # The job takes about 7 minutes; the limit counts from when a runner picks
+    # it up, so time spent waiting in the queue does not count.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - run: brew install swiftlint xcodegen
