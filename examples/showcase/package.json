@@ -1,0 +1,26 @@
+{
+  "name": "native-islands-showcase",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Islands: an iOS app made of web views, with native islands wherever a web view falls short.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@superwall/native-islands": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "5.8.3",
+    "vite": "^7.1.0"
+  }
+}

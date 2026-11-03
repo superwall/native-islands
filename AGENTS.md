@@ -57,8 +57,11 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
   Tests/NativeIslandsTests/  mirrors Sources/
 tests/pages/            the scenario gallery: regression pages (Vite + React)
 tests/ios/              TestHost, the app that bundles the gallery, with its
-                        UI tests, screenshot baselines and Components/Defaults/
-                        (ready-made glass views)
+                        UI tests and screenshot baselines
+examples/showcase/      Islands, the example app's web side (Vite + React):
+                        live.css, iOS tokens, the tab and navigation shell
+examples/ios/           Islands' iOS host; its Components/Defaults/ holds the
+                        ready-made glass views TestHost shares
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers and parallel UI test runs
 ```
@@ -75,11 +78,13 @@ Run only what your change touches; never a whole suite by hand.
 
 - JS tests: `bun run --cwd packages/web test:run test/<file>`
 - JS types: `bun run --cwd packages/web typecheck`
-- JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages performance`, `bunx oxfmt --check packages/web tests performance`
+- JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
-- SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios`
+- SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
+- Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test test`; in a browser `bun run --cwd examples/showcase dev`
+- Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`; record screenshots with `--record` only after a deliberate visual change
 - Performance: `performance/run.sh`; its comparison: `bun test performance`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.

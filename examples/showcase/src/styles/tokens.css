@@ -1,0 +1,67 @@
+/*
+ * iOS system values: colours as UIKit defines them for light and dark, the
+ * type scale at the default Dynamic Type size, and the inset grouped list's
+ * metrics. `data-appearance` on <html> picks a scheme; "system" follows the
+ * device.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --accent-light: #007aff;
+  --accent-dark: #0a84ff;
+  --accent: light-dark(var(--accent-light), var(--accent-dark));
+
+  --bg: light-dark(#f2f2f7, #000000);
+  --cell: light-dark(#ffffff, #1c1c1e);
+  --cell-pressed: light-dark(#d1d1d6, #3a3a3c);
+  --label: light-dark(#000000, #ffffff);
+  --label-secondary: light-dark(rgb(60 60 67 / 60%), rgb(235 235 245 / 60%));
+  --label-tertiary: light-dark(rgb(60 60 67 / 30%), rgb(235 235 245 / 30%));
+  --separator: light-dark(rgb(60 60 67 / 29%), rgb(84 84 88 / 60%));
+  --fill: light-dark(rgb(120 120 128 / 20%), rgb(120 120 128 / 36%));
+  --fill-tertiary: light-dark(rgb(118 118 128 / 12%), rgb(118 118 128 / 24%));
+  --glass: light-dark(rgb(255 255 255 / 72%), rgb(40 40 44 / 72%));
+  --glass-edge: light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 12%));
+
+  --system-red: light-dark(#ff3b30, #ff453a);
+  --system-orange: light-dark(#ff9500, #ff9f0a);
+  --system-yellow: light-dark(#ffcc00, #ffd60a);
+  --system-green: light-dark(#34c759, #30d158);
+  --system-teal: light-dark(#30b0c7, #40c8e0);
+  --system-blue: light-dark(#007aff, #0a84ff);
+  --system-indigo: light-dark(#5856d6, #5e5ce6);
+  --system-purple: light-dark(#af52de, #bf5af2);
+  --system-pink: light-dark(#ff2d55, #ff375f);
+  --system-gray: light-dark(#8e8e93, #8e8e93);
+
+  --font: system-ui, -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-rounded: ui-rounded, system-ui, -apple-system, sans-serif;
+  --large-title: 700 34px / 41px var(--font);
+  --title2: 700 22px / 28px var(--font);
+  --headline: 600 17px / 22px var(--font);
+  --body: 400 17px / 22px var(--font);
+  --subheadline: 400 15px / 20px var(--font);
+  --footnote: 400 13px / 18px var(--font);
+  --caption: 500 10px / 12px var(--font);
+
+  --margin: 16px;
+  --cell-radius: 26px;
+  --row-height: 52px;
+  --row-inset: 20px;
+  --icon-column: 60px;
+  --nav-height: 54px;
+  --tab-bar-height: 62px;
+  --tab-bar-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 12px), 12px);
+
+  --ease-push: cubic-bezier(0.32, 0.72, 0, 1);
+  --push-duration: 500ms;
+}
+
+:root[data-appearance="light"] {
+  color-scheme: light;
+}
+
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+}
