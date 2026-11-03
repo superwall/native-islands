@@ -69,3 +69,33 @@ extension NativeIslandManager {
     return container.convert(container.bounds, to: viewport).intersects(viewport.bounds)
   }
 }
+
+// MARK: - Anchors
+
+extension NativeIslandManager {
+  func needsMove(_ island: NativeIsland, to anchor: NativeAnchor) -> Bool {
+    switch (island.anchor, anchor) {
+    case (.page, .page), (.screen, .screen):
+      return false
+    case let (.scroller(current), .scroller(next)):
+      return current.id != next.id
+    default:
+      return true
+    }
+  }
+
+  func container(for anchor: NativeAnchor, in surface: NativeHostSurface) -> UIView? {
+    switch anchor {
+    case .page:
+      return surface.pageScrollView
+    case .screen:
+      return surface.screenLayer
+    case .scroller(let scroller):
+      return NativeScrollerMatcher.match(
+        scroller,
+        among: NativeScrollerMatcher.candidates(in: surface.pageScrollView),
+        in: surface.viewport
+      )
+    }
+  }
+}

@@ -18,11 +18,18 @@ export type PlacementOptions = {
   sticky?: boolean;
 };
 
+// A display: contents wrapper has no box of its own, so it measures as its
+// children's boxes. A child with no box is left out: a display: none one
+// reports a rect at 0,0 that would stretch the union to the origin, and a
+// display: contents one is looked through to its own children.
 export const boxElementsOf = (wrapper: HTMLElement): HTMLElement[] => {
   if (getComputedStyle(wrapper).display !== "contents") return [wrapper];
-  return Array.from(wrapper.children).filter(
-    (child): child is HTMLElement => child instanceof HTMLElement,
-  );
+  return Array.from(wrapper.children).flatMap((child) => {
+    if (!(child instanceof HTMLElement)) return [];
+    const display = getComputedStyle(child).display;
+    if (display === "none") return [];
+    return display === "contents" ? boxElementsOf(child) : [child];
+  });
 };
 
 export const unionRect = (elements: readonly Element[]): TNativeFrame | undefined => {

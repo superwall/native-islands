@@ -131,20 +131,6 @@
 
 /* System */
 
-/*
- * A filled pill, not glass: this box is clipped to the native button's size,
- * and a backdrop filter there would get its own WebKit layer, which lets the
- * rows after it cover their islands.
- */
-.permission-slot {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  flex: none;
-  width: 116px;
-  height: 36px;
-}
-
 .permission-allow {
   height: 32px;
   padding: 0 14px;

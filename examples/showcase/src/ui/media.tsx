@@ -230,28 +230,25 @@ export const PhotoPickerButton = ({
   const accent = useAccent();
   const input = React.useRef<HTMLInputElement>(null);
   return (
-    <>
-      <NativePhotoPicker
-        title={title}
-        systemImage={symbol}
-        limit={limit}
-        prominence="prominent"
-        tint={accent}
-        native={useNativeEnabled()}
-        accessibility={{ label: title }}
-        onPick={({ images }) => onPick(images)}
+    <NativePhotoPicker
+      title={title}
+      systemImage={symbol}
+      limit={limit}
+      prominence="prominent"
+      tint={accent}
+      native={useNativeEnabled()}
+      accessibility={{ label: title }}
+      onPick={({ images }) => onPick(images)}
+    >
+      <button
+        type="button"
+        className="glass-pill"
+        data-prominent=""
+        onClick={() => input.current?.click()}
       >
-        <button
-          type="button"
-          className="glass-pill"
-          data-prominent=""
-          onClick={() => input.current?.click()}
-        >
-          {symbol && <WebSymbol name={symbol} className="bar-symbol" />}
-          {title}
-        </button>
-      </NativePhotoPicker>
-      {/* Outside the island: a hidden element would count in its frame. */}
+        {symbol && <WebSymbol name={symbol} className="bar-symbol" />}
+        {title}
+      </button>
       <input
         ref={input}
         type="file"
@@ -264,6 +261,6 @@ export const PhotoPickerButton = ({
           void Promise.all(files.map(readAsDataURL)).then(onPick, () => {});
         }}
       />
-    </>
+    </NativePhotoPicker>
   );
 };

@@ -45,6 +45,31 @@ describe("boxElementsOf", () => {
     expect(boxElementsOf(wrapperIn(host)).map((child) => child.tagName)).toEqual(["SPAN", "B"]);
   });
 
+  it("leaves out a hidden child, which has no box", () => {
+    const host = mount(
+      `<div data-island style="display: contents"><button>Pick</button><input type="file" hidden><span style="display: none"></span></div>`,
+    );
+    expect(boxElementsOf(wrapperIn(host)).map((child) => child.tagName)).toEqual(["BUTTON"]);
+  });
+
+  it("looks through a nested display: contents child to its own children", () => {
+    const host = mount(
+      `<div data-island style="display: contents"><span>a</span><div style="display: contents"><b>b</b><i hidden>c</i><div style="display: contents"><u>d</u></div></div></div>`,
+    );
+    expect(boxElementsOf(wrapperIn(host)).map((child) => child.tagName)).toEqual([
+      "SPAN",
+      "B",
+      "U",
+    ]);
+  });
+
+  it("has no boxes when every child is hidden", () => {
+    const host = mount(
+      `<div data-island style="display: contents"><input hidden><div style="display: contents"></div></div>`,
+    );
+    expect(boxElementsOf(wrapperIn(host))).toEqual([]);
+  });
+
   it("measures the wrapper itself once it has a box", () => {
     const host = mount(`<div data-island style="display: inline-block"><span>a</span></div>`);
     expect(boxElementsOf(wrapperIn(host))).toEqual([wrapperIn(host)]);
@@ -162,6 +187,18 @@ describe("placementOf", () => {
       anchor: { type: "page" },
     });
     Object.defineProperty(window, "scrollX", { value: 0, configurable: true });
+  });
+
+  it("measures a button next to a hidden file input as the button alone, not from 0,0", () => {
+    mockLayout();
+    const host = mount(
+      `<div data-island style="display: contents"><button data-rect="${rectAttribute(100, 200, 160, 44)}">Pick</button><input type="file" hidden></div>`,
+    );
+    expect(placementOf(wrapperIn(host))).toMatchObject({
+      kind: "page",
+      rect: { x: 100, y: 200, width: 160, height: 44 },
+      frame: { x: 100, y: 200, width: 160, height: 44 },
+    });
   });
 
   it("returns viewport coordinates on the screen anchor for fixed and sticky elements", () => {

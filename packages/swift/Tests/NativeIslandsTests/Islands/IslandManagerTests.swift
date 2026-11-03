@@ -315,6 +315,52 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func reportsANewSizeWhenNativeContentChangesSizeOnItsOwn() async {
+      let harness = NativeTestHarness()
+      let width = GrowingWidth()
+      harness.registry.register("growing") { _ in GrowingView(width: width) }
+      harness.manager.apply(batch(1, mountOp("g", component: "growing", sizing: .native)))
+      #expect(harness.replies == [
+        .ack(sequence: 1, ids: ["g"]),
+        .size(id: "g", size: NativeSize(width: 20, height: 20), sequence: 1)
+      ])
+
+      width.value = 80
+      await settle(harness.island("g"))
+      harness.runScheduled()
+      #expect(harness.replies.last == .size(id: "g", size: NativeSize(width: 80, height: 20), sequence: 1))
+      let reported = harness.replies.count
+
+      width.value = 80
+      await settle(harness.island("g"))
+      harness.runScheduled()
+      #expect(harness.replies.count == reported)
+    }
+
+    @Test
+    func stopsWatchingTheSizeOfARemovedIsland() async {
+      let harness = NativeTestHarness()
+      let width = GrowingWidth()
+      harness.registry.register("growing") { _ in GrowingView(width: width) }
+      harness.manager.apply(batch(1, mountOp("g", component: "growing", sizing: .native)))
+      let island = harness.island("g")
+      harness.manager.apply(batch(2, .unmount(id: "g")))
+      let reported = harness.replies.count
+
+      width.value = 80
+      await settle(island)
+      harness.runScheduled()
+      #expect(harness.replies.count == reported)
+    }
+
+    @Test
+    func doesNotWatchTheSizeOfWebSizedIslands() {
+      let harness = NativeTestHarness()
+      harness.manager.apply(batch(1, mountOp("t", component: "toggle")))
+      #expect(harness.island("t")?.sizeObservation == nil)
+    }
+
+    @Test
     func clearsEveryIslandAndAsksForAResetOnlyWhenThePageLivesOn() {
       let harness = NativeTestHarness()
       harness.manager.apply(batch(1, mountOp("a"), mountOp("b", anchor: .screen)))
@@ -416,4 +462,26 @@ extension NativeBridgeTests {
       #expect(host.parent === controller)
     }
   }
+}
+
+@MainActor
+final class GrowingWidth: ObservableObject {
+  @Published var value: CGFloat = 20
+}
+
+struct GrowingView: View {
+  @ObservedObject var width: GrowingWidth
+
+  var body: some View {
+    Color.clear.frame(width: width.value, height: 20)
+  }
+}
+
+/// Lets SwiftUI pick up a state change, then lays the island out so its
+/// hosting controller updates its preferred size.
+@MainActor
+func settle(_ island: NativeIsland?) async {
+  try? await Task.sleep(for: .milliseconds(50))
+  island?.host.view.setNeedsLayout()
+  island?.host.view.layoutIfNeeded()
 }

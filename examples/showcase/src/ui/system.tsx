@@ -63,36 +63,29 @@ export const PermissionButton = ({
       accessibility={{ label }}
       onStateChange={({ status }) => status && onStatus(status)}
     >
-      {/*
-        A fixed slot, which the native button sits at the end of: its size
-        changes with the status, and a native size that grows after layout
-        leaves the island where the narrower box was.
-      */}
-      <span className="permission-slot">
-        {web === "notDetermined" ? (
-          <button
-            type="button"
-            className="glass-pill permission-allow"
-            data-prominent
-            aria-label={`Allow ${label}`}
-            disabled={asking}
-            onClick={() => {
-              setAsking(true);
-              void askBrowser(kind).then((status) => {
-                setAsking(false);
-                setWeb(status);
-                onStatus(status);
-              });
-            }}
-          >
-            Allow
-          </button>
-        ) : (
-          <span className="permission-status" data-status={web}>
-            {STATUS_TITLES[web]}
-          </span>
-        )}
-      </span>
+      {web === "notDetermined" ? (
+        <button
+          type="button"
+          className="glass-pill permission-allow"
+          data-prominent
+          aria-label={`Allow ${label}`}
+          disabled={asking}
+          onClick={() => {
+            setAsking(true);
+            void askBrowser(kind).then((status) => {
+              setAsking(false);
+              setWeb(status);
+              onStatus(status);
+            });
+          }}
+        >
+          Allow
+        </button>
+      ) : (
+        <span className="permission-status" data-status={web}>
+          {STATUS_TITLES[web]}
+        </span>
+      )}
     </NativePermission>
   );
 };
