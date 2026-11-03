@@ -149,10 +149,8 @@
   height: 32px;
   padding: 0 14px;
   border-radius: 16px;
-  background: var(--accent);
   font: var(--subheadline);
   font-weight: 600;
-  color: #fff;
 }
 
 .permission-status {

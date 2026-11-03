@@ -72,7 +72,8 @@ export const PermissionButton = ({
         {web === "notDetermined" ? (
           <button
             type="button"
-            className="permission-allow"
+            className="glass-pill permission-allow"
+            data-prominent
             aria-label={`Allow ${label}`}
             disabled={asking}
             onClick={() => {
