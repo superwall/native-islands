@@ -274,6 +274,49 @@ describe("createLayoutWatcher", () => {
     stop();
   });
 
+  it("ignores animations in the hidden web version of a shown island", () => {
+    const { stop, passes, frame, queue } = setup();
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-island", "Button");
+    wrapper.setAttribute("data-island-shown", "");
+    const spinner = document.createElement("span");
+    Object.assign(spinner, { getAnimations: () => [{ playState: "running" }] });
+    wrapper.appendChild(document.createElement("div")).appendChild(spinner);
+    document.body.appendChild(wrapper);
+    animation("animationstart", spinner, "spin");
+    expect(queue).toHaveLength(0);
+    // The island's own box still moves its native view.
+    Object.assign(wrapper, { getAnimations: () => [{ playState: "running" }] });
+    animation("animationstart", wrapper, "slide");
+    for (let index = 0; index < 60; index += 1) frame();
+    expect(passes).toHaveLength(60);
+    animation("animationend", wrapper, "slide");
+    while (clock < 60 * 16 + HOT_MS + 32) frame();
+    const count = passes.length;
+    frame();
+    expect(passes).toHaveLength(count);
+    stop();
+  });
+
+  it("lets go of an animation once its island's native view shows", () => {
+    const { stop, passes, frame } = setup();
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-island", "Button");
+    const spinner = document.createElement("span");
+    Object.assign(spinner, { getAnimations: () => [{ playState: "running" }] });
+    wrapper.appendChild(spinner);
+    document.body.appendChild(wrapper);
+    animation("animationstart", spinner, "spin");
+    for (let index = 0; index < PRUNE_EVERY - 1; index += 1) frame();
+    wrapper.setAttribute("data-island-shown", "");
+    frame();
+    while (clock < PRUNE_EVERY * 16 + HOT_MS + 32) frame();
+    const count = passes.length;
+    frame();
+    expect(passes).toHaveLength(count);
+    stop();
+  });
+
   it("keeps a second animation on the same element live after the first ends", () => {
     const { stop, passes, frame } = setup();
     const element = document.createElement("div");

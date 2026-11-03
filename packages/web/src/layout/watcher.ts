@@ -1,4 +1,8 @@
-import { ISLAND_PHASE_ATTRIBUTE, SIMULATOR_LAYER_ATTRIBUTE } from "./attributes";
+import {
+  ISLAND_PHASE_ATTRIBUTE,
+  SHOWN_ISLAND_SELECTOR,
+  SIMULATOR_LAYER_ATTRIBUTE,
+} from "./attributes";
 
 const GEOMETRY = new Set([
   "all",
@@ -103,6 +107,12 @@ const isOwnMutation = (record: MutationRecord) =>
   record.target instanceof Element &&
   record.target.closest(`[${SIMULATOR_LAYER_ATTRIBUTE}]`) !== null;
 
+// Inside the hidden web version of an island whose native view shows: the
+// island styles stop its animations, and it moves nothing the page shows.
+// The island's own box still counts, since it carries the native view.
+const inShownIsland = (element: Element) =>
+  element.parentElement?.closest(SHOWN_ISLAND_SELECTOR) != null;
+
 const keyed = (map: WeakMap<Element, Set<string>>, target: Element) => {
   const keys = map.get(target) ?? new Set<string>();
   map.set(target, keys);
@@ -128,6 +138,7 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
     for (const element of live.keys()) {
       const animating =
         element.isConnected &&
+        !inShownIsland(element) &&
         (typeof element.getAnimations !== "function" ||
           element.getAnimations().some((animation) => animation.playState === "running"));
       if (!animating) live.delete(element);
@@ -176,7 +187,12 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
     notify();
   };
   const onAnimationStart = ({ target, animationName }: AnimationEvent) => {
-    if (!(target instanceof Element) || !animatesGeometry(target, animationName)) return;
+    if (
+      !(target instanceof Element) ||
+      inShownIsland(target) ||
+      !animatesGeometry(target, animationName)
+    )
+      return;
     const names = live.get(target) ?? new Set<string>();
     names.add(animationName);
     live.set(target, names);
