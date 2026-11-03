@@ -5,8 +5,9 @@ on:
   push:
     branches: [main]
 
-# A new push to a PR cancels that PR's older run, so it gives up its macOS
-# runner. Pushes to main each get their own group (by commit), so none is ever
+# The iOS tests live in ios.yml and run only when started by hand.
+#
+# A new push to a PR cancels that PR's older run. Pushes to main each get their own group (by commit), so none is ever
 # cancelled or replaced while it waits.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -28,38 +29,3 @@ jobs:
       - run: bun run --cwd packages/web test:coverage
       - run: bun test performance
       - run: bun run --cwd examples/pages build
-
-  ios:
-    # macOS 15 on arm64: `macos-26` is the `macos-latest` pool, short on
-    # capacity, and drops a job no runner takes within about 15 minutes.
-    # Intel runners are free but too slow for the WebKit tests, whose 30 s
-    # waits run out there.
-    runs-on: macos-15
-    # The job takes about 7 minutes; the limit counts from when a runner picks
-    # it up, so time spent waiting in the queue does not count.
-    timeout-minutes: 40
-    env:
-      # The image defaults to Xcode 16.4; 26.3 is its newest, with iOS 26.2
-      # simulators including iPhone 17.
-      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v4
-      - run: brew install swiftlint xcodegen
-      - run: swiftlint lint --quiet --strict packages/swift examples/ios
-      - name: Swift tests
-        run: xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-      - run: bun install --frozen-lockfile
-      # Builds the Example app, so no separate build step is needed.
-      - name: Islands sit on their web elements
-        run: scripts/ui-tests.sh --devices "iPhone 17" --only AlignmentUITests
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: ios-test-results
-          path: |
-            build/swift-tests.xcresult
-            build/ui-tests/results.xcresult
-          if-no-files-found: ignore
