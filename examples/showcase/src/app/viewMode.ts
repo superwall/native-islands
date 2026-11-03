@@ -2,7 +2,8 @@ import type { MenuItem } from "../islands/definitions";
 
 /**
  * How the app draws its islands: as native views, as their web versions, or
- * as their web versions outlined where the native views would sit.
+ * as native views with an outline over each, as the browser simulator marks
+ * where they sit.
  */
 export type ViewMode = "native" | "web" | "outlines";
 
@@ -24,3 +25,6 @@ export const viewModeItems = (mode: ViewMode): MenuItem[] =>
 /** The mode a menu item stands for, or nothing for an id that is none. */
 export const viewModeOf = (id: string): ViewMode | undefined =>
   VIEW_MODES.find((option) => option.value === id)?.value;
+
+/** Whether a mode draws islands as native views: Outlines keeps them and marks each. */
+export const drawsNatively = (mode: ViewMode): boolean => mode !== "web";

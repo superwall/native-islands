@@ -114,6 +114,36 @@ extension NativeBridgeTests {
       #expect(NativeGlassView.cornerRadius(for: .rounded(100), in: size) == 22)
     }
 
+    @Test(arguments: [
+      (NativeGlass.Shape.capsule, CGSize(width: 120, height: 44), CGFloat(22)),
+      (NativeGlass.Shape.circle, CGSize(width: 44, height: 44), CGFloat(22)),
+      (NativeGlass.Shape.rounded(12), CGSize(width: 200, height: 80), CGFloat(12)),
+      (NativeGlass.Shape.rounded(100), CGSize(width: 200, height: 80), CGFloat(40))
+    ])
+    @available(iOS 26.0, *)
+    func glassCornersFollowItsShape(shape: NativeGlass.Shape, size: CGSize, radius: CGFloat) {
+      let view = NativeGlassView(glass: NativeGlass(shape: shape), content: UIView())
+      view.frame = CGRect(origin: .zero, size: size)
+      view.layoutIfNeeded()
+      #expect(view.effectiveRadius(corner: .topLeft) == radius)
+      #expect(view.effectiveRadius(corner: .bottomRight) == radius)
+    }
+
+    @Test
+    @available(iOS 26.0, *)
+    func changingTheShapeChangesTheCorners() {
+      let view = NativeGlassView(glass: NativeGlass(shape: .capsule), content: UIView())
+      view.frame = CGRect(x: 0, y: 0, width: 120, height: 44)
+      view.layoutIfNeeded()
+      view.apply(NativeGlass(shape: .rounded(8)))
+      view.layoutIfNeeded()
+      #expect(view.effectiveRadius(corner: .topLeft) == 8)
+      view.frame.size.height = 60
+      view.apply(NativeGlass(shape: .capsule))
+      view.layoutIfNeeded()
+      #expect(view.effectiveRadius(corner: .topLeft) == 30)
+    }
+
     @Test
     func colourPropsBecomeUIColors() {
       let props = NativeComponentProps(["tint": .string("rgba(0, 255, 0, 0.5)"), "bad": .string("teal")])

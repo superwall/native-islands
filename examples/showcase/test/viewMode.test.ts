@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { VIEW_MODES, viewModeItems, viewModeOf } from "../src/app/viewMode";
+import { drawsNatively, VIEW_MODES, viewModeItems, viewModeOf } from "../src/app/viewMode";
 
 describe("viewModeItems", () => {
   it("lists every mode and checks only the current one", () => {
@@ -20,5 +20,13 @@ describe("viewModeOf", () => {
 
   it("ignores an id that is no mode", () => {
     expect(viewModeOf("simulate")).toBeUndefined();
+  });
+});
+
+describe("drawsNatively", () => {
+  it("keeps native views in Outlines, which only marks them, and drops them in Web", () => {
+    expect(drawsNatively("native")).toBe(true);
+    expect(drawsNatively("outlines")).toBe(true);
+    expect(drawsNatively("web")).toBe(false);
   });
 });

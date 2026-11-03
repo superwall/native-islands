@@ -1,5 +1,6 @@
 import { useNav, type ScreenSpec } from "../app/nav";
 import { ACCENTS, APPEARANCES, useIsDark, usePreferences } from "../app/preferences";
+import { drawsNatively } from "../app/viewMode";
 import { Segmented, Toggle } from "../ui/controls";
 import { Row, Section } from "../ui/List";
 
@@ -30,7 +31,7 @@ const Settings = () => {
       </Section>
       <Section
         header="Islands"
-        footer="Off draws the web version of every island in its place: the same page, without native views. The menu at the top right of every screen also outlines where the native views go."
+        footer="Off draws the web version of every island in its place: the same page, without native views. The menu at the top right of every screen can also outline each native view."
       >
         <Row
           title="Native Islands"
@@ -38,7 +39,7 @@ const Settings = () => {
           accessory={
             <Toggle
               label="Native Islands"
-              isOn={mode === "native"}
+              isOn={drawsNatively(mode)}
               onChange={(next) => set({ mode: next ? "native" : "web" })}
             />
           }

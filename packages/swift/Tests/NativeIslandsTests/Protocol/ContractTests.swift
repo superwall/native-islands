@@ -131,6 +131,7 @@ struct ContractTests {
         .update(NativeUpdate(id: "cta", frame: NativeFrame(x: 24, y: 700, width: 354, height: 52))),
         .update(Self.stuckToggle),
         .update(Self.tilted),
+        .update(Self.slidingBack),
         .unmount(id: "close")
       ]
     )
@@ -141,6 +142,22 @@ struct ContractTests {
     frame: NativeFrame(x: 24, y: 300, width: 160, height: 44),
     transform: NativeTransform(a: 0.9976, b: -0.0698, c: 0.0698, d: 0.9976),
     opacity: 0.5
+  )
+
+  private static let slidingBack = NativeUpdate(
+    id: "back",
+    frame: NativeFrame(x: 16, y: 62, width: 44, height: 44),
+    motion: NativeMotion(
+      keyframes: [.init(offset: 0, x: 402, y: 0), .init(offset: 1, x: 0, y: 0)],
+      easings: [[0.32, 0.72, 0, 1]],
+      duration: 500,
+      elapsed: 16,
+      fill: .both,
+      cover: .init(
+        frame: NativeFrame(x: -16, y: -62, width: 402, height: 874),
+        keyframes: [.init(offset: 0, x: 402, y: 0), .init(offset: 1, x: 120.6, y: 0)]
+      )
+    )
   )
 
   private static let stuckToggle = NativeUpdate(

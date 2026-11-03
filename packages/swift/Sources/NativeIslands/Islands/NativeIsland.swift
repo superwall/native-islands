@@ -20,6 +20,8 @@ final class NativeIsland {
   private(set) var shades: [NativeShade]?
   private(set) var transform: NativeTransform?
   private(set) var opacity: Double?
+  private(set) var motion: NativeMotion?
+  var sliding = NativeIslandSlide()
   var shadeViews: [UIView] = []
   var shadeHost: UIView?
   var silhouetteCache: NativeSilhouette?
@@ -57,6 +59,7 @@ final class NativeIsland {
     shades = mount.shades
     transform = mount.transform
     opacity = mount.opacity
+    motion = mount.motion
     order = mount.order
     if let initial = glass?(context.props), NativeGlassView.effect(for: initial) != nil {
       glassView = NativeGlassView(glass: initial, content: host.view)
@@ -79,7 +82,8 @@ final class NativeIsland {
     holes: [NativeFrame]? = nil,
     shades: [NativeShade]? = nil,
     transform: NativeTransform? = nil,
-    opacity: Double? = nil
+    opacity: Double? = nil,
+    motion: NativeMotion? = nil
   ) {
     self.frame = frame
     self.sticky = sticky
@@ -88,6 +92,7 @@ final class NativeIsland {
     self.shades = shades
     self.transform = transform
     self.opacity = opacity
+    self.motion = motion
   }
 
   func place(_ frame: NativeFrame, geometryOf update: NativeUpdate) {
@@ -98,7 +103,8 @@ final class NativeIsland {
       holes: update.holes,
       shades: update.shades,
       transform: update.transform,
-      opacity: update.opacity
+      opacity: update.opacity,
+      motion: update.motion
     )
   }
 
@@ -133,6 +139,7 @@ final class NativeIsland {
       }
       applyShape()
       applyShades()
+      applyMotion()
     }
   }
 
@@ -187,17 +194,17 @@ final class NativeIsland {
     }
   }
 
-  private func applyShape() {
+  func applyShape() {
     guard let shape = drawnShape else {
       view.mask = nil
       view.layer.mask = nil
-      view.isHidden = false
-      shadeHost?.isHidden = false
+      view.isHidden = sliding.coverHidden
+      shadeHost?.isHidden = sliding.coverHidden
       return
     }
     // Glass does not always honour a mask drawn with nothing in it, so an
     // island covered all over is taken off the screen outright.
-    let covered = NativeIslandMask.visibleParts(of: shape.area, less: shape.holes).isEmpty
+    let covered = sliding.coverHidden || NativeIslandMask.visibleParts(of: shape.area, less: shape.holes).isEmpty
     view.isHidden = covered
     shadeHost?.isHidden = covered
     if glassView != nil {

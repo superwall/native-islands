@@ -48,6 +48,8 @@ final class ShowcaseViewController: UIViewController, WKNavigationDelegate {
     switch message {
     case let .appearance(style):
       view.window?.overrideUserInterfaceStyle = style
+    case let .outlines(shown):
+      IslandOutlines.shared.isShown = shown
     }
   }
 

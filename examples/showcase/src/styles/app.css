@@ -572,9 +572,9 @@ button {
   color: var(--label-secondary);
 }
 
-/* Outlines mode: the web versions, each marked where its native view would sit, as the
-   browser simulator marks them. A web version's wrapper has no box of its own, so its
-   children carry the mark. */
+/* Outlines mode: the app outlines each native view itself. Where an island shows its web
+   version instead, as in a browser, the web version carries the same mark. A web
+   version's wrapper has no box of its own, so its children carry it. */
 html[data-view-mode="outlines"] [data-island] > * {
   outline: 2px solid #d63af9;
   outline-offset: -2px;

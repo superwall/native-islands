@@ -7,8 +7,9 @@ import WebKit
 final class AppBridge: NSObject, WKScriptMessageHandler {
   static let name = "showcase"
 
-  enum Message {
+  enum Message: Equatable {
     case appearance(UIUserInterfaceStyle)
+    case outlines(Bool)
   }
 
   private let receive: @MainActor (Message) -> Void
@@ -23,6 +24,8 @@ final class AppBridge: NSObject, WKScriptMessageHandler {
     case "appearance":
       let styles: [String: UIUserInterfaceStyle] = ["system": .unspecified, "light": .light, "dark": .dark]
       return (body["value"] as? String).flatMap { styles[$0] }.map(Message.appearance)
+    case "outlines":
+      return (body["value"] as? Bool).map(Message.outlines)
     default:
       return nil
     }

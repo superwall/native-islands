@@ -82,7 +82,16 @@ describe("installNativeSimulator", () => {
       protocol: 1,
       components: SIMULATED_COMPONENTS,
       anchors: ["page", "scroller", "screen"],
-      features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform"],
+      features: [
+        "state",
+        "requests",
+        "commands",
+        "layered",
+        "sticky",
+        "clip",
+        "transform",
+        "motion",
+      ],
     });
     expect(() => installNativeSimulator()).toThrow(/already present/);
   });
@@ -554,7 +563,16 @@ describe("simulated state, requests and commands", () => {
   it("advertises the features", () => {
     simulator = installNativeSimulator();
     expect(global.__NATIVE_ISLANDS__).toMatchObject({
-      features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform"],
+      features: [
+        "state",
+        "requests",
+        "commands",
+        "layered",
+        "sticky",
+        "clip",
+        "transform",
+        "motion",
+      ],
     });
   });
 

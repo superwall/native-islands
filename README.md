@@ -95,6 +95,12 @@ itself:
   see-through box is sent with the box's 2D transform and opacity, and the app
   draws the native view turned and faded the same way (the `transform`
   feature). A 3D transform, a filter or a clip path still shows the web copy.
+- **Sliding pages.** An island outside any scrolling area, such as a nav bar
+  button, rides its page as it slides on or off stage too. The page sends the
+  CSS animation that slides it (translate-only keyframes, Bézier easing, how
+  far in it is), and the app runs the same slide on the native view in Core
+  Animation. Where the next page slides over it, the view hides as it is
+  covered (the `motion` feature).
 
 ### Never a flash
 
@@ -197,7 +203,8 @@ flow, keep their islands placed when the host draws islands inside the page's
 scrolling areas (the `layered` feature). Mark such a page with
 `data-island-phase` or `inert` and lay it out (off screen or underneath),
 rather than `display: none`: its islands mount right away, ride along when it
-slides in, and need no swap to native when it arrives.
+slides in, and need no swap to native when it arrives. A page sliding off
+stage may be `inert` as it goes; its islands still ride along.
 
 ## Try it
 

@@ -1,5 +1,6 @@
 import { ISLAND_PHASE_ATTRIBUTE, ISLAND_PROBE_ATTRIBUTE } from "./attributes";
-import type { TNativeFrame } from "../protocol/schemas";
+import type { TNativeFrame, TNativeMotion, TNativeMotionKeyframe } from "../protocol/schemas";
+import { coversOf, slideOf, type Offset, type Slide } from "./motion";
 import {
   boxElementsOf,
   containsAbsolute,
@@ -277,6 +278,7 @@ const sampleCover = (
   placement: NativePlacement,
   within: Element | undefined,
   cover: { holes: TNativeFrame[]; shades: NativeShade[] } | undefined,
+  ignore: readonly Element[] = [],
 ): boolean => {
   const document = wrapper.ownerDocument;
   if (typeof document.elementsFromPoint !== "function") return false;
@@ -289,7 +291,9 @@ const sampleCover = (
   try {
     let reached = false;
     for (const [x, y] of samplePoints(sampled)) {
-      const stack = document.elementsFromPoint(x, y);
+      const stack = document
+        .elementsFromPoint(x, y)
+        .filter((element) => !ignore.some((ignored) => ignored.contains(element)));
       const state = coveredAt(wrapper, stack, within);
       if (state === "own") reached = true;
       if (state !== "covered") continue;
@@ -341,11 +345,57 @@ export const inTransition = (
   return false;
 };
 
+const relative = (
+  keyframes: readonly TNativeMotionKeyframe[],
+  base: readonly TNativeMotionKeyframe[],
+): TNativeMotionKeyframe[] =>
+  keyframes.map((frame, index) => ({
+    offset: frame.offset,
+    x: frame.x - (base[index]?.x ?? 0),
+    y: frame.y - (base[index]?.y ?? 0),
+  }));
+
+/**
+ * The motion to send for an island riding a slide, with the one sibling that
+ * slides over it as its cover, or nothing when more than one does.
+ */
+const motionWithCover = (
+  sliding: { element: Element; slide: Slide },
+  rect: TNativeFrame,
+): { motion: TNativeMotion; slid: Offset; covers: readonly Element[] } | undefined => {
+  const { slide } = sliding;
+  const covers = coversOf(sliding.element, slide);
+  if (!covers || covers.length > 1) return undefined;
+  const slid = slide.current;
+  const [over] = covers;
+  if (!over) return { motion: slide.motion, slid, covers: [] };
+  const box = over.element.getBoundingClientRect();
+  const frame = {
+    x: box.x - over.slide.current.x - (rect.x - slid.x),
+    y: box.y - over.slide.current.y - (rect.y - slid.y),
+    width: box.width,
+    height: box.height,
+  };
+  return {
+    motion: {
+      ...slide.motion,
+      cover: { frame, keyframes: relative(over.slide.motion.keyframes, slide.motion.keyframes) },
+    },
+    slid,
+    covers: [over.element],
+  };
+};
+
 export type HandoffOptions = {
   clip?: boolean;
   transform?: boolean;
+  /** The host runs slides on native views itself (the `motion` feature). */
+  motion?: boolean;
   isRevealing?: (element: Element) => boolean;
   out?: {
+    motion?: TNativeMotion;
+    /** How far the slide has moved the element now, to take out of its frame. */
+    slid?: Offset;
     clip?: TNativeFrame;
     holes?: TNativeFrame[];
     shades?: NativeShade[];
@@ -366,6 +416,7 @@ export const handoffOf = (
   const clips = riding !== undefined && options.clip === true;
   let visible: TNativeFrame = placement.rect;
   let carried = false;
+  let sliding: { element: Element; slide: Slide } | undefined;
   const turns = options.transform === true;
   const follows = (style: CSSStyleDeclaration) =>
     clips
@@ -407,8 +458,16 @@ export const handoffOf = (
     const style = getComputedStyle(element);
     if (style.display === "none" || style.visibility === "hidden") return "hidden";
     if (carried) continue;
-    if (element.hasAttribute("inert") || element.hasAttribute(ISLAND_PHASE_ATTRIBUTE))
-      return "inactive";
+    const phased = element.hasAttribute(ISLAND_PHASE_ATTRIBUTE);
+    if (element.hasAttribute("inert") && !phased) return "inactive";
+    if (phased) {
+      // A page sliding on or off stage, inert as it leaves or not, carries
+      // islands in its scrolling areas itself. One outside them stays native
+      // only when the host can run the same slide on it.
+      const found = !riding && !sliding && options.motion ? slideOf(element) : undefined;
+      if (!found) return "inactive";
+      sliding = { element, slide: found };
+    }
     if (
       isMoving(element) &&
       clips &&
@@ -436,10 +495,14 @@ export const handoffOf = (
     if (style.position === "absolute") pending = "absolute";
     else if (style.position === "fixed") pending = "fixed";
     if (element === body || element === documentElement) continue;
+    // Past a sliding page, what clips it stands still, so the island is
+    // checked where it comes to rest rather than where the slide has it now.
+    const past = sliding && sliding.element !== element ? sliding.slide.current : undefined;
+    const at = past ? { ...visible, x: visible.x - past.x, y: visible.y - past.y } : visible;
     if (
       clipping &&
       (CLIPPING.test(style.overflowX) || CLIPPING.test(style.overflowY)) &&
-      !contains(contentBoxOf(element), visible)
+      !contains(contentBoxOf(element), at)
     ) {
       if (!clips) return "clipped";
       const shown = intersect(visible, contentBoxOf(element));
@@ -454,8 +517,18 @@ export const handoffOf = (
     if (opacity < 1) options.out.opacity = Math.max(0, opacity);
   }
   if (visible !== placement.rect && options.out) options.out.clip = visible;
+  const motion = sliding && motionWithCover(sliding, placement.rect);
+  if (sliding && !motion) return "inactive";
   const cover = clips && options.out && !turned ? { holes: [], shades: [] } : undefined;
-  const covered = sampleCover(wrapper, { ...placement, rect: visible }, riding, cover);
+  // Hit-testing skips an inert page, so one sliding off stage is checked by
+  // what slides over it instead.
+  const covered =
+    !sliding?.element.hasAttribute("inert") &&
+    sampleCover(wrapper, { ...placement, rect: visible }, riding, cover, motion?.covers);
+  if (motion && options.out) {
+    options.out.motion = motion.motion;
+    options.out.slid = motion.slid;
+  }
   if (cover && options.out) {
     if (cover.holes.length > 0) options.out.holes = cover.holes;
     if (cover.shades.length > 0) options.out.shades = cover.shades;

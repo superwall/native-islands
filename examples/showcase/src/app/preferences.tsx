@@ -1,6 +1,6 @@
 import * as React from "react";
 import { postToHost } from "./host";
-import type { ViewMode } from "./viewMode";
+import { drawsNatively, type ViewMode } from "./viewMode";
 
 export type Appearance = "system" | "light" | "dark";
 
@@ -44,9 +44,12 @@ const PreferencesContext = React.createContext<PreferencesValue>({ ...DEFAULTS, 
 
 export const usePreferences = (): PreferencesValue => React.useContext(PreferencesContext);
 
-/** Whether islands draw natively; the view mode menu can switch them all to their web versions. */
+/**
+ * Whether islands draw natively: in Native and in Outlines, which draws the
+ * outlines over the native views. Web switches them all to their web versions.
+ */
 export const useNativeEnabled = (): boolean =>
-  React.useContext(PreferencesContext).mode === "native";
+  drawsNatively(React.useContext(PreferencesContext).mode);
 
 /**
  * Holds the app's settings for the session and applies them to the document:
@@ -67,6 +70,10 @@ export const PreferencesProvider = ({ children }: React.PropsWithChildren) => {
   React.useEffect(() => {
     postToHost({ type: "appearance", value: preferences.appearance });
   }, [preferences.appearance]);
+
+  React.useEffect(() => {
+    postToHost({ type: "outlines", value: preferences.mode === "outlines" });
+  }, [preferences.mode]);
 
   const value = React.useMemo<PreferencesValue>(
     () => ({

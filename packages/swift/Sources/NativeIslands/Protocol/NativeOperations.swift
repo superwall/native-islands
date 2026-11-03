@@ -18,6 +18,7 @@ struct NativeMount: Equatable, Sendable {
   var shades: [NativeShade]?
   var transform: NativeTransform?
   var opacity: Double?
+  var motion: NativeMotion?
 }
 
 struct NativeUpdate: Equatable, Sendable {
@@ -35,6 +36,7 @@ struct NativeUpdate: Equatable, Sendable {
   var shades: [NativeShade]?
   var transform: NativeTransform?
   var opacity: Double?
+  var motion: NativeMotion?
 }
 
 enum NativeOperation: Decodable, Equatable, Sendable {
@@ -68,6 +70,7 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     case shades
     case transform
     case opacity
+    case motion
   }
 
   var id: String? {
@@ -136,7 +139,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
           holes: try geometry(in: container).holes,
           shades: try geometry(in: container).shades,
           transform: try geometry(in: container).transform,
-          opacity: try geometry(in: container).opacity
+          opacity: try geometry(in: container).opacity,
+          motion: try geometry(in: container).motion
         )
       )
     case .update:
@@ -171,7 +175,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
         holes: try geometry(in: container).holes,
         shades: try geometry(in: container).shades,
         transform: try geometry(in: container).transform,
-        opacity: try geometry(in: container).opacity
+        opacity: try geometry(in: container).opacity,
+        motion: try geometry(in: container).motion
       )
     )
   }
@@ -183,6 +188,7 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     let shades: [NativeShade]?
     let transform: NativeTransform?
     let opacity: Double?
+    let motion: NativeMotion?
   }
 
   static let maxHoles = 8
@@ -214,13 +220,18 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     if let opacity, !(0...1).contains(opacity) {
       throw DecodingError.dataCorruptedError(forKey: .opacity, in: container, debugDescription: "opacity")
     }
+    let motion = try container.decodeIfPresent(NativeMotion.self, forKey: .motion)
+    if let motion, !motion.isValid {
+      throw DecodingError.dataCorruptedError(forKey: .motion, in: container, debugDescription: "motion")
+    }
     return NativeGeometry(
       sticky: sticky,
       clip: clip,
       holes: holes,
       shades: shades,
       transform: transform,
-      opacity: opacity
+      opacity: opacity,
+      motion: motion
     )
   }
 

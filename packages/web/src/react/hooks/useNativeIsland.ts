@@ -20,6 +20,7 @@ import type {
   TNativeAnchor,
   TNativeFrame,
   TNativeShade,
+  TNativeMotion,
   TNativeTransform,
   TNativeSize,
   TNativeSticky,
@@ -83,6 +84,7 @@ type Geometry = {
   shades?: TNativeShade[];
   transform?: TNativeTransform;
   opacity?: number;
+  motion?: TNativeMotion;
 };
 
 const geometryPatch = (geometry: Geometry) =>
@@ -97,6 +99,7 @@ const geometryPatch = (geometry: Geometry) =>
         shades: geometry.shades,
         transform: geometry.transform,
         opacity: geometry.opacity,
+        motion: geometry.motion,
       })
     : { visible: false };
 
@@ -194,10 +197,13 @@ export const useNativeIsland = (
         revealing?: boolean;
         transform?: Linear;
         opacity?: number;
+        motion?: TNativeMotion;
+        slid?: { x: number; y: number };
       } = {};
       const handoff = handoffOf(element, placement, watcher.isMoving, layered, {
         clip: supportsFeature(islands.capability, "clip"),
         transform: supportsFeature(islands.capability, "transform"),
+        motion: supportsFeature(islands.capability, "motion"),
         isRevealing: watcher.isRevealing,
         out,
       });
@@ -219,10 +225,12 @@ export const useNativeIsland = (
         c: out.transform[2],
         d: out.transform[3],
       };
+      const measured = transform
+        ? untransformedFrame(element, placement.frame, transform)
+        : placement.frame;
+      const slid = out.motion ? out.slid : undefined;
       return {
-        frame: transform
-          ? untransformedFrame(element, placement.frame, transform)
-          : placement.frame,
+        frame: slid ? { ...measured, x: measured.x - slid.x, y: measured.y - slid.y } : measured,
         anchor,
         handoff,
         riding,
@@ -230,6 +238,7 @@ export const useNativeIsland = (
         ...withoutUndefined({
           transform,
           opacity: out.opacity,
+          motion: out.motion,
           sticky: placement.sticky,
           clip,
           holes,
@@ -320,6 +329,7 @@ export const useNativeIsland = (
             shades: spec.shades,
             transform: spec.transform,
             opacity: spec.opacity,
+            motion: spec.motion,
           }),
         },
         {
@@ -374,6 +384,7 @@ export const useNativeIsland = (
                 shades: geometry.shades,
                 transform: geometry.transform,
                 opacity: geometry.opacity,
+                motion: geometry.motion,
               })
             );
           },

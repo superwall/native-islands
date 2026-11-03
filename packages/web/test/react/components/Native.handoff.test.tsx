@@ -610,3 +610,74 @@ describe("sticky and clipped islands", () => {
     expect(updates.at(-1)).not.toHaveProperty("clip");
   });
 });
+
+describe("an island on a page sliding on stage", () => {
+  it("stays native, sent where it comes to rest with the slide for the host to run", async () => {
+    installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "motion"] });
+    const view = renderNative(<Card />);
+    await view.nextFrame();
+    view.ackAll();
+    const card = view.container.querySelector("#card") as HTMLElement;
+    Object.defineProperty(card, "offsetWidth", { value: 400, configurable: true });
+    Object.defineProperty(card, "offsetHeight", { value: 200, configurable: true });
+    const animation = {
+      playState: "running",
+      playbackRate: 1,
+      currentTime: 0,
+      effect: {
+        target: card,
+        pseudoElement: null,
+        getKeyframes: () => [
+          {
+            offset: 0,
+            computedOffset: 0,
+            easing: "ease-out",
+            composite: "auto",
+            transform: "translateX(100%)",
+          },
+        ],
+        getComputedTiming: () => ({
+          duration: 500,
+          delay: 0,
+          iterations: 1,
+          direction: "normal",
+          easing: "linear",
+          fill: "both",
+        }),
+      },
+    };
+    Object.defineProperty(card, "getAnimations", { configurable: true, value: () => [animation] });
+    overrideStyle(card, { transform: "matrix(1, 0, 0, 1, 400, 0)" });
+    const button = view.container.querySelector("button") as HTMLElement;
+    button.dataset.rect = rectAttribute(410, 150, 100, 40);
+    card.setAttribute("data-island-phase", "push-in");
+    view.rerender(<Card />);
+    await view.nextFrame();
+    const sliding = view.operations().at(-1) as Record<string, unknown>;
+    expect(sliding.visible).not.toBe(false);
+    expect(sliding).toMatchObject({
+      op: "update",
+      frame: { x: 10, y: 150, width: 100, height: 40 },
+      motion: {
+        keyframes: [
+          { offset: 0, x: 400, y: 0 },
+          { offset: 1, x: 0, y: 0 },
+        ],
+        easings: [[0, 0, 0.58, 1]],
+        duration: 500,
+        fill: "both",
+      },
+    });
+    expect(islandOf(view.container).hasAttribute("data-island-handoff")).toBe(false);
+
+    Object.defineProperty(card, "getAnimations", { configurable: true, value: () => [] });
+    overrideStyle(card, { transform: "none" });
+    button.dataset.rect = rectAttribute(10, 150, 100, 40);
+    card.removeAttribute("data-island-phase");
+    view.rerender(<Card />);
+    await view.nextFrame();
+    const last = view.operations().at(-1) as Record<string, unknown>;
+    expect(last).toMatchObject({ op: "update", frame: { x: 10, y: 150 } });
+    expect(last.motion).toBeUndefined();
+  });
+});
