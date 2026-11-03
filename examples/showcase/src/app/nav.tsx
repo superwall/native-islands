@@ -10,6 +10,8 @@ export type ScreenSpec = {
   symbol: string;
   /** The list section its row sits in on the tab's root. */
   section?: string;
+  /** Other words a search for it should find, such as what its control is called elsewhere. */
+  keywords?: readonly string[];
   /** Roots show a large title; demos an inline one. */
   largeTitle?: boolean;
   Component: React.ComponentType;
@@ -19,9 +21,16 @@ export type Nav = {
   screens: readonly ScreenSpec[];
   push: (screen: string) => void;
   back: () => void;
+  /** Shows a screen on its own tab, from anywhere, such as a search result. */
+  open: (screen: string) => void;
 };
 
-const NavContext = React.createContext<Nav>({ screens: [], push: () => {}, back: () => {} });
+const NavContext = React.createContext<Nav>({
+  screens: [],
+  push: () => {},
+  back: () => {},
+  open: () => {},
+});
 
 export const NavProvider = NavContext.Provider;
 
@@ -57,6 +66,27 @@ export const sectionsOf = (
 export const demoScreens = (
   tab: TabId,
   section: string,
-  demos: readonly Pick<ScreenSpec, "id" | "title" | "symbol" | "Component">[],
-): ScreenSpec[] =>
-  demos.map(({ id, title, symbol, Component }) => ({ id, tab, section, title, symbol, Component }));
+  demos: readonly Pick<ScreenSpec, "id" | "title" | "symbol" | "keywords" | "Component">[],
+): ScreenSpec[] => demos.map((demo) => ({ ...demo, tab, section }));
+
+const folded = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+/**
+ * The demos a search finds, in the order the tabs list them: every word of
+ * the query has to start a word of the demo's title, section or keywords,
+ * the way Settings searches. An empty query finds every demo.
+ */
+export const searchScreens = (screens: readonly ScreenSpec[], query: string): ScreenSpec[] => {
+  const words = folded(query).split(/\s+/).filter(Boolean);
+  return screens.filter((screen) => {
+    if (!screen.section || screen.id === screen.tab) return false;
+    const haystack = folded(
+      [screen.title, screen.section, ...(screen.keywords ?? [])].join(" "),
+    ).split(/[^\p{L}\p{N}]+/u);
+    return words.every((word) => haystack.some((entry) => entry.startsWith(word)));
+  });
+};

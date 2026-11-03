@@ -289,3 +289,10 @@ export const NativeShareButton = defineNativeComponent<{
   /** The activity chosen, such as `com.apple.UIKit.activity.CopyToPasteboard`, or null if cancelled. */
   events: { complete: { activity: string | null } };
 }>("shareButton", { colorProps: ["tint"] });
+
+export const NativeSearchField = defineNativeComponent<{
+  props: { text: string; placeholder?: string; tint?: string };
+  events: { submit: { text: string } };
+  state: { text: string };
+  commands: { focus: { args: undefined; result: void }; blur: { args: undefined; result: void } };
+}>("searchField", { colorProps: ["tint"] });

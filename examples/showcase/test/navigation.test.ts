@@ -34,6 +34,7 @@ describe("initialState", () => {
       components: ["components"],
       capabilities: ["capabilities"],
       settings: ["settings"],
+      search: ["search"],
     });
   });
 
@@ -153,5 +154,43 @@ describe("placeOf", () => {
     const deeper = pushed(root, "buttons");
     expect(placeOf(deeper, "components", "toggles")).toBe("away");
     expect(placeOf(deeper, "settings", "appearance")).toBe("away");
+  });
+});
+
+describe("open", () => {
+  it("switches to the screen's own tab and pushes it over that tab's root", () => {
+    const searching = navigate(pushed(start(), "toggles"), { type: "select", tab: "search" });
+    const mounting = navigate(searching, { type: "open", tab: "settings", screen: "appearance" });
+    expect(mounting.tab).toBe("settings");
+    expect(mounting.stacks.settings).toEqual(["settings", "appearance"]);
+    expect(mounting.stacks.components).toEqual(["components", "toggles"]);
+    expect(mounting.transition).toMatchObject({ kind: "push", tab: "settings", stage: "mounting" });
+    expect(placeOf(mounting, "settings", "appearance")).toBe("away");
+    expect(placeOf(mounting, "settings", "settings")).toBe("top");
+    expect(placeOf(mounting, "search", "search")).toBe("away");
+
+    const key = mounting.transition?.key ?? -1;
+    const settled = navigate(navigate(mounting, { type: "move", key }), { type: "finish", key });
+    expect(topOf(settled)).toBe("appearance");
+    expect(canGoBack(settled)).toBe(true);
+  });
+
+  it("replaces whatever that tab had pushed", () => {
+    const deep = pushed(pushed(start(), "buttons"), "toggles");
+    const opened = navigate(navigate(deep, { type: "select", tab: "search" }), {
+      type: "open",
+      tab: "components",
+      screen: "buttons",
+    });
+    expect(opened.stacks.components).toEqual(["components", "buttons"]);
+  });
+
+  it("selects a tab's root without a push, and waits out a running transition", () => {
+    const root = navigate(start(), { type: "open", tab: "settings", screen: "settings" });
+    expect(root.tab).toBe("settings");
+    expect(root.transition).toBeUndefined();
+
+    const busy = navigate(start(), { type: "push", screen: "buttons" });
+    expect(navigate(busy, { type: "open", tab: "settings", screen: "appearance" })).toBe(busy);
   });
 });

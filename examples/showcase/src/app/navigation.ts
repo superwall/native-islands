@@ -1,4 +1,7 @@
-export const TABS = ["components", "capabilities", "settings"] as const;
+export const TABS = ["components", "capabilities", "settings", "search"] as const;
+
+/** The tabs the tab bar lists; Search is the separate button beside it, as on iOS 26. */
+export const BAR_TABS = ["components", "capabilities", "settings"] as const;
 
 export type TabId = (typeof TABS)[number];
 
@@ -29,6 +32,7 @@ export type NavAction =
   | { type: "push"; screen: string }
   | { type: "pop"; animated: boolean }
   | { type: "select"; tab: TabId }
+  | { type: "open"; tab: TabId; screen: string }
   | { type: "move"; key: number }
   | { type: "finish"; key: number };
 
@@ -36,6 +40,7 @@ const roots = (): Record<TabId, readonly string[]> => ({
   components: ["components"],
   capabilities: ["capabilities"],
   settings: ["settings"],
+  search: ["search"],
 });
 
 /**
@@ -99,6 +104,24 @@ export const navigate = (state: NavState, action: NavAction): NavState => {
         ...state,
         stacks: { ...state.stacks, [state.tab]: [state.tab] },
         transition: undefined,
+      };
+    }
+    case "open": {
+      if (state.transition) return state;
+      if (action.screen === action.tab) return navigate(state, { type: "select", tab: action.tab });
+      const key = state.key + 1;
+      return {
+        ...state,
+        tab: action.tab,
+        key,
+        stacks: { ...state.stacks, [action.tab]: [action.tab, action.screen] },
+        transition: {
+          key,
+          kind: "push",
+          tab: action.tab,
+          screen: action.screen,
+          stage: "mounting",
+        },
       };
     }
     case "move":

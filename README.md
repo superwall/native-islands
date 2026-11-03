@@ -149,9 +149,9 @@ const GlassButton = defineNativeComponent<{
 
 The children are the web version. The host draws the native button over them
 when the app registered `glassButton`, and the children show everywhere else.
-The packages ship no components of their own; the test host has a set of
-glass buttons and controls to copy from (`tests/ios/TestHost/Components/Defaults/`
-and `tests/pages/src/components/defaults.ts`).
+The packages ship no components of their own; the example app has a set of
+glass buttons and controls to copy from (`examples/ios/Islands/Components/Defaults/`),
+and a native island with a web version for every control in `examples/showcase`.
 
 ## Use it in the app
 
@@ -200,6 +200,40 @@ rather than `display: none`: its islands mount right away, ride along when it
 slides in, and need no swap to native when it arrives.
 
 ## Try it
+
+`examples/` is **Islands**, an app in the style of a component catalogue whose
+every screen is one web page in a `WKWebView`. It looks and moves like an iOS 26
+app: large titles, inset grouped lists, push and swipe back, a floating Liquid
+Glass tab bar with a search button. Where a web view falls short, the page puts
+a native island:
+
+- **Components:** glass buttons, menus, toggles, segmented controls, sliders,
+  steppers, wheel and menu pickers, date and colour pickers, text fields,
+  gauges, SF Symbol effects and Swift Charts.
+- **Capabilities:** a MapKit map, AVFoundation video with Picture in Picture,
+  the live camera, the photo picker handing photos back to the page, real
+  permission prompts, haptics and the share sheet.
+- **Search:** a native search field that filters every demo as you type.
+- **Settings:** light, dark or system appearance and the accent colour, which
+  the native views follow, and a **Native Islands** switch that shows the web
+  version of every island in place.
+
+Its styles start from `live.css`, which makes a page behave like an app: no
+text selection, tap highlight, callouts, scrollbars or focus rings.
+
+```bash run
+bun install
+cd examples/ios && xcodegen && open Islands.xcodeproj   # run on an iOS 26 simulator or device
+```
+
+```bash
+bun run --cwd examples/showcase dev     # http://localhost:5173/?native=simulate in a browser
+```
+
+The app bundles the page, so it needs no network, except for the sample video
+stream. Launch it with `-screen <id>` (such as `-screen maps`) or `-tab <id>`
+to open one screen, and in a browser use `?screen=<id>` or `?tab=<id>`. Camera
+and Picture in Picture need a real iPhone.
 
 `tests/pages/` is the scenario gallery: regression pages covering every scenario, plus a
 three-page flow that shows islands sliding in with their page.

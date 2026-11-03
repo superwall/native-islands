@@ -147,7 +147,25 @@ const Share = () => {
 };
 
 export const systemScreens: ScreenSpec[] = demoScreens("capabilities", "System", [
-  { id: "permissions", title: "Permissions", symbol: "hand.raised.fill", Component: Permissions },
-  { id: "haptics", title: "Haptics", symbol: "hand.tap.fill", Component: Haptics },
-  { id: "share", title: "Share Sheet", symbol: "square.and.arrow.up", Component: Share },
+  {
+    id: "permissions",
+    keywords: ["privacy", "location", "camera", "microphone", "notifications", "prompt"],
+    title: "Permissions",
+    symbol: "hand.raised.fill",
+    Component: Permissions,
+  },
+  {
+    id: "haptics",
+    keywords: ["feedback", "vibration", "Taptic"],
+    title: "Haptics",
+    symbol: "hand.tap.fill",
+    Component: Haptics,
+  },
+  {
+    id: "share",
+    keywords: ["activity", "export", "send"],
+    title: "Share Sheet",
+    symbol: "square.and.arrow.up",
+    Component: Share,
+  },
 ]);

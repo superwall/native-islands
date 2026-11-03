@@ -11,6 +11,7 @@ enum ShowcaseComponents {
     registry.register("tabBar", glass: tabBarGlass) { component in
       TabBarView(component: component)
     }
+    registry.register("searchField", glass: tabBarGlass) { SearchFieldView(component: $0) }
     registry.register("menu", glass: DefaultComponents.glassButtonGlass) { MenuView(component: $0) }
     registry.register("slider") { SliderView(component: $0) }
     registry.register("stepper") { StepperView(component: $0) }

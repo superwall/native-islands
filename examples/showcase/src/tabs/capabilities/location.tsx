@@ -112,5 +112,11 @@ const Maps = () => {
 };
 
 export const locationScreens: ScreenSpec[] = demoScreens("capabilities", "Location", [
-  { id: "maps", title: "Maps", symbol: "map.fill", Component: Maps },
+  {
+    id: "maps",
+    keywords: ["MapKit", "location", "places", "satellite"],
+    title: "Maps",
+    symbol: "map.fill",
+    Component: Maps,
+  },
 ]);

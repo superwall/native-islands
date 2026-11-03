@@ -215,10 +215,23 @@ const TextFields = () => {
 };
 
 export const pickerScreens: readonly ScreenSpec[] = demoScreens("components", "Pickers & Input", [
-  { id: "pickers", title: "Pickers", symbol: "list.bullet", Component: Pickers },
-  { id: "dates", title: "Date & Time", symbol: "calendar", Component: Dates },
+  {
+    id: "pickers",
+    keywords: ["wheel", "select", "list", "colour", "color"],
+    title: "Pickers",
+    symbol: "list.bullet",
+    Component: Pickers,
+  },
+  {
+    id: "dates",
+    keywords: ["calendar", "time", "date picker"],
+    title: "Date & Time",
+    symbol: "calendar",
+    Component: Dates,
+  },
   {
     id: "text-fields",
+    keywords: ["input", "keyboard", "email", "password"],
     title: "Text Fields",
     symbol: "character.cursor.ibeam",
     Component: TextFields,

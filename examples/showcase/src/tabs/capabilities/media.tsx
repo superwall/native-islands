@@ -155,7 +155,25 @@ const PhotosDemo = () => {
 };
 
 export const mediaScreens: ScreenSpec[] = demoScreens("capabilities", "Media", [
-  { id: "video", title: "Video", symbol: "play.rectangle.fill", Component: VideoDemo },
-  { id: "camera", title: "Camera", symbol: "camera.fill", Component: CameraDemo },
-  { id: "photos", title: "Photo Picker", symbol: "photo.on.rectangle", Component: PhotosDemo },
+  {
+    id: "video",
+    keywords: ["AVKit", "player", "Picture in Picture", "PiP", "stream"],
+    title: "Video",
+    symbol: "play.rectangle.fill",
+    Component: VideoDemo,
+  },
+  {
+    id: "camera",
+    keywords: ["AVFoundation", "capture", "preview"],
+    title: "Camera",
+    symbol: "camera.fill",
+    Component: CameraDemo,
+  },
+  {
+    id: "photos",
+    keywords: ["PhotosUI", "library", "images", "gallery"],
+    title: "Photo Picker",
+    symbol: "photo.on.rectangle",
+    Component: PhotosDemo,
+  },
 ]);

@@ -138,8 +138,12 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
       screens,
       push: (screen) => dispatch({ type: "push", screen }),
       back: () => dispatch({ type: "pop", animated: true }),
+      open: (screen) => {
+        const tab = specs.get(screen)?.tab;
+        if (tab) dispatch({ type: "open", tab, screen });
+      },
     }),
-    [screens],
+    [screens, specs],
   );
 
   const swipeBack = React.useCallback(() => dispatch({ type: "pop", animated: false }), []);

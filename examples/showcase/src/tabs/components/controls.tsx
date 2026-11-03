@@ -249,15 +249,46 @@ const Steppers = () => {
 };
 
 export const controlScreens: readonly ScreenSpec[] = demoScreens("components", "Controls", [
-  { id: "buttons", title: "Buttons", symbol: "hand.tap.fill", Component: Buttons },
-  { id: "menus", title: "Menus", symbol: "filemenu.and.selection", Component: Menus },
-  { id: "toggles", title: "Toggles", symbol: "switch.2", Component: Toggles },
+  {
+    id: "buttons",
+    keywords: ["Liquid Glass", "glass", "tap"],
+    title: "Buttons",
+    symbol: "hand.tap.fill",
+    Component: Buttons,
+  },
+  {
+    id: "menus",
+    keywords: ["context menu", "pull-down", "actions"],
+    title: "Menus",
+    symbol: "filemenu.and.selection",
+    Component: Menus,
+  },
+  {
+    id: "toggles",
+    keywords: ["switch", "on off"],
+    title: "Toggles",
+    symbol: "switch.2",
+    Component: Toggles,
+  },
   {
     id: "segmented",
+    keywords: ["tabs", "choice"],
     title: "Segmented Controls",
     symbol: "rectangle.split.3x1.fill",
     Component: SegmentedControls,
   },
-  { id: "sliders", title: "Sliders", symbol: "slider.horizontal.3", Component: Sliders },
-  { id: "steppers", title: "Steppers", symbol: "plusminus", Component: Steppers },
+  {
+    id: "sliders",
+    keywords: ["range", "volume", "brightness"],
+    title: "Sliders",
+    symbol: "slider.horizontal.3",
+    Component: Sliders,
+  },
+  {
+    id: "steppers",
+    keywords: ["plus minus", "count"],
+    title: "Steppers",
+    symbol: "plusminus",
+    Component: Steppers,
+  },
 ]);

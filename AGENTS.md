@@ -59,9 +59,12 @@ tests/pages/            the scenario gallery: regression pages (Vite + React)
 tests/ios/              TestHost, the app that bundles the gallery, with its
                         UI tests and screenshot baselines
 examples/showcase/      Islands, the example app's web side (Vite + React):
-                        live.css, iOS tokens, the tab and navigation shell
-examples/ios/           Islands' iOS host; its Components/Defaults/ holds the
-                        ready-made glass views TestHost shares
+                        src/app/ the shell, navigation, search and preferences;
+                        src/tabs/ one file per demo section; src/ui/ each
+                        island with its web version; src/styles/live.css
+examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
+                        island, registered in ShowcaseComponents.swift, and
+                        Components/Defaults/ the glass views TestHost shares
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers and parallel UI test runs
 ```
@@ -71,6 +74,14 @@ hands touches to views in its scroll views, so `IslandWebView` routes them.
 `tests/pages/src/router.tsx` renders every page at once and parks the ones
 not showing off to the side, each at its own spot, so their islands are drawn
 before they slide in. `?native=simulate` installs the JS reference host.
+
+The showcase's `src/app/Shell.tsx` does the same for every screen of every
+tab, so a demo that holds a device (camera, video) checks `useScreenShowing()`
+and lets go while hidden. A new island needs its name in both
+`src/islands/definitions.ts` and `ShowcaseComponents.swift`, a web version that
+behaves the same, and an entry in `main.tsx`'s simulator list. A new demo is a
+row in its section's `demoScreens(...)` with `keywords` for Search, and its
+symbol needs a web drawing in `src/ui/icons.tsx` (a test checks).
 
 ## Commands
 

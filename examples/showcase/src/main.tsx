@@ -6,6 +6,7 @@ import { PreferencesProvider } from "./app/preferences";
 import { Shell } from "./app/Shell";
 import { capabilityScreens } from "./tabs/capabilities";
 import { componentScreens } from "./tabs/components";
+import { searchScreen } from "./tabs/search";
 import { settingScreens } from "./tabs/settings";
 import "./styles/live.css";
 import "./styles/tokens.css";
@@ -13,7 +14,7 @@ import "./styles/app.css";
 import "./styles/components.css";
 import "./styles/capabilities.css";
 
-const SCREENS = [...componentScreens, ...capabilityScreens, ...settingScreens];
+const SCREENS = [...componentScreens, ...capabilityScreens, ...settingScreens, searchScreen];
 
 if (new URLSearchParams(window.location.search).get("native") === "simulate") {
   installNativeSimulator({
@@ -23,6 +24,7 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
       segmentedControl: 1,
       symbol: 1,
       tabBar: 1,
+      searchField: 1,
       menu: 1,
       slider: 1,
       stepper: 1,

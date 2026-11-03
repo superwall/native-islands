@@ -176,10 +176,23 @@ const Charts = () => {
 export const indicatorScreens: readonly ScreenSpec[] = demoScreens("components", "Indicators", [
   {
     id: "gauges",
+    keywords: ["progress", "spinner", "capacity"],
     title: "Gauges & Progress",
     symbol: "gauge.with.dots.needle.67percent",
     Component: Gauges,
   },
-  { id: "symbols", title: "SF Symbols", symbol: "star.fill", Component: Symbols },
-  { id: "charts", title: "Charts", symbol: "chart.bar.fill", Component: Charts },
+  {
+    id: "symbols",
+    keywords: ["SF Symbols", "icons", "animation", "effects"],
+    title: "SF Symbols",
+    symbol: "star.fill",
+    Component: Symbols,
+  },
+  {
+    id: "charts",
+    keywords: ["Swift Charts", "graph", "bar", "line"],
+    title: "Charts",
+    symbol: "chart.bar.fill",
+    Component: Charts,
+  },
 ]);

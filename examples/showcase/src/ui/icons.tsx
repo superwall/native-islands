@@ -8,6 +8,23 @@ import * as React from "react";
 const PATHS: Record<string, React.ReactNode> = {
   "chevron.left": <path d="M15 4 7 12l8 8" fill="none" strokeWidth="2.6" />,
   "chevron.right": <path d="m9 4 8 8-8 8" fill="none" strokeWidth="2.6" />,
+  magnifyingglass: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" fill="none" strokeWidth="2.4" />
+      <path d="m15.5 15.5 5 5" fill="none" strokeWidth="2.6" />
+    </>
+  ),
+  "xmark.circle.fill": (
+    <>
+      <circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none" />
+      <path
+        d="m8.8 8.8 6.4 6.4M15.2 8.8l-6.4 6.4"
+        fill="none"
+        stroke="var(--cell)"
+        strokeWidth="2"
+      />
+    </>
+  ),
   checkmark: <path d="m4 12.5 5 5L20 6" fill="none" strokeWidth="2.6" />,
   "shippingbox.fill": (
     <>

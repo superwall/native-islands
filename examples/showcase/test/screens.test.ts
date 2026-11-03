@@ -1,14 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { demoScreens, sectionsOf } from "../src/app/nav";
+import { demoScreens, searchScreens, sectionsOf, type ScreenSpec } from "../src/app/nav";
 import { TABS } from "../src/app/navigation";
 import { capabilityScreens } from "../src/tabs/capabilities";
 import { PLACES } from "../src/tabs/capabilities/location";
 import { componentScreens } from "../src/tabs/components";
+import { searchScreen } from "../src/tabs/search";
 import { settingScreens } from "../src/tabs/settings";
 import { hasWebSymbol } from "../src/ui/icons";
 
 const Empty = () => null;
-const SCREENS = [...componentScreens, ...capabilityScreens, ...settingScreens];
+const SCREENS = [...componentScreens, ...capabilityScreens, ...settingScreens, searchScreen];
 
 describe("demoScreens", () => {
   it("puts every demo in its tab and section, in order", () => {
@@ -90,5 +91,39 @@ describe("the app's screens", () => {
     ];
     const missing = symbols.filter((symbol) => !hasWebSymbol(symbol));
     expect(missing).toEqual([]);
+  });
+});
+
+describe("searchScreens", () => {
+  const ids = (query: string, screens: readonly ScreenSpec[] = SCREENS) =>
+    searchScreens(screens, query).map((screen) => screen.id);
+
+  it("finds every demo, and no tab root or settings page, for an empty query", () => {
+    const all = ids("  ");
+    expect(all).toHaveLength(19);
+    expect(all).not.toContain("components");
+    expect(all).not.toContain("search");
+    expect(all).not.toContain("accent");
+  });
+
+  it("matches the start of a word in the title, section or keywords", () => {
+    expect(ids("vid")).toEqual(["video"]);
+    expect(ids("picture in")).toEqual(["video"]);
+    expect(ids("pickers")).toEqual(["pickers", "dates", "text-fields"]);
+    expect(ids("glass")).toEqual(["buttons"]);
+    expect(ids("ideo")).toEqual([]);
+  });
+
+  it("ignores case and accents, and needs every word to match", () => {
+    expect(ids("MAPKIT")).toEqual(["maps"]);
+    const accented = demoScreens("components", "Café", [
+      { id: "a", title: "Crème", symbol: "x", Component: Empty },
+    ]);
+    expect(ids("creme cafe", accented)).toEqual(["a"]);
+    expect(ids("creme tea", accented)).toEqual([]);
+  });
+
+  it("keeps the order the tabs list their demos in", () => {
+    expect(ids("camera")).toEqual(["camera", "permissions"]);
   });
 });
