@@ -67,7 +67,7 @@ const QUIET_REFUSALS: ReadonlySet<Reason> = new Set(["unavailable"]);
 
 const MESSAGES: Partial<Record<Reason, string>> = {
   timeout: "the host has not answered yet; it switches to native if it does",
-  no_elements: "it has no element children to measure; wrap an element, not bare text",
+  no_elements: "it has no element child with a box to measure; wrap an element that is not hidden, not bare text",
 };
 
 const TOLERANCE = 0.5;

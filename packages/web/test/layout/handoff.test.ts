@@ -259,6 +259,16 @@ describe("handoffOf", () => {
     ).toBe("transformed");
   });
 
+  it("turns a single turned box natively, a hidden sibling being no second box", () => {
+    const { wrapper, placement } = setup(
+      `<div id="card"><div data-island style="display: contents"><button id="a" data-rect="${rectAttribute(10, 10, 40, 40)}">A</button><input type="file" hidden></div></div>`,
+    );
+    overrideStyle(wrapper.querySelector("#a") as Element, { rotate: "5deg" });
+    expect(handoffOf(wrapper, placement(), still, false, { transform: true, out: {} })).not.toBe(
+      "transformed",
+    );
+  });
+
   it("keeps native under a translated ancestor", () => {
     const { wrapper, card, placement } = setup();
     overrideStyle(card, { transform: "matrix(1, 0, 0, 1, 0, 20)", opacity: "1" });
