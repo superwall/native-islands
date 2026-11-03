@@ -41,3 +41,11 @@ export const sectionsOf = (
   }
   return sections;
 };
+
+/** The demo screens of one section of a tab, in the order its root lists them. */
+export const demoScreens = (
+  tab: TabId,
+  section: string,
+  demos: readonly Pick<ScreenSpec, "id" | "title" | "symbol" | "Component">[],
+): ScreenSpec[] =>
+  demos.map(({ id, title, symbol, Component }) => ({ id, tab, section, title, symbol, Component }));

@@ -5,15 +5,12 @@ import { BarButton } from "../ui/controls";
 import { TabBar } from "../ui/TabBar";
 import { NavProvider, type Nav, type ScreenSpec } from "./nav";
 import {
-  TABS,
   canGoBack,
   initialState,
   navigate,
   placeOf,
-  renderedScreens,
   type NavState,
   type ScreenPlace,
-  type TabId,
 } from "./navigation";
 import { useSwipeBack } from "./useSwipeBack";
 
@@ -95,10 +92,12 @@ const Screen = ({
 };
 
 /**
- * The app: a tab bar over one navigation stack per tab. Every screen in every
- * stack stays rendered, so going back is instant and islands are always
- * drawn; screens not showing wait off to the side, each at its own spot, so
- * the host can tell their scrolling areas apart.
+ * The app: a tab bar over one navigation stack per tab. Every screen of the
+ * app is rendered from the start and only ever moves: screens not showing
+ * wait off to the side, each at its own spot, so the host can tell their
+ * scrolling areas apart, and their islands are drawn before they slide in.
+ * On iOS 26 a screen first mounted while parked never showed its islands
+ * once it slid in, so none is.
  */
 export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
   const specs = React.useMemo(() => new Map(screens.map((spec) => [spec.id, spec])), [screens]);
@@ -144,29 +143,19 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
   const swipeBack = React.useCallback(() => dispatch({ type: "pop", animated: false }), []);
   useSwipeBack(root, canGoBack(state) && !transition, swipeBack);
 
-  const order = screens.map((spec) => spec.id);
-
   return (
     <NavProvider value={nav}>
       <div className="screens" ref={root}>
-        {TABS.flatMap((tab: TabId) => {
-          const shown = renderedScreens(state, tab);
-          return shown.map((id, index) => {
-            const spec = specs.get(id);
-            if (!spec) return null;
-            const place = placeOf(state, tab, id);
-            return (
-              <Screen
-                key={id}
-                spec={spec}
-                place={place}
-                parkedAt={order.indexOf(id)}
-                motion={motionOf(state, place)}
-                back={index > 0 ? nav.back : undefined}
-              />
-            );
-          });
-        })}
+        {screens.map((spec, index) => (
+          <Screen
+            key={spec.id}
+            spec={spec}
+            place={placeOf(state, spec.tab, spec.id)}
+            parkedAt={index}
+            motion={motionOf(state, placeOf(state, spec.tab, spec.id))}
+            back={spec.id === spec.tab ? undefined : nav.back}
+          />
+        ))}
       </div>
       <TabBar selected={state.tab} onSelect={(tab) => dispatch({ type: "select", tab })} />
     </NavProvider>

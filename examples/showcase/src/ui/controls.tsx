@@ -114,3 +114,49 @@ export const BarButton = ({
     </button>
   </NativeGlassButton>
 );
+
+/** A Liquid Glass button: regular glass, or prominent in the accent colour. */
+export const Button = ({
+  title,
+  symbol,
+  label,
+  prominent,
+  disabled,
+  glassGroup,
+  onPress,
+}: {
+  title?: string;
+  symbol?: string;
+  label?: string;
+  prominent?: boolean;
+  disabled?: boolean;
+  glassGroup?: string;
+  onPress: () => void;
+}) => {
+  const accent = useAccent();
+  return (
+    <NativeGlassButton
+      title={title}
+      systemImage={symbol}
+      prominence={prominent ? "prominent" : "regular"}
+      tint={prominent ? accent : undefined}
+      disabled={disabled}
+      glassGroup={glassGroup}
+      native={useNativeEnabled()}
+      accessibility={{ label: label ?? title }}
+      onPress={onPress}
+    >
+      <button
+        type="button"
+        className={title ? "glass-pill" : "glass-circle"}
+        data-prominent={prominent ? "" : undefined}
+        aria-label={label ?? title}
+        disabled={disabled}
+        onClick={onPress}
+      >
+        {symbol && <WebSymbol name={symbol} className="bar-symbol" />}
+        {title}
+      </button>
+    </NativeGlassButton>
+  );
+};

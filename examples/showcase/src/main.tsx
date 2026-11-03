@@ -10,12 +10,29 @@ import { settingScreens } from "./tabs/settings";
 import "./styles/live.css";
 import "./styles/tokens.css";
 import "./styles/app.css";
+import "./styles/components.css";
 
 const SCREENS = [...componentScreens, ...capabilityScreens, ...settingScreens];
 
 if (new URLSearchParams(window.location.search).get("native") === "simulate") {
   installNativeSimulator({
-    components: { glassButton: 1, toggle: 1, segmentedControl: 1, symbol: 1, tabBar: 1 },
+    components: {
+      glassButton: 1,
+      toggle: 1,
+      segmentedControl: 1,
+      symbol: 1,
+      tabBar: 1,
+      menu: 1,
+      slider: 1,
+      stepper: 1,
+      picker: 1,
+      datePicker: 1,
+      colorPicker: 1,
+      textField: 1,
+      gauge: 1,
+      symbolEffect: 1,
+      chart: 1,
+    },
   });
 }
 

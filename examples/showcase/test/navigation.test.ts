@@ -145,4 +145,13 @@ describe("placeOf", () => {
     expect(placeOf(state, "components", "buttons")).toBe("below");
     expect(placeOf(state, "components", "components")).toBe("away");
   });
+
+  it("parks a screen that is not in its tab's stack, as every screen stays rendered", () => {
+    const root = start();
+    expect(placeOf(root, "components", "toggles")).toBe("away");
+    expect(placeOf(root, "components", "components")).toBe("top");
+    const deeper = pushed(root, "buttons");
+    expect(placeOf(deeper, "components", "toggles")).toBe("away");
+    expect(placeOf(deeper, "settings", "appearance")).toBe("away");
+  });
 });

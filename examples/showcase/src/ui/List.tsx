@@ -79,3 +79,27 @@ export const Row = ({
     </div>
   );
 };
+
+/** A card that puts the control on show, with what it does under it. */
+export const Stage = ({
+  caption,
+  children,
+  tall,
+}: React.PropsWithChildren<{ caption?: React.ReactNode; tall?: boolean }>) => (
+  <>
+    <div className="stage" data-tall={tall ? "" : undefined}>
+      {children}
+    </div>
+    {caption && <p className="list-footer">{caption}</p>}
+  </>
+);
+
+/** A row showing a value as the page holds it, to prove the native control reported it. */
+export const Readout = ({ title = "Page sees", value }: { title?: string; value: string }) => (
+  <div className="row readout-row" role="listitem">
+    <span className="row-title">{title}</span>
+    <code className="readout" aria-live="polite">
+      {value}
+    </code>
+  </div>
+);

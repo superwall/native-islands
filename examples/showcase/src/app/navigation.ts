@@ -121,11 +121,15 @@ export const renderedScreens = (state: NavState, tab: TabId): readonly string[] 
 
 export type ScreenPlace = "top" | "below" | "away";
 
-/** Where a rendered screen sits: on top, just below the top one, or parked off to the side. */
+/**
+ * Where a screen sits: on top, just below the top one, or parked off to the
+ * side, as is every screen outside its tab's stack.
+ */
 export const placeOf = (state: NavState, tab: TabId, screen: string): ScreenPlace => {
   if (tab !== state.tab) return "away";
   const shown = renderedScreens(state, tab);
   const index = shown.indexOf(screen);
+  if (index < 0) return "away";
   const { transition } = state;
   if (transition?.kind === "push" && transition.stage === "mounting") {
     if (screen === transition.screen) return "away";

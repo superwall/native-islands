@@ -11,6 +11,16 @@ enum ShowcaseComponents {
     registry.register("tabBar", glass: tabBarGlass) { component in
       TabBarView(component: component)
     }
+    registry.register("menu", glass: DefaultComponents.glassButtonGlass) { MenuView(component: $0) }
+    registry.register("slider") { SliderView(component: $0) }
+    registry.register("stepper") { StepperView(component: $0) }
+    registry.register("picker") { PickerView(component: $0) }
+    registry.register("datePicker") { DatePickerView(component: $0) }
+    registry.register("colorPicker") { ColorPickerView(component: $0) }
+    registry.register("textField") { TextFieldView(component: $0) }
+    registry.register("gauge") { GaugeView(component: $0) }
+    registry.register("symbolEffect") { SymbolEffectView(component: $0) }
+    registry.register("chart") { ChartView(component: $0) }
   }
 
   @MainActor
