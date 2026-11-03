@@ -21,44 +21,28 @@ jobs:
       - run: bun test performance
       - run: bun run --cwd examples/pages build
 
-  swift:
+  ios:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - run: brew install swiftlint
+      - run: brew install swiftlint xcodegen
       - run: swiftlint lint --quiet --strict packages/swift examples/ios
       - name: Swift tests
         run: |
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in d.values() for x in r if x["name"].startswith("iPhone")))')
           xcodebuild test -scheme NativeIslands -destination "id=$DEVICE" -resultBundlePath build/swift-tests.xcresult -quiet
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: swift-test-results
-          path: build/swift-tests.xcresult
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
-      - run: brew install xcodegen
-      - name: Example app
-        run: |
-          bun install --frozen-lockfile
-          cd examples/ios && xcodegen -q
-          xcodebuild build -project Example.xcodeproj -scheme Example -destination 'generic/platform=iOS Simulator' -quiet
-
-  alignment:
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-      - run: brew install xcodegen
       - run: bun install --frozen-lockfile
+      # Builds the Example app, so no separate build step is needed.
       - name: Islands sit on their web elements
         run: scripts/ui-tests.sh --devices "iPhone 17" --only AlignmentUITests
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: alignment-results
-          path: build/ui-tests/results.xcresult
+          name: ios-test-results
+          path: |
+            build/swift-tests.xcresult
+            build/ui-tests/results.xcresult
+          if-no-files-found: ignore
