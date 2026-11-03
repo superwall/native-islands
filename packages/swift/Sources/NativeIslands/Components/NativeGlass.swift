@@ -53,14 +53,37 @@ final class NativeGlassView: UIVisualEffectView {
   func apply(_ glass: NativeGlass) {
     self.glass = glass
     effect = Self.effect(for: glass)
+    #if !os(visionOS)
+    if #available(iOS 26.0, *) {
+      // The system morphs a menu or popover back into its source view's
+      // corner configuration, which reads as a rectangle when only the
+      // layer's corner radius is set.
+      cornerConfiguration = Self.cornerConfiguration(for: glass.shape)
+    }
+    #endif
     setNeedsLayout()
   }
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    #if !os(visionOS)
+    if #available(iOS 26.0, *) { return }
+    #endif
     layer.cornerRadius = Self.cornerRadius(for: glass.shape, in: bounds.size)
     layer.cornerCurve = .continuous
   }
+
+  #if !os(visionOS)
+  @available(iOS 26.0, *)
+  static func cornerConfiguration(for shape: NativeGlass.Shape) -> UICornerConfiguration {
+    switch shape {
+    case .capsule, .circle:
+      return .capsule()
+    case .rounded(let radius):
+      return .uniformCorners(radius: .fixed(max(0, radius)))
+    }
+  }
+  #endif
 
   static func cornerRadius(for shape: NativeGlass.Shape, in size: CGSize) -> CGFloat {
     switch shape {
