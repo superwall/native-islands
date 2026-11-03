@@ -457,7 +457,6 @@ const WebMenuItems = ({
   );
 };
 
-/** A glass button that opens a menu: UIMenu natively, a popover on the web. */
 /** The web version of a menu: a glass button that opens a popover of items. */
 export const WebMenu = ({
   label,
@@ -505,6 +504,7 @@ export const WebMenu = ({
   );
 };
 
+/** A glass button that opens a menu: UIMenu natively, a popover on the web. */
 export const Menu = ({
   label,
   title,
