@@ -19,3 +19,5 @@ export const ISLAND_SHOWN_ATTRIBUTE = "data-island-shown";
 export const ISLAND_CONCEALED_ATTRIBUTE = "data-island-concealed";
 
 export const ISLAND_STYLE_ATTRIBUTE = "data-island-styles";
+
+export const ISLAND_SCROLLER_ATTRIBUTE = "data-island-scroller";

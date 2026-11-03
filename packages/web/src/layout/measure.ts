@@ -1,4 +1,5 @@
 import type { TNativeAnchor, TNativeFrame, TNativeSticky } from "../protocol/schemas";
+import { ISLAND_SCROLLER_ATTRIBUTE } from "./attributes";
 import { layoutWatcherFor } from "./watcher";
 
 export type NativeAnchorKind = "page" | "scroller" | "screen" | "tracked";
@@ -183,6 +184,7 @@ export const scrollerIdOf = (element: Element): string => {
     nextScroller += 1;
     id = `scroller-${nextScroller}`;
     scrollerIds.set(element, id);
+    element.setAttribute(ISLAND_SCROLLER_ATTRIBUTE, "");
   }
   return id;
 };

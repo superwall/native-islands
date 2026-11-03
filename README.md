@@ -49,6 +49,10 @@ moves it for free:
 - **Stacking:** web content WebKit draws above that scroll view (a footer, a
   sheet, the next page) covers the native view the way it would cover the web
   element. A plan card half behind the footer stays glass, cut by the footer.
+  Content inside the same scroll view stays under its islands: the React
+  bindings make every scroller that holds one a stacking context
+  (`isolation: isolate`), so WebKit never lifts the rest of that scroller
+  above them while something in it animates.
 - **Real glass:** Liquid Glass samples what is drawn behind it. Here that is
   the actual web content, so a glass button bends the page's own gradients,
   images and video.
