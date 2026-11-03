@@ -30,17 +30,27 @@ enum NativeScrollerMatcher {
     return found
   }
 
+  /// How far from the scroller's spot a scroll view may sit and still be its
+  /// own when an island first mounts: half the scroller's size. A screen
+  /// parked off to the side sits a whole screen away.
+  static func reach(of scroller: NativeScroller) -> CGFloat {
+    CGFloat(min(scroller.frame.width, scroller.frame.height)) / 2
+  }
+
+  /// The scroll view that matches the scroller, the nearest when several do.
+  /// With `within`, only one that far from the scroller's spot counts.
   static func match(
     _ scroller: NativeScroller,
     among candidates: [UIScrollView],
-    in viewport: UIView
+    in viewport: UIView,
+    within: CGFloat = .greatestFiniteMagnitude
   ) -> UIScrollView? {
     var best: UIScrollView?
     var bestDistance = CGFloat.greatestFiniteMagnitude
     for candidate in candidates where matches(candidate, scroller) {
       let origin = candidate.convert(candidate.bounds, to: viewport).origin
       let distance = hypot(origin.x - scroller.frame.x, origin.y - scroller.frame.y)
-      if distance < bestDistance {
+      if distance <= within, distance < bestDistance {
         best = candidate
         bestDistance = distance
       }

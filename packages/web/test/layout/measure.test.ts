@@ -284,13 +284,38 @@ describe("sameAnchor", () => {
     },
   });
 
-  it("compares scrollers by id only, so scrolling does not resend the anchor", () => {
+  it("resends a scroller whose size or content size changed", () => {
+    const resized = (width: number, height: number, content: number) => ({
+      ...scroller("a"),
+      scroller: {
+        ...scroller("a").scroller,
+        frame: { x: 0, y: 0, width, height },
+        content_size: { width, height: content },
+      },
+    });
+    expect(sameAnchor(scroller("a"), resized(1, 1, 1.2))).toBe(true);
+    expect(sameAnchor(scroller("a"), resized(1, 1, 930))).toBe(false);
+    expect(sameAnchor(scroller("a"), resized(2, 1, 1))).toBe(false);
+    expect(sameAnchor(scroller("a"), resized(1, 2, 1))).toBe(false);
+    expect(
+      sameAnchor(scroller("a"), {
+        ...scroller("a"),
+        scroller: { ...scroller("a").scroller, content_size: { width: 3, height: 1 } },
+      }),
+    ).toBe(false);
+  });
+
+  it("does not resend a scroller that only scrolled or moved", () => {
     expect(sameAnchor({ type: "page" }, { type: "page" })).toBe(true);
     expect(sameAnchor({ type: "page" }, { type: "screen" })).toBe(false);
     expect(
       sameAnchor(scroller("a"), {
         ...scroller("a"),
-        scroller: { ...scroller("a").scroller, scroll_offset: { x: 0, y: 99 } },
+        scroller: {
+          ...scroller("a").scroller,
+          frame: { x: 402, y: 0, width: 1, height: 1 },
+          scroll_offset: { x: 0, y: 99 },
+        },
       }),
     ).toBe(true);
     expect(sameAnchor(scroller("a"), scroller("b"))).toBe(false);

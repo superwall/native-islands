@@ -299,8 +299,24 @@ export const placementOf = (
   };
 };
 
+/**
+ * Whether an anchor already sent still describes the scroller. Scrolling and
+ * moving do not count, so they never resend it; a new size or content size
+ * does, because the host tells apart two scrollers stacked in one spot only
+ * by their content.
+ */
 export const sameAnchor = (left: TNativeAnchor, right: TNativeAnchor): boolean => {
   if (left.type !== right.type) return false;
   if (left.type !== "scroller" || right.type !== "scroller") return true;
-  return left.scroller.id === right.scroller.id;
+  const one = left.scroller;
+  const two = right.scroller;
+  return (
+    one.id === two.id &&
+    near(one.frame.width, two.frame.width) &&
+    near(one.frame.height, two.frame.height) &&
+    near(one.content_size.width, two.content_size.width) &&
+    near(one.content_size.height, two.content_size.height)
+  );
 };
+
+const near = (one: number, two: number) => Math.abs(one - two) < 0.5;
