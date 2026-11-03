@@ -207,6 +207,85 @@ const PATHS: Record<string, React.ReactNode> = {
   "play.fill": <path d="M7 4.5v15l12-7.5Z" fill="currentColor" stroke="none" />,
   "pause.fill": <path d="M6.5 4.5h4v15h-4ZM13.5 4.5h4v15h-4Z" fill="currentColor" stroke="none" />,
   "arrow.clockwise": <path d="M19 12a7 7 0 1 1-2-4.9M19 4v4h-4" fill="none" strokeWidth="2.2" />,
+  "map.fill": (
+    <path
+      d="M3 6.5 8.5 4l7 2.5L21 4v13.5L15.5 20l-7-2.5L3 20Z"
+      fill="currentColor"
+      stroke="var(--cell)"
+      strokeWidth="1.4"
+    />
+  ),
+  mappin: (
+    <>
+      <circle cx="12" cy="8" r="5" fill="currentColor" stroke="none" />
+      <path d="M12 13v8" fill="none" strokeWidth="2.2" />
+    </>
+  ),
+  "play.rectangle.fill": (
+    <>
+      <rect x="2" y="4.5" width="20" height="15" rx="3.5" fill="currentColor" stroke="none" />
+      <path d="M10 8.8v6.4l5.4-3.2Z" fill="var(--cell)" stroke="none" />
+    </>
+  ),
+  "camera.fill": (
+    <>
+      <path
+        d="M4 7.5h3l1.6-2.5h6.8L17 7.5h3a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2Z"
+        fill="currentColor"
+        stroke="none"
+      />
+      <circle cx="12" cy="13.5" r="3.6" fill="none" stroke="var(--cell)" strokeWidth="1.8" />
+    </>
+  ),
+  "photo.fill": (
+    <>
+      <rect x="2.5" y="4" width="19" height="16" rx="3" fill="currentColor" stroke="none" />
+      <path d="m4.5 17.5 5-5.5 3.5 3.5 2.5-2.5 4 4.5Z" fill="var(--cell)" stroke="none" />
+      <circle cx="16" cy="8.5" r="1.7" fill="var(--cell)" stroke="none" />
+    </>
+  ),
+  "photo.on.rectangle": (
+    <>
+      <rect x="6" y="3" width="16" height="13" rx="2.5" fill="none" strokeWidth="1.8" />
+      <path d="M3 7.5V18a3 3 0 0 0 3 3h11" fill="none" strokeWidth="1.8" />
+      <path d="m8 14 4-4.5 3 3 2-2 3 3.5" fill="none" strokeWidth="1.8" />
+    </>
+  ),
+  "mic.fill": (
+    <>
+      <rect x="8.5" y="2.5" width="7" height="12" rx="3.5" fill="currentColor" stroke="none" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v4" fill="none" strokeWidth="2" />
+    </>
+  ),
+  "location.fill": <path d="M21 3 3 10.5l7.5 3 3 7.5Z" fill="currentColor" stroke="none" />,
+  "house.fill": (
+    <path d="M3 11 12 3.5l9 7.5v9.5h-6.5v-6h-5v6H3Z" fill="currentColor" stroke="none" />
+  ),
+  "building.2.fill": (
+    <>
+      <path d="M3 21V6l8-3v18Z" fill="currentColor" stroke="none" />
+      <path d="M12.5 21V9l8.5 3v9Z" fill="currentColor" stroke="none" />
+    </>
+  ),
+  "binoculars.fill": (
+    <>
+      <circle cx="6.5" cy="15.5" r="4.5" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="15.5" r="4.5" fill="currentColor" stroke="none" />
+      <path d="M5 11 7 4h3v8M19 11l-2-7h-3v8M10 12h4" fill="none" strokeWidth="2" />
+    </>
+  ),
+  "ferry.fill": (
+    <>
+      <path d="M2.5 15h19l-2.5 4.5H5Z" fill="currentColor" stroke="none" />
+      <path d="M6 14.5V9h12v5.5M9 9V5.5h6V9" fill="none" strokeWidth="2" />
+    </>
+  ),
+  "pip.enter": (
+    <>
+      <rect x="2.5" y="4" width="19" height="16" rx="3" fill="none" strokeWidth="1.8" />
+      <rect x="12" y="12" width="7" height="5.5" rx="1.2" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export const WebSymbol = ({ name, className }: { name: string; className?: string }) => (

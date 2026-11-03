@@ -21,6 +21,13 @@ enum ShowcaseComponents {
     registry.register("gauge") { GaugeView(component: $0) }
     registry.register("symbolEffect") { SymbolEffectView(component: $0) }
     registry.register("chart") { ChartView(component: $0) }
+    registry.register("map") { MapView(component: $0) }
+    registry.register("video") { VideoView(component: $0) }
+    registry.register("camera") { CameraView(component: $0) }
+    registry.register("photoPicker", glass: DefaultComponents.glassButtonGlass) { PhotoPickerView(component: $0) }
+    registry.register("permission") { PermissionView(component: $0) }
+    registry.register("hapticButton", glass: DefaultComponents.glassButtonGlass) { HapticButtonView(component: $0) }
+    registry.register("shareButton", glass: DefaultComponents.glassButtonGlass) { ShareButtonView(component: $0) }
   }
 
   @MainActor

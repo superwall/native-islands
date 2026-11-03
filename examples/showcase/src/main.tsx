@@ -11,6 +11,7 @@ import "./styles/live.css";
 import "./styles/tokens.css";
 import "./styles/app.css";
 import "./styles/components.css";
+import "./styles/capabilities.css";
 
 const SCREENS = [...componentScreens, ...capabilityScreens, ...settingScreens];
 
@@ -32,6 +33,13 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
       gauge: 1,
       symbolEffect: 1,
       chart: 1,
+      map: 1,
+      video: 1,
+      camera: 1,
+      photoPicker: 1,
+      permission: 1,
+      hapticButton: 1,
+      shareButton: 1,
     },
   });
 }

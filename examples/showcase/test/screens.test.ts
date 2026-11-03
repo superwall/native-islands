@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { demoScreens, sectionsOf } from "../src/app/nav";
 import { TABS } from "../src/app/navigation";
 import { capabilityScreens } from "../src/tabs/capabilities";
+import { PLACES } from "../src/tabs/capabilities/location";
 import { componentScreens } from "../src/tabs/components";
 import { settingScreens } from "../src/tabs/settings";
 import { hasWebSymbol } from "../src/ui/icons";
@@ -69,10 +70,25 @@ describe("the app's screens", () => {
     ]);
   });
 
+  it("list the Capabilities demos in their sections", () => {
+    expect(
+      sectionsOf(SCREENS, "capabilities").map((section) => [
+        section.title,
+        section.screens.map((screen) => screen.id),
+      ]),
+    ).toEqual([
+      ["Location", ["maps"]],
+      ["Media", ["video", "camera", "photos"]],
+      ["System", ["permissions", "haptics", "share"]],
+    ]);
+  });
+
   it("have a web drawing for every row symbol, for browsers and native islands off", () => {
-    const missing = SCREENS.map((screen) => screen.symbol).filter(
-      (symbol) => !hasWebSymbol(symbol),
-    );
+    const symbols = [
+      ...SCREENS.map((screen) => screen.symbol),
+      ...PLACES.map((place) => place.symbol ?? ""),
+    ];
+    const missing = symbols.filter((symbol) => !hasWebSymbol(symbol));
     expect(missing).toEqual([]);
   });
 });

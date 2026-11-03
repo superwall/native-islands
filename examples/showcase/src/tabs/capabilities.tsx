@@ -1,5 +1,8 @@
 import type { ScreenSpec } from "../app/nav";
 import { TabRoot } from "../ui/TabRoot";
+import { locationScreens } from "./capabilities/location";
+import { mediaScreens } from "./capabilities/media";
+import { systemScreens } from "./capabilities/system";
 
 const Root = () => (
   <TabRoot
@@ -18,4 +21,7 @@ export const capabilityScreens: readonly ScreenSpec[] = [
     largeTitle: true,
     Component: Root,
   },
+  ...locationScreens,
+  ...mediaScreens,
+  ...systemScreens,
 ];

@@ -3,7 +3,7 @@ import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
 import { useNativeIslandsReady } from "@superwall/native-islands/react";
 import { BarButton } from "../ui/controls";
 import { TabBar } from "../ui/TabBar";
-import { NavProvider, type Nav, type ScreenSpec } from "./nav";
+import { NavProvider, ShowingProvider, type Nav, type ScreenSpec } from "./nav";
 import {
   canGoBack,
   initialState,
@@ -70,7 +70,9 @@ const Screen = ({
         <div className="screen-content">
           <div className="nav-spacer" />
           {spec.largeTitle && <h1 className="large-title">{spec.title}</h1>}
-          <ScreenBody Component={spec.Component} />
+          <ShowingProvider value={place === "top"}>
+            <ScreenBody Component={spec.Component} />
+          </ShowingProvider>
         </div>
       </div>
       <header className="nav-bar">

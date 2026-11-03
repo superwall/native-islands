@@ -42,6 +42,11 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        UIBackgroundModes: [audio]
+        NSCameraUsageDescription: Islands shows the live camera inside a web page.
+        NSMicrophoneUsageDescription: Islands shows how a web page asks for the microphone.
+        NSLocationWhenInUseUsageDescription: Islands shows where you are on the map.
+        NSPhotoLibraryUsageDescription: Islands shows how a web page asks for your photo library.
     settings:
       base:
         CODE_SIGN_STYLE: Automatic

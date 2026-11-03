@@ -27,6 +27,17 @@ export const NavProvider = NavContext.Provider;
 
 export const useNav = (): Nav => React.useContext(NavContext);
 
+const ShowingContext = React.createContext(true);
+
+/** Holds whether a screen is the one on top of the showing tab. */
+export const ShowingProvider = ShowingContext.Provider;
+
+/**
+ * Whether the screen this is on is showing. Every screen stays mounted, so a
+ * demo that holds a device, such as the camera, lets go of it while hidden.
+ */
+export const useScreenShowing = (): boolean => React.useContext(ShowingContext);
+
 /** The demos a tab's root lists, grouped by section in the order they were declared. */
 export const sectionsOf = (
   screens: readonly ScreenSpec[],
