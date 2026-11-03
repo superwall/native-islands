@@ -248,6 +248,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   func remove(_ id: String) {
     parked[id] = nil
     guard let island = islands.removeValue(forKey: id) else { return }
+    detachFromParent(island.host)
     island.view.removeFromSuperview()
     island.removeShades()
     pruneGroups(in: island.container)
@@ -265,6 +266,44 @@ final class NativeIslandManager: NativeIslandMessaging {
     } else {
       recoveredUnreadableBatch = false
     }
+  }
+}
+
+// MARK: - Containment
+
+extension NativeIslandManager {
+  /// The view controller that owns the web view, found through the
+  /// responder chain so any `WKWebView` works. UIKit only supports
+  /// presenting (a color picker, a menu, a sheet) from a controller in
+  /// the hierarchy, so each island's hosting controller becomes its child.
+  var parentController: UIViewController? {
+    guard let viewport = surface?.viewport else { return nil }
+    return sequence(first: viewport as UIResponder, next: \.next)
+      .lazy
+      .compactMap { $0 as? UIViewController }
+      .first
+  }
+
+  /// Makes every island's hosting controller a child of the web view's
+  /// controller, for islands mounted before the web view had one.
+  func adoptIslands() {
+    for island in islands.values {
+      adopt(island)
+    }
+  }
+
+  func adopt(_ island: NativeIsland) {
+    let host = island.host
+    guard let parent = parentController, host.parent !== parent else { return }
+    detachFromParent(host)
+    parent.addChild(host)
+    host.didMove(toParent: parent)
+  }
+
+  private func detachFromParent(_ host: UIViewController) {
+    guard host.parent != nil else { return }
+    host.willMove(toParent: nil)
+    host.removeFromParent()
   }
 }
 

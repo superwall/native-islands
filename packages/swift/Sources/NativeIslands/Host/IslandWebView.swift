@@ -20,6 +20,11 @@ open class IslandWebView: WKWebView {
     fatalError("IslandWebView is created in code.")
   }
 
+  override open func didMoveToWindow() {
+    super.didMoveToWindow()
+    islands?.webViewDidMoveToWindow()
+  }
+
   override open func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
     if let island = islands?.hitTest(point, with: event, webHit: { super.hitTest(point, with: event) }) {
       return island

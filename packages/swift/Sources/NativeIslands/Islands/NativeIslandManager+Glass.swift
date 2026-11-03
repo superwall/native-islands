@@ -4,6 +4,7 @@ extension NativeIslandManager {
   func attach(_ island: NativeIsland, to container: UIView) {
     island.container = container
     watchScrolling(of: container)
+    adopt(island)
     let parent = island.glassGroup.map { group(named: $0, in: container).contentView } ?? container
     if island.view.superview !== parent {
       island.view.removeFromSuperview()
