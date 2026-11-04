@@ -1,4 +1,4 @@
-import { useNativeSupport } from "@superwall/native-islands/react";
+import { useNativeSupport } from "native-islands/react";
 import { Glass } from "../components/controls";
 import { useRouter, type RouteName } from "../router";
 

@@ -1,5 +1,5 @@
-import { installNativeSimulator } from "@superwall/native-islands/simulator";
-import { NativeIslandsProvider } from "@superwall/native-islands/react";
+import { installNativeSimulator } from "native-islands/simulator";
+import { NativeIslandsProvider } from "native-islands/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Pages, ROUTES, type RouteName } from "./router";

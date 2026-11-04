@@ -1,9 +1,9 @@
 {
-  "name": "@superwall/native-islands",
+  "name": "native-islands",
   "version": "0.1.0",
   "private": true,
   "description": "Native islands for WKWebView pages: the page side of the bridge.",
-  "license": "UNLICENSED",
+  "license": "FSL-1.1-MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {

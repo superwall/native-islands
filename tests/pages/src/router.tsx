@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
+import { ISLAND_PHASE_ATTRIBUTE } from "native-islands";
 
 /** Every page, in the order the index lists them. */
 export const ROUTES = [

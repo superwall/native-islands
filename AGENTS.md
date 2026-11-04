@@ -11,11 +11,11 @@ the web content around it. Anything the host cannot draw stays web.
 
 It has two sides that speak one contract:
 
-- **Host (Swift):** the `NativeIslands` package, iOS 15+ to build, iOS 16+ to
-  draw. Before iOS 26 glass falls back to a material (or its tint) in the same
+- **Host (Swift):** the `NativeIslands` package, iOS 15+, with no version cap on
+  drawing: every registered component is offered on every iOS it builds for. Before iOS 26 glass falls back to a material (or its tint) in the same
   shape, the way UIKit's own controls do. It works with any `WKWebView`; nothing in it knows about an app or a
   service.
-- **Page (JS):** `@superwall/native-islands` in `packages/web/`, with `/react` bindings.
+- **Page (JS):** `native-islands` in `packages/web/`, with `/react` bindings.
 
 ## The contract is the source of truth
 
@@ -36,7 +36,7 @@ that the other cannot read fails a test.
 ```
 tests/fixtures/         messages.json: one example of every wire message,
                         decoded by the tests of both packages
-packages/web/           @superwall/native-islands (page side)
+packages/web/           native-islands (page side)
   src/protocol/         zod schemas, message types, capability reader
   src/bridge/           WebKit transport and connectNativeIslands
   src/islands/          the island controller: batching, acks, state,
@@ -69,6 +69,12 @@ examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers, parallel UI test runs and the
                         iOS runtime matrix with its WebKit view-tree diff
+docs/                   compatibility.md, what each iOS was proven on;
+                        performance.md, device numbers and how to measure
+                        them; host-features.md, the feature names, reuse
+                        limits and test thresholds; assets/ the images
+                        the README shows
+LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never
@@ -100,7 +106,7 @@ Run only what your change touches; never a whole suite by hand.
 - Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`, on every iOS major with `--runtimes 17.5,18.6,26.5,27.2`; record screenshots with `--record` only after a deliberate visual change (baselines are per iOS major)
 - Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`. What each iOS was proven on, and how versions differ, is in `docs/compatibility.md`
-- Performance: `performance/run.sh`; its comparison: `bun test performance`
+- Performance: `performance/run.sh`; its comparison: `bun test performance`. Numbers for people come from a device, as `docs/performance.md` describes, never a simulator
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
 ## Conventions

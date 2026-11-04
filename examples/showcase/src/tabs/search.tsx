@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { NativeHandle } from "@superwall/native-islands/react";
+import type { NativeHandle } from "native-islands/react";
 import { searchScreens, useNav, useScreenShowing, type ScreenSpec } from "../app/nav";
 import { BAR_TABS, type TabId } from "../app/navigation";
 import { useAccent, useNativeEnabled } from "../app/preferences";

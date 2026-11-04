@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { NativeHandle } from "@superwall/native-islands/react";
+import type { NativeHandle } from "native-islands/react";
 import {
   DatePicker,
   PlanPicker,

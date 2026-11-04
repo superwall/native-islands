@@ -1,7 +1,7 @@
 import UIKit
 import WebKit
 
-/// Draws native islands in a `WKWebView` page that uses `@superwall/native-islands`.
+/// Draws native islands in a `WKWebView` page that uses `native-islands`.
 ///
 /// Attach it before the web view loads its first page. A web view of your own
 /// must forward `hitTest(_:with:)` to ``hitTest(_:with:webHit:)``, as
@@ -238,7 +238,7 @@ public final class NativeIslandsHost {
 
 public enum NativeIslandsReveal: Equatable, Sendable {
   case immediately
-  /// A page that doesn't use `@superwall/native-islands` shows only after `timeout`.
+  /// A page that doesn't use `native-islands` shows only after `timeout`.
   case whenIslandsReady(timeout: TimeInterval)
 }
 
