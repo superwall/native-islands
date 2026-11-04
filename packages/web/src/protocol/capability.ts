@@ -28,8 +28,7 @@ export type NativeSupport =
   | "unknown_component"
   | "unsupported_version";
 
-export const nativeCapabilityFromGlobal = (): unknown =>
-  typeof window === "undefined" ? undefined : hostWindow()[NATIVE_CAPABILITY_GLOBAL];
+export const nativeCapabilityFromGlobal = (): unknown => hostWindow()?.[NATIVE_CAPABILITY_GLOBAL];
 
 const isNativeFeature = (feature: string): feature is TNativeFeature =>
   NATIVE_FEATURES.some((known) => known === feature);

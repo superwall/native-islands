@@ -21,7 +21,9 @@ export type HostWindow = Window & {
   [NATIVE_RECEIVER_GLOBAL]?: NativeIslandsReceiver;
 };
 
-export const hostWindow = (target: Window = window): HostWindow => target;
+/** The given window, else the global one; undefined where there is none, such as a server render. */
+export const hostWindow = (target?: Window): HostWindow | undefined =>
+  target ?? (typeof window === "undefined" ? undefined : window);
 
 type Listeners = Set<(message: unknown) => void>;
 
@@ -82,16 +84,17 @@ export type WebKitTransportOptions = {
 export const createWebKitTransport = (
   options: WebKitTransportOptions = {},
 ): NativeIslandsTransport => {
-  const target = hostWindow(options.window);
   const report = options.report ?? defaultReport;
   return {
     post: (message) => {
-      const handler = target.webkit?.messageHandlers?.[NATIVE_MESSAGE_HANDLER];
+      const handler = hostWindow(options.window)?.webkit?.messageHandlers?.[NATIVE_MESSAGE_HANDLER];
       if (!handler) return false;
       handler.postMessage(message);
       return true;
     },
     listen: (listener) => {
+      const target = hostWindow(options.window);
+      if (!target) return () => undefined;
       const listeners = receiverFor(target, report);
       listeners.add(listener);
       return () => {

@@ -153,31 +153,34 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 TSX
 write_islands app/islands.tsx
-# The provider reads `window` while it renders, so it cannot render on the server yet; the islands mount in the
-# browser only. Once it can, render `<Islands />` straight from the page.
-cat >app/client-islands.tsx <<'TSX'
-"use client";
-import dynamic from "next/dynamic";
-
-export const ClientIslands = dynamic(() => import("./islands").then((module) => module.Islands), { ssr: false });
-TSX
+# The page is a server component that renders the islands directly, so the build prerenders the provider and its
+# islands with no `window`. The prerendered HTML must hold each island's web version.
 cat >app/page.tsx <<'TSX'
 import { NATIVE_PROTOCOL_VERSION } from "native-islands/protocol";
-import { ClientIslands } from "./client-islands";
+import { Islands } from "./islands";
 
 export default function Page() {
   return (
     <main>
       <p>server protocol {NATIVE_PROTOCOL_VERSION}</p>
-      <ClientIslands />
+      <Islands />
     </main>
   );
 }
 TSX
+check_prerendered() {
+  html=".next/server/app/index.html"
+  [ -f "$html" ] || { echo "error: next build did not prerender the page ($html is missing)"; exit 1; }
+  for expected in 'data-island-mode="web"' ' of 5<' '>unavailable<'; do
+    grep -qF "$expected" "$html" || { echo "error: the prerendered page lacks $expected"; exit 1; }
+  done
+}
 # Webpack, the bundler most published packages still meet.
 npx next build --webpack
+check_prerendered
 # Turbopack, Next.js's default.
 rm -rf .next
 npx next build
+check_prerendered
 
-echo "Both apps built from the packed tarball."
+echo "Both apps built from the packed tarball, and Next.js prerendered the islands on the server."

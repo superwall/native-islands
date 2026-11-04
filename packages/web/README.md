@@ -40,6 +40,10 @@ React 19 or later is an optional peer, needed only for `/react`.
 | `connect`       | `ConnectNativeIslandsOptions` | `{}`                                                                                                         |
 | `announceReady` | `boolean`                     | `true`: tells the host once the first frame's islands are drawn, so it can reveal the page with no web flash |
 
+The provider renders on the server, as in a Next.js App Router page. There it
+has no host, so every island renders its web version and `useNativeSupport`
+returns `"unavailable"`. Islands go native once the page hydrates in an app.
+
 ### `defineNativeComponent`
 
 Types a component the app registered. Everything in the spec is optional.
