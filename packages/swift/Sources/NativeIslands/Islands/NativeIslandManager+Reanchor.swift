@@ -36,10 +36,13 @@ extension NativeIslandManager {
   // A scroll view's content can grow while the scroller an island in it
   // belongs to keeps its size, so the page sends nothing: look again at the
   // islands in it once the page had its turn to update their anchors.
+  // WebKit rebuilds scroll views as screens slide, and a new one can reuse a
+  // freed one's address, so a watch counts only while its view is alive.
   func watchContentSize(of scrollView: UIScrollView) {
     let key = ObjectIdentifier(scrollView)
-    guard contentSizeObservations[key] == nil else { return }
-    contentSizeObservations[key] = scrollView.observe(
+    guard contentSizeObservations[key]?.scrollView !== scrollView else { return }
+    contentSizeObservations = contentSizeObservations.filter { $0.value.scrollView != nil }
+    let observation = scrollView.observe(
       \.contentSize,
       options: [.old, .new]
     ) { [weak self] resized, change in
@@ -53,6 +56,7 @@ extension NativeIslandManager {
         }
       }
     }
+    contentSizeObservations[key] = ContentSizeObservation(scrollView: scrollView, observation: observation)
   }
 
   private func hasShape(_ container: UIView?, of scroller: NativeScroller) -> Bool {
@@ -68,6 +72,11 @@ extension NativeIslandManager {
     guard let container, container.isDescendant(of: viewport) else { return false }
     return container.convert(container.bounds, to: viewport).intersects(viewport.bounds)
   }
+}
+
+struct ContentSizeObservation {
+  weak var scrollView: UIScrollView?
+  let observation: NSKeyValueObservation
 }
 
 // MARK: - Anchors
@@ -95,7 +104,14 @@ extension NativeIslandManager {
         scroller,
         among: NativeScrollerMatcher.candidates(in: surface.pageScrollView),
         in: surface.viewport
-      )
+      ) { self.holdsIslands(of: $0, otherThan: scroller.id) }
+    }
+  }
+
+  func holdsIslands(of scrollView: UIView, otherThan scrollerID: String) -> Bool {
+    islands.values.contains { island in
+      guard island.container === scrollView, case .scroller(let other) = island.anchor else { return false }
+      return other.id != scrollerID
     }
   }
 }

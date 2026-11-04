@@ -15,7 +15,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   var requestCount = 0
   var pendingRequests: [String: PendingRequest] = [:]
   var scrollObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
-  var contentSizeObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
+  var contentSizeObservations: [ObjectIdentifier: ContentSizeObservation] = [:]
   var parked: [String: ParkedMount] = [:]
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
   static let parkingAttempts = 20

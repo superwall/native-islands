@@ -73,6 +73,45 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func givesTwoScrollersAtOneSpotWithTheSameContentAScrollViewEach() {
+      let harness = NativeTestHarness()
+      let views = (0..<2).map { _ in
+        harness.surface.addScroller(
+          frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+          contentSize: CGSize(width: 400, height: 801)
+        )
+      }
+      let anchor = { (id: String) in
+        scroller(
+          id,
+          frame: NativeFrame(x: 0, y: 0, width: 400, height: 800),
+          contentSize: NativeSize(width: 400, height: 801)
+        )
+      }
+      harness.manager.apply(batch(
+        1,
+        mountOp("root", anchor: anchor("root")),
+        mountOp("pushed", anchor: anchor("pushed")),
+        mountOp("more", anchor: anchor("pushed"))
+      ))
+      #expect(harness.island("root")?.view.superview === views[0])
+      #expect(harness.island("pushed")?.view.superview === views[1])
+      #expect(harness.island("more")?.view.superview === views[1])
+    }
+
+    @Test
+    func forgetsTheContentSizeWatchOfAScrollViewWebKitReleased() {
+      let harness = NativeTestHarness()
+      autoreleasepool {
+        harness.manager.watchContentSize(of: UIScrollView())
+      }
+      let kept = UIScrollView()
+      harness.manager.watchContentSize(of: kept)
+      #expect(harness.manager.contentSizeObservations.count == 1)
+      #expect(harness.manager.contentSizeObservations[ObjectIdentifier(kept)]?.scrollView === kept)
+    }
+
+    @Test
     func waitsForItsOwnScrollViewInsteadOfAnotherScreensFarAway() {
       let harness = NativeTestHarness()
       let other = harness.surface.addScroller(

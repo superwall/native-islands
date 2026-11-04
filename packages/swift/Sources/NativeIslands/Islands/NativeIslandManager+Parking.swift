@@ -27,7 +27,7 @@ extension NativeIslandManager {
       among: NativeScrollerMatcher.candidates(in: surface.pageScrollView),
       in: surface.viewport,
       within: NativeScrollerMatcher.reach(of: scroller)
-    )
+    ) { self.holdsIslands(of: $0, otherThan: scroller.id) }
   }
 
   func park(_ mount: NativeMount, sequence: Int) {
