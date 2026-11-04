@@ -5,6 +5,39 @@ use a private API, but it does rely on how WebKit lays those views out. This
 page records what that layout is on each iOS version, how it was measured, and
 how to measure it again.
 
+## Support matrix
+
+The host draws islands from iOS 16; below that it offers nothing and the page
+shows its web versions. Measured on 2026-11-04:
+
+| iOS            | Islands drawn | Glass looks like               | WebKit probe | Swift suite | TestHost alignment  | Screenshot baselines |
+| -------------- | ------------- | ------------------------------ | ------------ | ----------- | ------------------- | -------------------- |
+| 15 and earlier | no, web only  | (web version)                  | –            | –           | –                   | –                    |
+| 16.0–16.4      | yes           | system material, hairline edge | CI only      | CI only     | –                   | –                    |
+| 17.5           | yes           | system material, hairline edge | pass         | pass        | pass                | `iOS-17`             |
+| 18.6           | yes           | system material, hairline edge | pass         | pass        | pass                | `iOS-18`             |
+| 26.1–26.5      | yes           | Liquid Glass                   | pass         | pass        | pass, except 26.3.1 | `iOS-26` (26.5)      |
+| 27.0–27.2      | yes           | Liquid Glass                   | pass         | pass        | pass                | `iOS-27` (27.2)      |
+| 27.2 on device | yes           | Liquid Glass                   | –            | –           | by hand             | –                    |
+
+"Pass" is a run on this Mac's simulator of that version; "CI only" means the
+`iOS compatibility` workflow, because macOS 27 cannot boot iOS 16. The device
+row is the Islands app on an iPhone 18 Pro, checked by hand: Components, a pushed
+screen (Buttons), merged glass groups and the tab bar.
+
+What differs by version, for anyone building islands:
+
+- **Glass.** iOS 26 and later draw Liquid Glass. Below 26 a glass island is the
+  system material in the same shape, with a thin edge where it has no tint, and
+  glass groups stay separate shapes, as Apple's own pre-26 bars do.
+- **Controls.** Buttons fall back to Apple's bordered and bordered-prominent
+  styles, and every other SwiftUI control draws as that iOS draws it.
+- **Before iOS 17.** SwiftUI maps have no markers, selection or camera, so the
+  showcase uses `MKMapView` there; symbol effects don't animate; charts read the
+  drag directly. On iOS 17 symbol effects fall back to the nearest one it has.
+- **Before iOS 18.** A SwiftUI island on a page that slid in is attached to the
+  window again on its first touch, so its buttons take taps (see below).
+
 ## What the host relies on
 
 The host finds the scroll view for each scrolling area of the page and adds its

@@ -99,7 +99,7 @@ Run only what your change touches; never a whole suite by hand.
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test test`; in a browser `bun run --cwd examples/showcase dev`
 - Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`, on every iOS major with `--runtimes 17.5,18.6,26.5,27.2`; record screenshots with `--record` only after a deliberate visual change (baselines are per iOS major)
-- Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`
+- Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`. What each iOS was proven on, and how versions differ, is in `docs/compatibility.md`
 - Performance: `performance/run.sh`; its comparison: `bun test performance`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
