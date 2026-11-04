@@ -39,19 +39,24 @@ export type NativeEventHandlers<TEvents> = {
 };
 
 export type NativeRequestHandlers<TRequests> = {
-  [K in keyof TRequests]?: TRequests[K] extends NativeRequest
+  [K in keyof TRequests & string as `on${Capitalize<K>}`]?: TRequests[K] extends NativeRequest
     ? (payload: TRequests[K]["payload"]) => TRequests[K]["result"] | Promise<TRequests[K]["result"]>
     : never;
 };
 
+export type NativeStateHandlers<TState> = {
+  [K in keyof TState & string as `on${Capitalize<K>}Change`]?: (next: TState[K]) => void;
+};
+
 export type NativeComponentProps<TSpec extends NativeComponentSpec> = PropsOf<TSpec> &
   NativeEventHandlers<EventsOf<TSpec>> &
+  NativeStateHandlers<StateOf<TSpec>> &
+  NativeRequestHandlers<RequestsOf<TSpec>> &
   NativeCommonProps & {
     onStateChange?: (
       state: Readonly<Partial<StateOf<TSpec>>>,
       changed: Readonly<Partial<StateOf<TSpec>>>,
     ) => void;
-    requests?: NativeRequestHandlers<RequestsOf<TSpec>>;
     ref?: React.Ref<NativeHandle<CommandsOf<TSpec>, StateOf<TSpec>>>;
   };
 
@@ -75,7 +80,6 @@ const RESERVED = new Set([
   "native",
   "accessibility",
   "onStateChange",
-  "requests",
   "ref",
 ]);
 
@@ -86,7 +90,6 @@ export const eventNameOf = (handler: string) => handler.charAt(2).toLowerCase() 
 type UntypedProps = NativeCommonProps & {
   readonly [key: string]: unknown;
   onStateChange?: NativeProps["onStateChange"];
-  requests?: Readonly<Record<string, unknown>>;
   ref?: React.Ref<NativeHandle>;
 };
 
@@ -146,14 +149,23 @@ export function defineNativeComponent(name: string, options: UntypedOptions = {}
       else if (value === undefined || isNativeValue(value)) values[key] = value;
       else invalid.push(key);
     }
-    const latest = React.useRef({ handlers, requests: input.requests });
-    latest.current = { handlers, requests: input.requests };
+    const latest = React.useRef({ handlers, onStateChange: input.onStateChange });
+    latest.current = { handlers, onStateChange: input.onStateChange };
     const onEvent = React.useCallback((event: string, payload: unknown) => {
       latest.current.handlers[event]?.(payload);
     }, []);
+    const onStateChange = React.useCallback(
+      (state: Readonly<Record<string, unknown>>, changed: Readonly<Record<string, unknown>>) => {
+        latest.current.onStateChange?.(state, changed);
+        for (const [key, next] of Object.entries(changed)) {
+          latest.current.handlers[`${key}Change`]?.(next);
+        }
+      },
+      [],
+    );
     const onRequest = React.useCallback((request: string, payload: unknown) => {
-      const handler = latest.current.requests?.[request];
-      if (!isHandler(handler)) {
+      const handler = latest.current.handlers[request];
+      if (!handler) {
         throw new Error(`<${name}> has no handler for the ${JSON.stringify(request)} request.`);
       }
       return handler(payload);
@@ -173,7 +185,7 @@ export function defineNativeComponent(name: string, options: UntypedOptions = {}
         native={input.native !== false && invalid.length === 0}
         accessibility={input.accessibility}
         onEvent={onEvent}
-        onStateChange={input.onStateChange}
+        onStateChange={onStateChange}
         onRequest={onRequest}
         ref={input.ref}
       >

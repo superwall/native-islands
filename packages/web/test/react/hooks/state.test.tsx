@@ -53,6 +53,8 @@ afterEach(() => {
 
 const Form = (props: {
   onState?: (state: Partial<{ email: string; agreed: boolean }>) => void;
+  onEmail?: (next: string) => void;
+  onAgreed?: (next: boolean) => void;
   validate?: (payload: { email: string }) => { valid: boolean } | Promise<{ valid: boolean }>;
   handle?: React.Ref<
     NativeHandle<
@@ -66,7 +68,9 @@ const Form = (props: {
     islandId="signup"
     plan={props.plan ?? "annual"}
     onStateChange={props.onState}
-    requests={props.validate ? { validate: props.validate } : undefined}
+    onEmailChange={props.onEmail}
+    onAgreedChange={props.onAgreed}
+    onValidate={props.validate}
     ref={props.handle}
   >
     <form data-rect={rectAttribute(0, 0, 360, 420)}>
@@ -103,6 +107,49 @@ describe("state from native", () => {
     });
   });
 
+  it("calls each on<Key>Change with the new value of only the keys that changed, after onStateChange", async () => {
+    const calls: string[] = [];
+    const onState = vi.fn(() => calls.push("state"));
+    const onEmail = vi.fn((next: string) => calls.push(`email:${next}`));
+    const onAgreed = vi.fn();
+    const view = renderNative(<Form onState={onState} onEmail={onEmail} onAgreed={onAgreed} />);
+    await view.nextFrame();
+    view.ackAll();
+    view.send({
+      event_name: "native_component_state",
+      id: "signup",
+      revision: 1,
+      values: { email: "a" },
+    });
+    expect(calls).toEqual(["state", "email:a"]);
+    expect(onAgreed).not.toHaveBeenCalled();
+    view.send({
+      event_name: "native_component_state",
+      id: "signup",
+      revision: 2,
+      values: { agreed: false },
+    });
+    expect(onAgreed).toHaveBeenCalledWith(false);
+    expect(onEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls the newest on<Key>Change after a rerender, without onStateChange", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const view = renderNative(<Form onEmail={first} />);
+    await view.nextFrame();
+    view.ackAll();
+    view.rerender(<Form onEmail={second} />);
+    view.send({
+      event_name: "native_component_state",
+      id: "signup",
+      revision: 1,
+      values: { email: "c" },
+    });
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledWith("c");
+  });
+
   it("lets a ref read the last state and works without a state handler", async () => {
     const handle =
       React.createRef<
@@ -126,7 +173,7 @@ describe("state from native", () => {
 });
 
 describe("requests from native", () => {
-  it("routes a request to its named handler and answers with the result", async () => {
+  it("routes a request to its on<Request> prop and answers with what it returns", async () => {
     const validate = vi.fn(async ({ email }: { email: string }) => ({
       valid: email.includes("@"),
     }));

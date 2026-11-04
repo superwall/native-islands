@@ -1,6 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { defineNativeComponent, type NativeValue, useNativeSupport } from "../../../src/react";
+import {
+  defineNativeComponent,
+  type NativeComponentProps,
+  type NativeValue,
+  useNativeSupport,
+} from "../../../src/react";
 import {
   CloseButton,
   GlassButton,
@@ -35,6 +40,18 @@ describe("defineNativeComponent", () => {
     expect(Rating.version).toBe(2);
     expect(Rating.displayName).toBe("Native(rating)");
     expect(defineNativeComponent("plain").version).toBe(1);
+  });
+
+  it("types request and per-key state handlers as on… props, with no requests prop", () => {
+    type Props = NativeComponentProps<{
+      state: { value: number };
+      requests: { validateEmail: { payload: { email: string }; result: { error?: string } } };
+    }>;
+    expectTypeOf<Props["onValueChange"]>().toEqualTypeOf<((next: number) => void) | undefined>();
+    expectTypeOf<Props["onValidateEmail"]>().toEqualTypeOf<
+      ((payload: { email: string }) => { error?: string } | Promise<{ error?: string }>) | undefined
+    >();
+    expectTypeOf<Props>().not.toHaveProperty("requests");
   });
 
   it("maps handler names to event names", () => {
