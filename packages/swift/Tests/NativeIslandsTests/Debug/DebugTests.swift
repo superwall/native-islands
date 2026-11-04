@@ -132,7 +132,7 @@ extension NativeBridgeTests {
       for _ in 0..<NativeIslandManager.parkingAttempts {
         harness.runRetries()
       }
-      #expect(lines.last?.hasPrefix("parked waiting: gave up waiting after 20 checks, ") == true)
+      #expect(lines.last?.hasPrefix("parked waiting: gave up waiting after \(NativeIslandManager.parkingAttempts) checks, ") == true)
     }
 
     @Test

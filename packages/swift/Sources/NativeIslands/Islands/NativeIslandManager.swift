@@ -22,7 +22,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   var trace: NativeMountTrace?
   let expire: @MainActor (@escaping @MainActor () -> Void) -> Void
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
-  static let parkingAttempts = 20
+  static let parkingAttempts = NativeFrameTicker.framesPerSecond
   var requestTimeoutNanoseconds: UInt64 = 10_000_000_000
   let lifecycle: NativeLifecycleObservers
   /// The glass views put back in place since the app last went to the
@@ -42,7 +42,7 @@ final class NativeIslandManager: NativeIslandMessaging {
       DispatchQueue.main.async { MainActor.assumeIsolated { work() } }
     },
     retry: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
+      NativeFrameTicker.shared.next(work)
     },
     expire: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
       DispatchQueue.main.asyncAfter(deadline: .now() + NativeIslandManager.retiredLifetime) {
