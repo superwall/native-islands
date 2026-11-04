@@ -29,6 +29,11 @@ export const NativeGlassButton = defineNativeComponent<{
   events: { press: undefined };
 }>("glassButton", { colorProps: ["tint"] });
 
+export const NativeSearchTab = defineNativeComponent<{
+  props: GlassGroup & { selected: boolean; tint?: string };
+  events: { press: undefined };
+}>("searchTab", { colorProps: ["tint"] });
+
 export const NativeToggle = defineNativeComponent<{
   props: { isOn: boolean; tint?: string; disabled?: boolean };
   events: { change: { isOn: boolean } };

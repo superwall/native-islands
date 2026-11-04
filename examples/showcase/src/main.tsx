@@ -24,6 +24,7 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
       segmentedControl: 1,
       symbol: 1,
       tabBar: 1,
+      searchTab: 1,
       searchField: 1,
       menu: 1,
       navigationBar: 1,
