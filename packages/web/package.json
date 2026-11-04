@@ -5,11 +5,15 @@
   "description": "Native islands for WKWebView pages: the page side of the bridge.",
   "license": "FSL-1.1-MIT",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./react": "./src/react/index.ts",
-    "./simulator": "./src/simulator/index.ts"
+    "./simulator": "./src/simulator/index.ts",
+    "./components": "./src/components/index.ts",
+    "./components.css": "./src/components/components.css"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
