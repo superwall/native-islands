@@ -19,17 +19,26 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": {
+        "source": "./src/index.ts",
+        "default": "./dist/index.d.ts"
+      },
       "source": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./react": {
-      "types": "./dist/react.d.ts",
+      "types": {
+        "source": "./src/react/index.ts",
+        "default": "./dist/react.d.ts"
+      },
       "source": "./src/react/index.ts",
       "import": "./dist/react.js"
     },
     "./simulator": {
-      "types": "./dist/simulator.d.ts",
+      "types": {
+        "source": "./src/simulator/index.ts",
+        "default": "./dist/simulator.d.ts"
+      },
       "source": "./src/simulator/index.ts",
       "import": "./dist/simulator.js"
     },
