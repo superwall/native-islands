@@ -1,5 +1,6 @@
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CONCEAL_AFTER_MS } from "../../../src/react/components/Native";
 import { GlassButton } from "../../support/components";
 import {
   installCapability,
@@ -168,6 +169,9 @@ describe("hand-off to the web version", () => {
     const view = renderNative(<Card />);
     await view.nextFrame();
     view.ackAll();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, CONCEAL_AFTER_MS + 20));
+    });
     const update = vi.spyOn(view.islands, "update");
     const scroll = async () => {
       act(() => {
