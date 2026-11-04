@@ -16,7 +16,7 @@ enum ShowcaseComponents {
     add("toggle", in: registry) { ToggleView(component: $0) }
     add("segmentedControl", in: registry) { SegmentedControlView(component: $0) }
     add("symbol", in: registry) { SymbolView(component: $0) }
-    add("tabBar", in: registry, glass: tabBarGlass) { TabBarView(component: $0) }
+    add("tabBar", in: registry) { TabBarView(component: $0) }
     add("searchField", in: registry, glass: tabBarGlass) { SearchFieldView(component: $0) }
     add("menu", in: registry, glass: glassButton) { MenuView(component: $0) }
     add("navigationBar", in: registry) { NavigationBarView(component: $0) }
