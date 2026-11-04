@@ -105,6 +105,8 @@ extension NativeBridgeTests {
       )
       #expect(harness.island("a")?.view.superview is UIView)
       harness.manager.apply(batch(4, .unmount(id: "a")))
+      #expect(harness.surface.pageScrollView.subviews.compactMap { $0 as? NativeGlassGroupView }.count == 1)
+      harness.expirations.forEach { $0() }
       #expect(harness.surface.pageScrollView.subviews.compactMap { $0 as? NativeGlassGroupView }.isEmpty)
     }
 

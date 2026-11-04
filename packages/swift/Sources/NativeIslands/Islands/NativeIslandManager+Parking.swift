@@ -14,9 +14,10 @@ extension NativeIslandManager {
   // reports it. Until it does, another screen's scroll view with the same
   // geometry would match from afar, so a mount waits for one at its own spot.
   func shouldPark(_ mount: NativeMount) -> Bool {
-    guard case .scroller = mount.anchor, surface != nil,
+    guard case .scroller = mount.anchor,
       let entry = registry.entries[mount.component], entry.version >= mount.version
     else { return false }
+    guard let surface, knownContainer(for: mount.anchor, in: surface) == nil else { return false }
     return ownContainer(for: mount.anchor) == nil
   }
 
@@ -52,6 +53,7 @@ extension NativeIslandManager {
       return
     }
     parked[id] = nil
+    trace?.unparked(id, attempts: entry.attempts, found: found)
     var replies: [NativeReply] = []
     if let error = mountIsland(entry.mount, sequence: sequence) {
       replies.append(error)
