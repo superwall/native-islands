@@ -22,7 +22,6 @@ export {
   type NativeCommandOptions,
   type NativeCommonProps,
   type NativeHandle,
-  type NativeIslandHandle,
   type NativeProps,
   type NativeValue,
 } from "./components/Native";

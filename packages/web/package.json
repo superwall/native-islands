@@ -8,6 +8,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./protocol": "./src/protocol/index.ts",
     "./react": "./src/react/index.ts",
     "./simulator": "./src/simulator/index.ts"
   },

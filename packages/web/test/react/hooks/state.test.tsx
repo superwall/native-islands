@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react";
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TToHostMessage } from "../../../src";
+import type { TToHostMessage } from "../../../src/protocol/messages";
 import {
   defineNativeComponent,
   Native,

@@ -3,7 +3,6 @@ import {
   Native,
   type NativeCommonProps,
   type NativeHandle,
-  type NativeIslandHandle,
   type NativeProps,
   type NativeValue,
 } from "./Native";
@@ -88,7 +87,7 @@ type UntypedProps = NativeCommonProps & {
   readonly [key: string]: unknown;
   onStateChange?: NativeProps["onStateChange"];
   requests?: Readonly<Record<string, unknown>>;
-  ref?: React.Ref<NativeIslandHandle>;
+  ref?: React.Ref<NativeHandle>;
 };
 
 type UntypedOptions = {

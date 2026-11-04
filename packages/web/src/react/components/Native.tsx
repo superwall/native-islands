@@ -35,11 +35,6 @@ export type NativeHandle<
   state: () => Readonly<Partial<TState>> | undefined;
 };
 
-export type NativeIslandHandle = {
-  command: (name: string, args?: unknown, options?: NativeCommandOptions) => Promise<unknown>;
-  state: () => Readonly<Record<string, unknown>> | undefined;
-};
-
 export type NativeAccessibility = TNativeAccessibility;
 
 export type NativeCommonProps = {
@@ -61,7 +56,7 @@ export type NativeProps = NativeCommonProps & {
     changed: Readonly<Record<string, unknown>>,
   ) => void;
   onRequest?: (name: string, payload: unknown) => unknown;
-  ref?: React.Ref<NativeIslandHandle>;
+  ref?: React.Ref<NativeHandle>;
 };
 
 export const CONCEAL_AFTER_MS = 150;
