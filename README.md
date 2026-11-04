@@ -416,6 +416,18 @@ bun run --cwd examples/showcase dev
 Then open `http://localhost:5173/?native=simulate`, or
 `http://localhost:5173/?native=simulate&screen=buttons` for a single screen.
 
+The host draws the same outline, with the component's name, over the real
+native views in any app. It is off by default. Turn it on from code, in any
+build:
+
+```swift
+webView.islands?.showsOutlines = true
+```
+
+or launch a Debug build with `-NativeIslandsOutlines YES`. Release builds
+ignore the argument, so outlines show there only when the app turns them on.
+In Islands, View Mode › Outlines switches them.
+
 `tests/pages/` holds the scenario gallery the tests run against: regression
 pages for each scenario, and a three-page flow where islands slide in with
 their page. `tests/ios/` is TestHost, the app that bundles those pages. In a
