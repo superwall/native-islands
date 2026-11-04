@@ -154,3 +154,24 @@ final class NativeAlignmentProbe {
     }
   }
 }
+
+struct NativeIslandFrame: Equatable {
+  let id: String
+  let component: String
+  let frame: CGRect
+  let visible: Bool
+  let acknowledged: Bool
+
+  var json: [String: Any] {
+    [
+      "id": id,
+      "component": component,
+      "x": Double(frame.origin.x),
+      "y": Double(frame.origin.y),
+      "width": Double(frame.width),
+      "height": Double(frame.height),
+      "visible": visible,
+      "acknowledged": acknowledged
+    ]
+  }
+}

@@ -198,9 +198,11 @@ public final class NativeComponentContext: ObservableObject {
 struct NativeIslandRoot: View {
   @ObservedObject var context: NativeComponentContext
   let make: @MainActor (NativeComponentContext) -> AnyView
+  let outlines: NativeIslandOutlines
 
   var body: some View {
     make(context)
       .modifier(NativeAccessibilityModifier(accessibility: context.accessibility))
+      .modifier(NativeIslandOutline(name: context.component, outlines: outlines))
   }
 }
