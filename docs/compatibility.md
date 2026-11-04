@@ -7,8 +7,8 @@ how to measure it again.
 
 **In short:** islands draw natively on every iOS from 16 to 27. Below iOS 26
 they stay native and take the look Apple's own controls have there (system
-materials, bordered buttons), never the web version. Every iOS from 17.5 to 27.2
-installed here passes the WebKit probe, the Swift suite and TestHost's
+materials, bordered buttons), never the web version. Every iOS simulator runtime from
+17.5 to 27.2 that we ran passes the WebKit probe, the Swift suite and TestHost's
 alignment tests (26.3.1 skips the UI tests, see below), and the screenshot
 baselines of 17, 18, 26 and 27 pass on their newest runtime. iOS 16
 is covered only by the `iOS compatibility` workflow, as macOS 27 cannot boot
@@ -75,7 +75,7 @@ shows its web versions. Measured on 2026-11-04:
 | 27.0–27.2      | yes           | Liquid Glass                   | pass         | pass        | pass                | `iOS-27` (27.2)      |
 | 27.2 on device | yes           | Liquid Glass                   | –            | –           | by hand             | –                    |
 
-"Pass" is a run on this Mac's simulator of that version; "CI only" means the
+"Pass" is a run on a local simulator of that version, on macOS 27; "CI only" means the
 `iOS compatibility` workflow, because macOS 27 cannot boot iOS 16. The device
 row is the Islands app on an iPhone 18 Pro, checked by hand: Components, a pushed
 screen (Buttons), merged glass groups and the tab bar.
@@ -219,7 +219,7 @@ geometry, never by index among `subviews`; expect UIKit and WebKit views beside
 
 ## Running it
 
-On this Mac, every installed iOS runtime, one after another:
+On a Mac, every installed iOS runtime, one after another:
 
 ```bash
 scripts/compat-matrix.sh                      # the WebKit probe on each runtime
@@ -236,7 +236,7 @@ web element, pages pushed and popped) on each runtime.
 
 Each iOS release draws controls its own way, so TestHost's screenshot baselines
 are kept per major release in `tests/ios/Baselines/iOS-<major>/<device>/`, each
-recorded on that release's newest runtime here:
+recorded on the newest runtime of that release:
 
 ```bash
 scripts/ui-tests.sh --runtimes 17.5,18.6,26.5,27.2              # alignment and screenshots
@@ -261,7 +261,7 @@ that starts a device there (a player, a camera) restarts on that first touch.
 through a push on every runtime.
 
 TestHost's alignment tests pass on 17.5, 18.6, 26.1, 26.4.1, 26.5, 27.0, 27.1
-and 27.2. On the iOS 26.3.1 simulator here, WebKit's page process crashes in
+and 27.2. On the iOS 26.3.1 simulator, WebKit's page process crashes in
 JavaScriptCore (`EXC_BAD_ACCESS` in `regExpProtoFuncSplitFast`) on a few page
 loads, a different few each run, so those pages never report and their tests
 time out. The same pages pass on 26.1 and 26.4.1, and the crash is inside the

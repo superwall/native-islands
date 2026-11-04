@@ -1,8 +1,19 @@
 # @superwall/native-islands
 
-The page side of NativeIslands. Wrap a web element, and on an app that hosts
-islands it is replaced by a real native view placed exactly where the element
-is. Everywhere else the web element stays.
+The page side of [NativeIslands](../../README.md). Wrap a web element, and in an
+iOS app that hosts islands it is replaced by a real UIKit or SwiftUI view,
+placed exactly where the element is. In a browser, and in any app without
+NativeIslands, the web element stays. The page does not branch.
+
+> [!WARNING]
+> **Experimental.** The API and the contract with the app will change between
+> versions. See [Status](../../README.md#status).
+
+## Install
+
+The package is not on npm yet. Until it is, depend on it from this repository
+(it lives in `packages/web/`). React 19 or later is an optional peer, needed
+only for `/react`.
 
 | Entry                                 | For                                                                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -110,3 +121,8 @@ islands.announceReady();
 ```
 
 React is an optional peer; the core and the simulator never import it.
+
+## License
+
+[FSL-1.1-MIT](../../LICENSE), Copyright 2026 Superwall, Inc. Each release
+becomes MIT two years after it is published.
