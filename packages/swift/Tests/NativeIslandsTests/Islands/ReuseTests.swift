@@ -1,3 +1,4 @@
+import SwiftUI
 import Testing
 import UIKit
 @testable import NativeIslands
@@ -38,6 +39,31 @@ extension NativeBridgeTests {
       #expect(island.context.isAcknowledged)
       #expect(island.context.props.string("title") == "Again")
       #expect(harness.sent.first?.first == .ack(sequence: 3, ids: ["new"]))
+    }
+
+    @Test("Keeps a glass island's view in its group, and shows it for the island that takes it over")
+    func takesOverAGlassView() throws {
+      let harness = NativeTestHarness()
+      harness.registry.register(
+        "glassButton",
+        glass: { _ in NativeGlass(shape: .circle) },
+        content: { _ in Color.clear }
+      )
+      let props: [String: NativeValue] = ["title": .string("Continue"), "glassGroup": .string("bar")]
+      harness.manager.apply(batch(1, mountOp("old", props: props)))
+      let old = try #require(harness.island("old"))
+      let glass = try #require(old.view as? NativeGlassView)
+      let group = try #require(glass.superview?.superview as? NativeGlassGroupView)
+      harness.manager.apply(batch(2, .unmount(id: "old")))
+      #expect(glass.isHidden)
+      #expect(group.superview != nil)
+
+      harness.manager.apply(batch(3, mountOp("new", props: props, reuse: "old")))
+      let island = try #require(harness.island("new"))
+      #expect(island === old)
+      #expect(island.view === glass)
+      #expect(!glass.isHidden)
+      #expect(glass.superview?.superview === group)
     }
 
     @Test("Takes over a view that goes away in the same batch")

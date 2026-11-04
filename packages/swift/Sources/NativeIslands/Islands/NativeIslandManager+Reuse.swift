@@ -13,10 +13,10 @@ extension NativeIslandManager {
 
   /// Keeps the view of an island the page unmounted, hidden, so an island
   /// that comes back with the same component can take it over in the
-  /// frame it mounts instead of building a new one. Glass views stay out:
-  /// they belong to their group's effect.
+  /// frame it mounts instead of building a new one. A glass view stays in
+  /// its group while hidden, so the group's effect is still there for it.
   func retire(_ id: String) {
-    guard let island = islands[id], island.glassView == nil, island.container != nil else {
+    guard let island = islands[id], island.container != nil else {
       remove(id)
       return
     }
