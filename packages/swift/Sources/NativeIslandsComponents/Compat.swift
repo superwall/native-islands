@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// What the showcase's components draw before iOS 26, the way Apple's own
+/// What the components draw before iOS 26, the way Apple's own
 /// controls fall back: glass becomes the system material in the same shape,
 /// glass button styles become bordered ones, and effects iOS 16 lacks are left
 /// out rather than imitated.
-extension View {
+public extension View {
   /// Liquid Glass in `shape` on iOS 26; before, the regular material, tinted
   /// when asked, with the hairline edge UIKit's floating bars have.
   @ViewBuilder
@@ -49,7 +49,9 @@ extension View {
       buttonStyle(.borderedProminent)
     }
   }
+}
 
+extension View {
   /// Calls `action` with the new value whenever `value` changes, on iOS 16 too.
   @ViewBuilder
   func onChangeOf<Value: Equatable>(_ value: Value, perform action: @escaping (Value) -> Void) -> some View {
@@ -73,11 +75,16 @@ extension View {
 
 /// Merges the glass of its content on iOS 26; lays it out unchanged before,
 /// where each piece draws its own material.
-struct GlassGroup<Content: View>: View {
+public struct GlassGroup<Content: View>: View {
   var spacing: CGFloat
-  @ViewBuilder var content: Content
+  var content: Content
 
-  var body: some View {
+  public init(spacing: CGFloat, @ViewBuilder content: () -> Content) {
+    self.spacing = spacing
+    self.content = content()
+  }
+
+  public var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: spacing) { content }
     } else {

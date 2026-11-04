@@ -1,11 +1,15 @@
 import NativeIslands
 import SwiftUI
 
-struct SegmentedControlView: View {
+public struct SegmentedControlView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var selected: Int?
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     let props = component.props
     let segments = props.strings("segments") ?? []
     let value = props.int("selectedIndex") ?? 0

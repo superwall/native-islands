@@ -1,11 +1,15 @@
 import NativeIslands
 import SwiftUI
 
-struct ToggleView: View {
+public struct ToggleView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var isOn: Bool?
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     let props = component.props
     let value = props.bool("isOn") ?? false
     Toggle(

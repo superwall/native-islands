@@ -54,8 +54,9 @@ Three layers, each catching what the one before cannot:
 
 - An island stays native on every iOS the host supports. When a SwiftUI API is
   newer than iOS 16, gate it with `if #available` and draw the closest thing
-  Apple shipped before it: `examples/ios/Islands/Components/Defaults/Compat.swift`
-  has the glass, glass button and symbol-effect fallbacks the showcase uses.
+  Apple shipped before it: `NativeIslandsComponents` has the glass and glass
+  button fallbacks (`glassOrMaterial`, `glassButtonStyle`, `GlassGroup`) its
+  controls use, in `packages/swift/Sources/NativeIslandsComponents/Compat.swift`.
 - Never fall back to the web version on older iOS. The host offers every
   registered component on every iOS it builds for, so the page draws it
   natively there; the web version is only for pages outside the app.

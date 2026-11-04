@@ -1,4 +1,5 @@
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
 /// The navigation bar over every screen: a glass Back button while

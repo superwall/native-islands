@@ -27,7 +27,7 @@ jobs:
       - run: brew install swiftlint xcodegen
       - run: swiftlint lint --quiet --strict packages/swift tests/ios examples/ios
       - name: Swift tests
-        run: xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
+        run: xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4

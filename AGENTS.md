@@ -55,7 +55,10 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Components/         registry, context, props, glass, accessibility
     Debug/              frame reporter and alignment
     Extensions/, Support/
-  Tests/NativeIslandsTests/  mirrors Sources/
+  Sources/NativeIslandsComponents/
+                        the ready-made controls, their glass and the iOS
+                        15–25 fallbacks; NativeIslandsComponents.register()
+  Tests/NativeIslandsTests/, Tests/NativeIslandsComponentsTests/  mirror Sources/
 tests/pages/            the scenario gallery: regression pages (Vite + React)
 tests/ios/              TestHost, the app that bundles the gallery, with its
                         UI tests and screenshot baselines
@@ -64,8 +67,8 @@ examples/showcase/      Islands, the example app's web side (Vite + React):
                         src/tabs/ one file per demo section; src/ui/ each
                         island with its web version; src/styles/live.css
 examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
-                        island, registered in ShowcaseComponents.swift, and
-                        Components/Defaults/ the glass views TestHost shares
+                        app-only island, registered with the ready-made ones
+                        in ShowcaseComponents.swift
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers, parallel UI test runs and the
                         iOS runtime matrix with its WebKit view-tree diff
@@ -98,7 +101,7 @@ Run only what your change touches; never a whole suite by hand.
 - JS tests: `bun run --cwd packages/web test:run test/<file>`
 - JS types: `bun run --cwd packages/web typecheck`
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
-- Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
+- Swift tests: `xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`

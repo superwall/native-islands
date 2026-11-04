@@ -2,6 +2,7 @@ import AVFoundation
 import AVKit
 import Combine
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
 /// The player behind a video island: AVPlayer on a layer the island draws, and

@@ -1,4 +1,5 @@
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 import UIKit
 

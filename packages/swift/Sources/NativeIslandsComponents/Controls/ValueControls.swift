@@ -2,10 +2,14 @@ import NativeIslands
 import SwiftUI
 
 /// A slider whose value is state: the page follows every step.
-struct SliderView: View {
+public struct SliderView: View {
   @ObservedObject var component: NativeComponentContext
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     let props = component.props
     let minimum = props.double("minimum") ?? 0
     let maximum = max(minimum + 0.0001, props.double("maximum") ?? 1)
@@ -47,10 +51,14 @@ struct SliderView: View {
 }
 
 /// The plus and minus pill; its value is state.
-struct StepperView: View {
+public struct StepperView: View {
   @ObservedObject var component: NativeComponentContext
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     let props = component.props
     let minimum = props.double("minimum") ?? 0
     let maximum = props.double("maximum") ?? 100
@@ -70,10 +78,14 @@ struct StepperView: View {
 }
 
 /// A picker in one of SwiftUI's styles; the selected index is state.
-struct PickerView: View {
+public struct PickerView: View {
   @ObservedObject var component: NativeComponentContext
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     let props = component.props
     let options = props.strings("options") ?? []
     let selection = Binding(
@@ -99,7 +111,7 @@ struct PickerView: View {
 }
 
 /// A date picker; the date is state, as local `yyyy-MM-dd'T'HH:mm`.
-struct DatePickerView: View {
+public struct DatePickerView: View {
   @ObservedObject var component: NativeComponentContext
 
   static let format: DateFormatter = {
@@ -109,7 +121,11 @@ struct DatePickerView: View {
     return formatter
   }()
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     let props = component.props
     let components: DatePickerComponents = switch props.string("components") {
     case "time": .hourAndMinute
@@ -139,10 +155,14 @@ struct DatePickerView: View {
 }
 
 /// The system colour well; the colour is state, as `#rrggbb`.
-struct ColorPickerView: View {
+public struct ColorPickerView: View {
   @ObservedObject var component: NativeComponentContext
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     ColorPicker(
       "",
       selection: Binding(

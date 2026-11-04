@@ -1,14 +1,15 @@
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
-/// The app's own components, which the gallery defines with
+/// The ready-made components and the app's own, which the gallery defines with
 /// `defineNativeComponent` in `tests/pages/src/components/custom.tsx`
 /// and `tests/pages/src/components/stateful.tsx`.
 enum AppComponents {
   @MainActor
   static func register() {
     let registry = NativeComponentRegistry.shared
-    DefaultComponents.register(in: registry)
+    NativeIslandsComponents.register(in: registry)
     registry.register("rating") { RatingView(component: $0) }
     registry.register(
       "planCard",
@@ -21,8 +22,8 @@ enum AppComponents {
     }
     registry.register("signupForm") { SignupFormView(component: $0) }
     registry.register("planPicker") { PlanPickerView(component: $0) }
-    registry.register("datePicker") { DatePickerView(component: $0) }
-    registry.register("slider") { SliderView(component: $0) }
+    registry.register("dayPicker") { DayPickerView(component: $0) }
+    registry.register("rangeSlider") { RangeSliderView(component: $0) }
     registry.register("tabs") { TabsView(component: $0) }
   }
 }

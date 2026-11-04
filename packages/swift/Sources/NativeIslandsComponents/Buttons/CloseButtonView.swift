@@ -1,10 +1,14 @@
 import NativeIslands
 import SwiftUI
 
-struct CloseButtonView: View {
+public struct CloseButtonView: View {
   @ObservedObject var component: NativeComponentContext
 
-  var body: some View {
+  public init(component: NativeComponentContext) {
+    self.component = component
+  }
+
+  public var body: some View {
     Button {
       component.emit("press")
     } label: {

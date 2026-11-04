@@ -430,7 +430,7 @@ each native frame next to its DOM rect.
 bun install
 bun run --cwd packages/web test:run
 bun run --cwd packages/web typecheck
-xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17'
+xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17'
 scripts/ui-tests.sh          # alignment and screenshots on several simulators
 scripts/compat-matrix.sh     # the WebKit probe on every installed iOS runtime
 ```

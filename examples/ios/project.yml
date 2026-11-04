@@ -14,6 +14,9 @@ targets:
       - Islands
     dependencies:
       - package: NativeIslands
+        product: NativeIslands
+      - package: NativeIslands
+        product: NativeIslandsComponents
     preBuildScripts:
       - name: Bundle the showcase
         basedOnDependencyAnalysis: false

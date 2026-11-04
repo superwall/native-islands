@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreLocation
 import NativeIslands
+import NativeIslandsComponents
 import Photos
 import SwiftUI
 import UserNotifications

@@ -1,7 +1,9 @@
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
-/// The native components the showcase uses, by the names in
+/// The native components the showcase uses: the ready-made ones from
+/// `NativeIslandsComponents` and the app's own, by the names in
 /// `examples/showcase/src/islands/definitions.ts`. Each can draw the
 /// outline the page's Outlines mode asks for.
 enum ShowcaseComponents {
@@ -9,25 +11,14 @@ enum ShowcaseComponents {
 
   @MainActor
   static func register(in registry: NativeComponentRegistry = .shared) {
-    let glassButton = DefaultComponents.glassButtonGlass
-    add("glassButton", in: registry, glass: glassButton) { GlassButtonView(component: $0) }
-    add("closeButton", in: registry, glass: DefaultComponents.closeButtonGlass) { CloseButtonView(component: $0) }
-    add("toggle", in: registry) { ToggleView(component: $0) }
-    add("segmentedControl", in: registry) { SegmentedControlView(component: $0) }
-    add("symbol", in: registry) { SymbolView(component: $0) }
+    NativeIslandsComponents.register(in: registry) { component, view in
+      view.modifier(IslandOutline(name: component.name))
+    }
+    let glassButton = NativeIslandsComponents.buttonGlass
     add("tabBar", in: registry) { TabBarView(component: $0) }
     add("searchTab", in: registry, glass: searchTabGlass) { SearchTabView(component: $0) }
     add("searchField", in: registry, glass: tabBarGlass) { SearchFieldView(component: $0) }
-    add("menu", in: registry, glass: glassButton) { MenuView(component: $0) }
     add("navigationBar", in: registry) { NavigationBarView(component: $0) }
-    add("slider", in: registry) { SliderView(component: $0) }
-    add("stepper", in: registry) { StepperView(component: $0) }
-    add("picker", in: registry) { PickerView(component: $0) }
-    add("datePicker", in: registry) { DatePickerView(component: $0) }
-    add("colorPicker", in: registry) { ColorPickerView(component: $0) }
-    add("textField", in: registry) { TextFieldView(component: $0) }
-    add("gauge", in: registry) { GaugeView(component: $0) }
-    add("symbolEffect", in: registry) { SymbolEffectView(component: $0) }
     add("chart", in: registry) { ChartView(component: $0) }
     add("map", in: registry) { MapView(component: $0) }
     add("video", in: registry) { VideoView(component: $0) }
