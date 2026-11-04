@@ -69,6 +69,9 @@ examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers, parallel UI test runs and the
                         iOS runtime matrix with its WebKit view-tree diff
+docs/                   compatibility.md, what each iOS was proven on;
+                        assets/ the images the README shows
+LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never

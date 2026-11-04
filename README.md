@@ -6,7 +6,9 @@ views (Liquid Glass buttons, switches, your own components) right where the web
 element sits. Everywhere else, and on any host without NativeIslands, the web
 version shows.
 
-Private while it takes shape.
+> [!WARNING]
+> NativeIslands is experimental. The contract between page and host, and the
+> APIs on both sides, can still change between versions.
 
 ## How it works
 
