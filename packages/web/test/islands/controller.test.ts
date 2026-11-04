@@ -234,6 +234,35 @@ describe("batching", () => {
     expect(batches()).toHaveLength(1);
   });
 
+  it("compares only the islands updated since the last flush", () => {
+    const { islands, frame, operations } = setup();
+    for (let index = 0; index < 50; index += 1) islands.mount(`i${index}`, spec());
+    frame();
+    islands.update("i7", { frame: { x: 10, y: 21, width: 100, height: 44 } });
+    const stringify = vi.spyOn(JSON, "stringify");
+    frame();
+    const calls = stringify.mock.calls.length;
+    stringify.mockRestore();
+    expect(operations().slice(50)).toEqual([
+      { op: "update", id: "i7", frame: { x: 10, y: 21, width: 100, height: 44 } },
+    ]);
+    expect(calls).toBeLessThan(50);
+  });
+
+  it("sends a stalled island's hiding and its return after a late ack", () => {
+    const { islands, frame, operations, receive } = setup({ ackTimeoutMs: 100 });
+    islands.mount("a", spec());
+    frame();
+    vi.advanceTimersByTime(100);
+    frame();
+    receive({ event_name: "native_component_ack", sequence: 1, ids: ["a"] });
+    frame();
+    expect(operations().slice(1)).toEqual([
+      { op: "update", id: "a", visible: false },
+      { op: "update", id: "a", visible: true },
+    ]);
+  });
+
   it("schedules one flush per frame however many calls happen", () => {
     const { islands, pending } = setup();
     islands.mount("a", spec());
