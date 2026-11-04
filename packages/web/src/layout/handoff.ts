@@ -1,4 +1,5 @@
-import { ISLAND_PHASE_ATTRIBUTE, ISLAND_PROBE_ATTRIBUTE } from "./attributes";
+import { ISLAND_PHASE_ATTRIBUTE } from "./attributes";
+import { hitTest, styleOf } from "./pass";
 import type { TNativeFrame, TNativeMotion, TNativeMotionKeyframe } from "../protocol/schemas";
 import { coversOf, slideOf, type Offset, type Slide } from "./motion";
 import {
@@ -248,7 +249,7 @@ const parseAlphaColor = (value: string): Rgba | undefined => {
 const toByte = (value: number) => Math.round(Math.min(255, Math.max(0, value)));
 
 export const shadeOf = (element: Element): string | undefined => {
-  const style = getComputedStyle(element);
+  const style = styleOf(element);
   if (!isNone(style.backdropFilter) || !isNone(style.backgroundImage)) return undefined;
   const color = parseAlphaColor(style.backgroundColor);
   if (!color) return undefined;
@@ -286,18 +287,24 @@ const sampleCover = (
   if (area && placement.scroller) area = intersect(area, contentBoxOf(placement.scroller));
   if (!area) return false;
   const sampled = area;
-  const seen = new Set<Element>();
-  wrapper.setAttribute(ISLAND_PROBE_ATTRIBUTE, "");
-  try {
+  const fast = !ignore.some((ignored) => ignored.contains(wrapper));
+  const found = hitTest(wrapper, ({ stackAt, ownAt }) => {
+    const holes: TNativeFrame[] = [];
+    const shades: NativeShade[] = [];
+    const seen = new Set<Element>();
     let reached = false;
     for (const [x, y] of samplePoints(sampled)) {
-      const stack = document
-        .elementsFromPoint(x, y)
-        .filter((element) => !ignore.some((ignored) => ignored.contains(element)));
+      if (fast && ownAt(x, y)) {
+        reached = true;
+        continue;
+      }
+      const stack = stackAt(x, y).filter(
+        (element) => !ignore.some((ignored) => ignored.contains(element)),
+      );
       const state = coveredAt(wrapper, stack, within);
       if (state === "own") reached = true;
       if (state !== "covered") continue;
-      if (!cover) return true;
+      if (!cover) return { covered: true, holes, shades };
       reached = true;
       const top = stack.find((element) => !wrapper.contains(element) && !element.contains(wrapper));
       if (!top || seen.has(top)) continue;
@@ -309,17 +316,20 @@ const sampleCover = (
       );
       if (!covered) continue;
       const color = shadeOf(top);
-      if (color) cover.shades.push({ ...covered, color });
-      else cover.holes.push(covered);
+      if (color) shades.push({ ...covered, color });
+      else holes.push(covered);
     }
-    if (cover && cover.holes.length > MAX_HOLES) {
+    return { covered: !reached, holes, shades };
+  });
+  if (cover) {
+    cover.holes.push(...found.holes);
+    cover.shades.push(...found.shades);
+    if (cover.holes.length > MAX_HOLES) {
       cover.holes.splice(0, cover.holes.length, cover.holes.reduce(union));
     }
-    if (cover && cover.shades.length > MAX_HOLES) cover.shades.splice(MAX_HOLES);
-    return !reached;
-  } finally {
-    wrapper.removeAttribute(ISLAND_PROBE_ATTRIBUTE);
+    if (cover.shades.length > MAX_HOLES) cover.shades.splice(MAX_HOLES);
   }
+  return found.covered;
 };
 
 export const isCovered = (
@@ -428,7 +438,7 @@ export const handoffOf = (
   let opacity = 1;
   for (const box of boxes) {
     if (box === wrapper) continue;
-    const style = getComputedStyle(box);
+    const style = styleOf(box);
     if (turns) {
       const own = linearOf(style);
       if (!own) return "transformed";
@@ -444,7 +454,7 @@ export const handoffOf = (
   }
   const [first] = boxes;
   if (!first) return "hidden";
-  const firstPosition = getComputedStyle(first).position;
+  const firstPosition = styleOf(first).position;
   let clipping = placement.kind !== "screen";
   let pending: "absolute" | "fixed" | undefined =
     firstPosition === "absolute" ? "absolute" : firstPosition === "fixed" ? "fixed" : undefined;
@@ -455,7 +465,7 @@ export const handoffOf = (
     element = element.parentElement
   ) {
     if (element === riding) carried = true;
-    const style = getComputedStyle(element);
+    const style = styleOf(element);
     if (style.display === "none" || style.visibility === "hidden") return "hidden";
     if (carried) continue;
     const phased = element.hasAttribute(ISLAND_PHASE_ATTRIBUTE);
