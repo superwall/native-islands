@@ -5,6 +5,61 @@ use a private API, but it does rely on how WebKit lays those views out. This
 page records what that layout is on each iOS version, how it was measured, and
 how to measure it again.
 
+**In short:** islands draw natively on every iOS from 16 to 27. Below iOS 26
+they stay native and take the look Apple's own controls have there (system
+materials, bordered buttons), never the web version. Every iOS from 17.5 to 27.2
+installed here passes the WebKit probe, the Swift suite and TestHost's
+alignment tests (26.3.1 skips the UI tests, see below), and the screenshot
+baselines of 17, 18, 26 and 27 pass on their newest runtime. iOS 16
+is covered only by the `iOS compatibility` workflow, as macOS 27 cannot boot
+it; run it once after merging.
+
+## How it is tested
+
+Three layers, each catching what the one before cannot:
+
+```
+ layer               what it runs                  catches
+ ──────────────────  ────────────────────────────  ──────────────────────
+ 1 WebKit probe      WebKitLayoutTests on a real   WebKit changing the
+                     WKWebView, one view tree per  scroll views the host
+                     runtime, diffed across them   draws in
+ 2 Swift suite       the package tests on each     host code that breaks
+                     runtime                       on one iOS
+ 3 TestHost UI       alignment (0.5 pt) and        a look or a position
+                     screenshots per iOS major     that changed on one iOS
+```
+
+| Where                      | Runs                   | iOS versions                    | When                 |
+| -------------------------- | ---------------------- | ------------------------------- | -------------------- |
+| `scripts/compat-matrix.sh` | layers 1–3 (`--steps`) | every runtime installed locally | by hand              |
+| `scripts/ui-tests.sh`      | layer 3                | `--runtimes` you name           | by hand              |
+| `compat.yml` workflow      | layers 1 and 2         | every patch release from 16.0   | Mondays, and by hand |
+| Islands on a device        | by eye                 | the device's iOS                | before a release     |
+
+## Adding a new iOS release
+
+1. Install its simulator runtime (`xcodebuild -downloadPlatform iOS`) and run
+   `scripts/compat-matrix.sh --runtimes <version> --steps probe,swift,ui`.
+2. If the probe fails, WebKit changed a scroll view the host relies on: read the
+   tree diff, then fix `NativeHostSurface.match`, never the test.
+3. A new major has no screenshot baselines. Look at every TestHost page and the
+   showcase on it, then record them with
+   `scripts/ui-tests.sh --runtimes <version> --record --only ScreenshotUITests`.
+4. Add the version to `ALL_RUNTIMES` in `.github/workflows/compat.yml`, and its
+   row to the support matrix below.
+
+## Writing islands that work on every iOS
+
+- An island stays native on every iOS the host supports. When a SwiftUI API is
+  newer than iOS 16, gate it with `if #available` and draw the closest thing
+  Apple shipped before it: `examples/ios/Islands/Components/Defaults/Compat.swift`
+  has the glass, glass button and symbol-effect fallbacks the showcase uses.
+- Never fall back to the web version on older iOS. A registered component is
+  offered on every iOS from 16, so the page draws it natively there; the web
+  version is only for pages outside the app and iOS 15.
+- Check a new island on the oldest and newest runtime you have before merging.
+
 ## Support matrix
 
 The host draws islands from iOS 16; below that it offers nothing and the page
