@@ -120,7 +120,7 @@ describe("<Native> on a native host", () => {
     ]);
   });
 
-  it("hides the web version while the host is expected to answer, then shows native", async () => {
+  it("keeps the web version until the host answers, then drops it without a fade", async () => {
     const view = renderNative(<Cta />);
     await view.nextFrame();
     const island = islandOf(view.container);
@@ -129,23 +129,19 @@ describe("<Native> on a native host", () => {
     expect(island.hasAttribute("data-island-shown")).toBe(false);
     view.ackAll();
     expect(island.dataset.islandMode).toBe("native");
-    expect(island.hasAttribute("data-island-arriving")).toBe(false);
+    expect(island.hasAttribute("data-island-arriving")).toBe(true);
     expect(island.hasAttribute("data-island-shown")).toBe(true);
     expect(island.hasAttribute("aria-hidden")).toBe(false);
   });
 
-  it("shows the web version again when the host has not answered within the grace period", async () => {
+  it("fades the web version again once a shown island has settled", async () => {
     const view = renderNative(<Cta />);
     await view.nextFrame();
+    view.ackAll();
     const island = islandOf(view.container);
-    expect(island.hasAttribute("data-island-arriving")).toBe(true);
     await waitFor(() => expect(island.hasAttribute("data-island-arriving")).toBe(false), {
       timeout: 1000,
     });
-    expect(island.dataset.islandMode).toBe("pending");
-    expect(island.hasAttribute("data-island-shown")).toBe(false);
-    view.ackAll();
-    expect(island.dataset.islandMode).toBe("native");
     expect(island.hasAttribute("data-island-shown")).toBe(true);
   });
 
@@ -157,7 +153,7 @@ describe("<Native> on a native host", () => {
     view.send({
       event_name: "native_component_error",
       id: view.operations()[0]?.id as string,
-      reason: "anchor_not_found",
+      reason: "render_failed",
     });
     expect(island.dataset.islandMode).toBe("web");
     expect(island.hasAttribute("data-island-arriving")).toBe(false);
@@ -200,7 +196,7 @@ describe("<Native> on a native host", () => {
     view.send({ event_name: "native_component_reset" });
     expect(islandOf(view.container).dataset.islandMode).toBe("pending");
     expect(islandOf(view.container).hasAttribute("data-island-shown")).toBe(false);
-    expect(islandOf(view.container).hasAttribute("data-island-arriving")).toBe(false);
+    expect(islandOf(view.container).hasAttribute("data-island-arriving")).toBe(true);
     await view.nextFrame();
     expect(view.operations().at(-1)).toMatchObject({ op: "mount", visible: true });
     view.ackAll();

@@ -711,40 +711,157 @@ describe("toNativeProps", () => {
 });
 
 describe("default scheduler", () => {
-  const mounted = async (post: (message: TToHostMessage) => void) => {
-    const islands = createNativeIslands({ capability, post });
-    islands.mount("a", spec());
-    await Promise.resolve();
-    return islands;
-  };
-
-  it("posts a new mount once the current task ends, before the next frame", async () => {
-    const frames: FrameRequestCallback[] = [];
+  type Frames = FrameRequestCallback[];
+  const stubFrames = (): Frames => {
+    const frames: Frames = [];
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       frames.push(callback);
       return frames.length;
     });
+    return frames;
+  };
+  const runFrames = (frames: Frames) => {
+    for (const callback of frames.splice(0)) callback(0);
+  };
+  const scroller = (id: string): NativeIslandSpec["anchor"] => ({
+    type: "scroller",
+    scroller: {
+      id,
+      frame: { x: 0, y: 0, width: 400, height: 800 },
+      content_size: { width: 400, height: 2000 },
+      scroll_offset: { x: 0, y: 0 },
+    },
+  });
+  // The first island in a container goes on the next frame; once the host has
+  // shown one there, the page knows the container exists.
+  const reachedPage = (post: (message: TToHostMessage) => void, frames: Frames) => {
+    const islands = createNativeIslands({ capability, post });
+    islands.mount("a", spec());
+    runFrames(frames);
+    runFrames(frames);
+    islands.handle({ event_name: "native_component_ack", sequence: 1, ids: ["a"] });
+    return islands;
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("posts the first island in a container two frames later, after WebKit drew it", async () => {
+    const frames = stubFrames();
     const post = vi.fn();
     const islands = createNativeIslands({ capability, post });
     islands.mount("a", spec());
-    islands.mount("b", spec());
-    expect(post).not.toHaveBeenCalled();
     await Promise.resolve();
+    runFrames(frames);
+    expect(post).not.toHaveBeenCalled();
+    runFrames(frames);
     expect(post).toHaveBeenCalledTimes(1);
-    expect(post.mock.calls[0]?.[0]).toMatchObject({
+  });
+
+  it("gives the first island in a container one more try when the host cannot find it", () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const onFallback = vi.fn();
+    const islands = createNativeIslands({ capability, post });
+    islands.mount("a", spec({ anchor: scroller("s1") }), { onFallback });
+    runFrames(frames);
+    runFrames(frames);
+    const error = (sequence: number) => ({
+      event_name: "native_component_error",
+      id: "a",
+      reason: "anchor_not_found",
+      sequence,
+    });
+    islands.handle(error(1));
+    expect(onFallback).not.toHaveBeenCalled();
+    runFrames(frames);
+    expect(post).toHaveBeenCalledTimes(2);
+    islands.handle(error(2));
+    expect(onFallback).toHaveBeenCalledWith("anchor_not_found", undefined);
+  });
+
+  it("posts a new mount into a container the host already drew in before the next frame", async () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const islands = reachedPage(post, frames);
+    islands.mount("b", spec());
+    islands.mount("c", spec());
+    expect(post).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1]?.[0]).toMatchObject({
       operations: [
-        { op: "mount", id: "a" },
         { op: "mount", id: "b" },
+        { op: "mount", id: "c" },
       ],
     });
     expect(frames).toHaveLength(0);
-    vi.unstubAllGlobals();
+  });
+
+  it("tells scrollers apart: a new scroller waits for the next frame", async () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const islands = createNativeIslands({ capability, post });
+    islands.mount("a", spec({ anchor: scroller("s1") }));
+    runFrames(frames);
+    runFrames(frames);
+    islands.handle({ event_name: "native_component_ack", sequence: 1, ids: ["a"] });
+    islands.mount("b", spec({ anchor: scroller("s2") }));
+    await Promise.resolve();
+    expect(post).toHaveBeenCalledTimes(1);
+    runFrames(frames);
+    runFrames(frames);
+    expect(post.mock.calls[1]?.[0]).toMatchObject({ operations: [{ op: "mount", id: "b" }] });
+    islands.mount("c", spec({ anchor: scroller("s1") }));
+    await Promise.resolve();
+    expect(post.mock.calls[2]?.[0]).toMatchObject({ operations: [{ op: "mount", id: "c" }] });
+  });
+
+  it("mounts again on the next frame when the host cannot find the container of an early mount", async () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const onFallback = vi.fn();
+    const onPending = vi.fn();
+    const islands = reachedPage(post, frames);
+    islands.mount("b", spec(), { onFallback, onPending });
+    await Promise.resolve();
+    expect(post).toHaveBeenCalledTimes(2);
+    islands.handle({
+      event_name: "native_component_error",
+      id: "b",
+      reason: "anchor_not_found",
+      sequence: 2,
+    });
+    expect(onFallback).not.toHaveBeenCalled();
+    expect(onPending).toHaveBeenCalledTimes(1);
+    runFrames(frames);
+    expect(post).toHaveBeenCalledTimes(3);
+    expect(post.mock.calls[2]?.[0]).toMatchObject({ operations: [{ op: "mount", id: "b" }] });
+    islands.handle({
+      event_name: "native_component_error",
+      id: "b",
+      reason: "anchor_not_found",
+      sequence: 3,
+    });
+    expect(onFallback).toHaveBeenCalledTimes(1);
+  });
+
+  it("forgets the containers it reached when the host resets", async () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const islands = reachedPage(post, frames);
+    islands.resync();
+    runFrames(frames);
+    runFrames(frames);
+    const posts = post.mock.calls.length;
+    islands.mount("b", spec());
+    await Promise.resolve();
+    expect(post).toHaveBeenCalledTimes(posts);
   });
 
   it("sends an unmount queued in the same task with the new mount", async () => {
-    vi.stubGlobal("requestAnimationFrame", () => 0);
+    const frames = stubFrames();
     const post = vi.fn();
-    const islands = await mounted(post);
+    const islands = reachedPage(post, frames);
     islands.unmount("a");
     islands.mount("b", spec());
     await Promise.resolve();
@@ -755,47 +872,44 @@ describe("default scheduler", () => {
         { op: "mount", id: "b" },
       ],
     });
+    runFrames(frames);
     vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
     expect(post).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
   });
 
   it("flushes updates on the next animation frame", async () => {
-    const frames: FrameRequestCallback[] = [];
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
-      frames.push(callback);
-      return frames.length;
-    });
+    const frames = stubFrames();
     const post = vi.fn();
-    const islands = await mounted(post);
+    const islands = reachedPage(post, frames);
     islands.update("a", { props: { title: "Later" } });
     await Promise.resolve();
     expect(post).toHaveBeenCalledTimes(1);
-    frames[0]?.(0);
+    runFrames(frames);
     expect(post).toHaveBeenCalledTimes(2);
     vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
     expect(post).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
   });
 
-  it("still flushes when animation frames never fire, as in a page preloaded off screen", async () => {
+  it("still flushes when animation frames never fire, as in a page preloaded off screen", () => {
     vi.stubGlobal("requestAnimationFrame", () => 0);
     const post = vi.fn();
-    const islands = await mounted(post);
-    islands.update("a", { props: { title: "Later" } });
+    const islands = createNativeIslands({ capability, post });
+    islands.mount("a", spec());
     vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
-    expect(post).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
+    expect(post).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
+    expect(post).toHaveBeenCalledTimes(1);
   });
 
-  it("flushes by timer where animation frames do not exist", async () => {
+  it("flushes by timer where animation frames do not exist", () => {
     vi.stubGlobal("requestAnimationFrame", undefined);
     const post = vi.fn();
-    const islands = await mounted(post);
-    islands.update("a", { props: { title: "Later" } });
+    const islands = createNativeIslands({ capability, post });
+    islands.mount("a", spec());
     vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
-    expect(post).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
+    expect(post).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
+    expect(post).toHaveBeenCalledTimes(1);
   });
 });
 

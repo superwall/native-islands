@@ -40,12 +40,12 @@ describe("ISLAND_STYLES", () => {
     expect(ancestor.matches(selector)).toBe(false);
   });
 
-  it("hides the web version of an arriving island without a fade", () => {
+  it("keeps the web version of an arriving island and drops it without a fade", () => {
     ensureIslandStyles(document);
     const rule = rulesOf().find((candidate) =>
       candidate.selectorText.includes("data-island-arriving"),
     );
-    expect(rule?.style.getPropertyValue("opacity")).toBe("0");
+    expect(rule?.style.getPropertyValue("opacity")).toBe("");
     expect(rule?.style.getPropertyValue("transition")).toBe("none");
     const selector = rule?.selectorText ?? "";
 

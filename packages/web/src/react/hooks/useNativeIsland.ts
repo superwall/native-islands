@@ -293,7 +293,7 @@ export const useNativeIsland = (
       clearTimeout(arrival);
       arrival = undefined;
     };
-    const tryMount = (fresh: boolean): boolean => {
+    const tryMount = (): boolean => {
       sentAnchor.current = undefined;
       const spec = specOf(element);
       if (!spec) {
@@ -345,12 +345,18 @@ export const useNativeIsland = (
           onReady: () => {
             arrived();
             readiness.end(id);
-            setState((previous) => ({ ...previous, mode: "native", arriving: false }));
+            setState((previous) => ({ ...previous, mode: "native" }));
+            // The host shows a fresh island without a fade, so the web version
+            // goes at once too; later changes fade again.
+            arrival = setTimeout(() => {
+              arrival = undefined;
+              setState((previous) => ({ ...previous, arriving: false }));
+            }, ARRIVAL_GRACE_MS);
           },
           onPending: () => {
             arrived();
             readiness.begin(id);
-            setState((previous) => ({ ...previous, mode: "pending", arriving: false }));
+            setState((previous) => ({ ...previous, mode: "pending", arriving: true }));
           },
           onStall: () => {
             arrived();
@@ -414,25 +420,14 @@ export const useNativeIsland = (
         mode: "pending",
         handoff: spec.handoff,
         anchorType: spec.anchor.type,
-        arriving: waits && fresh,
+        arriving: true,
       });
-      // The web version stays hidden while the host is expected to answer
-      // within a frame or two; past that, the page can no longer tell whether
-      // the island will show, so it shows the web version again. An island
-      // that waited for a transition has already shown its web version, and
-      // hiding it now would blank it until the host answers.
-      if (waits && fresh) {
-        arrival = setTimeout(() => {
-          arrival = undefined;
-          setState((previous) => ({ ...previous, arriving: false }));
-        }, ARRIVAL_GRACE_MS);
-      }
       return true;
     };
-    if (!tryMount(true)) {
+    if (!tryMount()) {
       const watcher = layoutWatcherFor(element.ownerDocument);
       stopWaiting = watcher.subscribe((pass) => {
-        if (pass !== "layout" || !tryMount(false)) return;
+        if (pass !== "layout" || !tryMount()) return;
         stopWaiting?.();
         stopWaiting = undefined;
       });

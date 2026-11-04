@@ -166,6 +166,7 @@ type Island = {
   timer?: ReturnType<typeof setTimeout>;
   state: Record<string, unknown>;
   revision: number;
+  early?: boolean;
 };
 
 type PendingCommand = {
@@ -273,6 +274,9 @@ const defaultReport = (message: string, error?: unknown) => {
 const stale = (island: Island, sequence: number | undefined) =>
   sequence !== undefined && island.mountSequence !== undefined && sequence < island.mountSequence;
 
+const containerOf = (spec: WireSpec) =>
+  spec.anchor.type === "scroller" ? `scroller:${spec.anchor.scroller.id}` : spec.anchor.type;
+
 const wireOf = (island: Island): WireSpec =>
   island.status === "stalled" ? { ...island.spec, visible: false } : island.spec;
 
@@ -288,6 +292,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   let commandCount = 0;
   let scheduled = false;
   let mountDue = false;
+  const reached = new Set<string>();
 
   const requestFlush = () => {
     if (scheduled) return;
@@ -298,11 +303,16 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     });
   };
 
-  // A mount posted on the next frame reaches the host a frame after the page
-  // drew the island's web version. Posting it once the current task ends lets
-  // the host draw it in the frame the island first appears.
-  const requestMountFlush = () => {
+  // WebKit creates the scroll view of a new scroller only when it draws the
+  // frame that holds it, so the first island in a container goes two frames
+  // later, as islands always did. Once the host has shown one there, a new
+  // island goes when the current task ends, and the host draws it in the
+  // frame it first appears. Either way, a host that still cannot find the
+  // container gets one more try before the island falls back.
+  const requestMountFlush = (island: Island) => {
     if (options.schedule) return requestFlush();
+    island.early = true;
+    if (!reached.has(containerOf(island.spec))) return schedule(requestFlush);
     if (mountDue) return;
     mountDue = true;
     queueMicrotask(() => {
@@ -455,14 +465,15 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     }
     const props = toNativeProps(spec.props);
     if (!props) return { ok: false, reason: "invalid_spec" };
-    islands.set(id, {
+    const island: Island = {
       spec: { ...spec, props },
       listener,
       status: "pending",
       state: {},
       revision: 0,
-    });
-    requestMountFlush();
+    };
+    islands.set(id, island);
+    requestMountFlush(island);
     return { ok: true };
   };
 
@@ -534,6 +545,8 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       clearTimer(island);
       const wasStalled = island.status === "stalled";
       island.status = "ready";
+      island.early = undefined;
+      reached.add(containerOf(island.spec));
       if (wasStalled) requestFlush();
       call(id, () => island.listener.onReady?.());
     }
@@ -541,6 +554,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
 
   const resync = () => {
     unmounts.clear();
+    reached.clear();
     for (const [id, island] of islands) remount(id, island, false);
     if (islands.size > 0) requestFlush();
   };
@@ -686,9 +700,15 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       case "native_component_error": {
         const error = parse(NativeComponentErrorSchema, named);
         const island = error && islands.get(error.id);
-        if (error && island && !stale(island, error.sequence)) {
-          fail(error.id, island, error.reason, error.message);
+        if (!error || !island || stale(island, error.sequence)) return true;
+        if (error.reason === "anchor_not_found" && island.early) {
+          island.early = undefined;
+          reached.delete(containerOf(island.spec));
+          remount(error.id, island, false);
+          requestFlush();
+          return true;
         }
+        fail(error.id, island, error.reason, error.message);
         return true;
       }
       case "native_component_event": {

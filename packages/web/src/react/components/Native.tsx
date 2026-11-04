@@ -134,7 +134,7 @@ export const Native = ({
   React.useImperativeHandle(ref, () => ({ command, state }), [command, state]);
   const nativeSize = sizing === "native" && mode !== "web" ? size : undefined;
   const shown = mode === "native" && handoff === undefined;
-  const hiding = mode === "pending" && handoff === undefined && arriving === true;
+  const fresh = mode !== "web" && handoff === undefined && arriving === true;
   const concealed = useConcealed(shown);
   const hidden = shown && anchorType === "screen";
   return (
@@ -146,7 +146,7 @@ export const Native = ({
         [ISLAND_MODE_ATTRIBUTE]: mode,
         [ISLAND_HANDOFF_ATTRIBUTE]: mode === "web" ? undefined : handoff,
         [ISLAND_SHOWN_ATTRIBUTE]: shown ? "" : undefined,
-        [ISLAND_ARRIVING_ATTRIBUTE]: hiding ? "" : undefined,
+        [ISLAND_ARRIVING_ATTRIBUTE]: fresh ? "" : undefined,
         [ISLAND_CONCEALED_ATTRIBUTE]: concealed ? "" : undefined,
       }}
       aria-hidden={hidden ? true : undefined}
