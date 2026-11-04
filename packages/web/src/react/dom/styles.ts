@@ -1,5 +1,4 @@
 import {
-  ISLAND_ARRIVING_ATTRIBUTE,
   ISLAND_COMPONENT_ATTRIBUTE,
   ISLAND_CONCEALED_ATTRIBUTE,
   ISLAND_PROBE_ATTRIBUTE,
@@ -12,9 +11,6 @@ import {
 export const ISLAND_STYLES = [
   `:where([${ISLAND_COMPONENT_ATTRIBUTE}]) > * { transition: opacity var(--island-fade, 120ms) ease; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_SHOWN_ATTRIBUTE}] > * { opacity: 0; }`,
-  // The host shows a fresh island at once, so its web version stays until the
-  // host answers and then goes without a fade.
-  `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_ARRIVING_ATTRIBUTE}] > * { transition: none; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_CONCEALED_ATTRIBUTE}]:not([${ISLAND_PROBE_ATTRIBUTE}]) { visibility: hidden; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_PROBE_ATTRIBUTE}] * { pointer-events: auto !important; }`,
   // While content in a scroller animates, WebKit composites what follows it.

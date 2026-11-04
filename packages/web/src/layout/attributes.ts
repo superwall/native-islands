@@ -16,8 +16,6 @@ export const ISLAND_HANDOFF_ATTRIBUTE = "data-island-handoff";
 
 export const ISLAND_SHOWN_ATTRIBUTE = "data-island-shown";
 
-export const ISLAND_ARRIVING_ATTRIBUTE = "data-island-arriving";
-
 export const ISLAND_CONCEALED_ATTRIBUTE = "data-island-concealed";
 
 export const ISLAND_STYLE_ATTRIBUTE = "data-island-styles";

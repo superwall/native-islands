@@ -160,11 +160,6 @@ describe("mounting", () => {
     });
     await fresh.nextFrame();
     expect(fresh.operations()).toEqual([expect.objectContaining({ op: "mount", visible: true })]);
-    const island = islandOf(fresh.container);
-    expect(island.dataset.islandMode).toBe("pending");
-    expect(island.hasAttribute("data-island-shown")).toBe(false);
-    fresh.ackAll();
-    expect(island.hasAttribute("data-island-shown")).toBe(true);
   });
 
   it("stops waiting when it unmounts before it could mount", async () => {

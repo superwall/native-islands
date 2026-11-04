@@ -40,24 +40,6 @@ describe("ISLAND_STYLES", () => {
     expect(ancestor.matches(selector)).toBe(false);
   });
 
-  it("keeps the web version of an arriving island and drops it without a fade", () => {
-    ensureIslandStyles(document);
-    const rule = rulesOf().find((candidate) =>
-      candidate.selectorText.includes("data-island-arriving"),
-    );
-    expect(rule?.style.getPropertyValue("opacity")).toBe("");
-    expect(rule?.style.getPropertyValue("transition")).toBe("none");
-    const selector = rule?.selectorText ?? "";
-
-    const wrapper = document.body.appendChild(document.createElement("span"));
-    wrapper.setAttribute("data-island", "symbol");
-    const child = wrapper.appendChild(document.createElement("svg"));
-    expect(child.matches(selector)).toBe(false);
-    wrapper.setAttribute("data-island-arriving", "");
-    expect(child.matches(selector)).toBe(true);
-    expect(wrapper.matches(selector)).toBe(false);
-  });
-
   it("is added to a document once", () => {
     ensureIslandStyles(document);
     ensureIslandStyles(document);

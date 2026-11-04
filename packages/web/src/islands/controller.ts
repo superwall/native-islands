@@ -166,8 +166,6 @@ type Island = {
   timer?: ReturnType<typeof setTimeout>;
   state: Record<string, unknown>;
   revision: number;
-  early?: boolean;
-  held?: boolean;
 };
 
 type PendingCommand = {
@@ -275,9 +273,6 @@ const defaultReport = (message: string, error?: unknown) => {
 const stale = (island: Island, sequence: number | undefined) =>
   sequence !== undefined && island.mountSequence !== undefined && sequence < island.mountSequence;
 
-const containerOf = (spec: WireSpec) =>
-  spec.anchor.type === "scroller" ? `scroller:${spec.anchor.scroller.id}` : spec.anchor.type;
-
 const wireOf = (island: Island): WireSpec =>
   island.status === "stalled" ? { ...island.spec, visible: false } : island.spec;
 
@@ -292,49 +287,12 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   let sequence = 0;
   let commandCount = 0;
   let scheduled = false;
-  let mountDue = false;
-  const reached = new Set<string>();
 
   const requestFlush = () => {
     if (scheduled) return;
     scheduled = true;
     schedule(() => {
       scheduled = false;
-      flush();
-    });
-  };
-
-  // WebKit creates the scroll view of a new scroller only when it draws the
-  // frame that holds it, so the first island in a container goes two frames
-  // later, as islands always did. Once the host has shown one there, a new
-  // island goes when the current task ends, and the host draws it in the
-  // frame it first appears. Either way, a host that still cannot find the
-  // container gets one more try before the island falls back.
-  // Held islands stay out of every batch until their second frame, even one
-  // an update in the same commit schedules for the next frame.
-  let holding: Island[] = [];
-  const hold = (island: Island) => {
-    island.held = true;
-    holding.push(island);
-    if (holding.length > 1) return;
-    schedule(() => {
-      const released = holding;
-      holding = [];
-      schedule(() => {
-        for (const held of released) held.held = undefined;
-        flush();
-      });
-    });
-  };
-
-  const requestMountFlush = (island: Island) => {
-    if (options.schedule) return requestFlush();
-    island.early = true;
-    if (!reached.has(containerOf(island.spec))) return hold(island);
-    if (mountDue) return;
-    mountDue = true;
-    queueMicrotask(() => {
-      mountDue = false;
       flush();
     });
   };
@@ -392,7 +350,6 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
         );
         continue;
       }
-      if (!sent && island.held) continue;
       const revision = island.revision > 0 ? { state_revision: island.revision } : {};
       if (!sent) {
         const operation: TNativeOperation = withoutUndefined({
@@ -484,15 +441,14 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     }
     const props = toNativeProps(spec.props);
     if (!props) return { ok: false, reason: "invalid_spec" };
-    const island: Island = {
+    islands.set(id, {
       spec: { ...spec, props },
       listener,
       status: "pending",
       state: {},
       revision: 0,
-    };
-    islands.set(id, island);
-    requestMountFlush(island);
+    });
+    requestFlush();
     return { ok: true };
   };
 
@@ -564,8 +520,6 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       clearTimer(island);
       const wasStalled = island.status === "stalled";
       island.status = "ready";
-      island.early = undefined;
-      reached.add(containerOf(island.spec));
       if (wasStalled) requestFlush();
       call(id, () => island.listener.onReady?.());
     }
@@ -573,7 +527,6 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
 
   const resync = () => {
     unmounts.clear();
-    reached.clear();
     for (const [id, island] of islands) remount(id, island, false);
     if (islands.size > 0) requestFlush();
   };
@@ -719,15 +672,9 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       case "native_component_error": {
         const error = parse(NativeComponentErrorSchema, named);
         const island = error && islands.get(error.id);
-        if (!error || !island || stale(island, error.sequence)) return true;
-        if (error.reason === "anchor_not_found" && island.early) {
-          island.early = undefined;
-          reached.delete(containerOf(island.spec));
-          remount(error.id, island, false);
-          requestFlush();
-          return true;
+        if (error && island && !stale(island, error.sequence)) {
+          fail(error.id, island, error.reason, error.message);
         }
-        fail(error.id, island, error.reason, error.message);
         return true;
       }
       case "native_component_event": {
@@ -802,11 +749,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     unmount,
     status: (id) => islands.get(id)?.status,
     handle,
-    // Asked for by the page, a flush posts held islands too.
-    flush: () => {
-      for (const island of islands.values()) island.held = undefined;
-      flush();
-    },
+    flush,
     announceReady,
     resync,
     retry,

@@ -94,69 +94,16 @@ describe("<Native> on a native host", () => {
     Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
   });
 
-  it("posts an island added to a page already showing before the next frame", async () => {
-    const Page = (props: { more: boolean }) => (
-      <>
-        <Cta title="First" />
-        {props.more ? <Cta title="Second" /> : null}
-      </>
-    );
-    const view = renderNative(<Page more={false} />);
-    await view.nextFrame();
-    view.ackAll();
-    const before = view.operations().length;
-    view.rerender(<Page more />);
-    expect(islandOf(view.container).dataset.islandMode).toBe("native");
-    const added = view.container.querySelectorAll<HTMLElement>("[data-island]")[1];
-    expect(added?.dataset.islandMode).toBe("pending");
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(view.operations().slice(before)).toEqual([
-      expect.objectContaining({
-        op: "mount",
-        props: { title: "Second", prominence: "prominent" },
-      }),
-    ]);
-  });
-
-  it("keeps the web version until the host answers, then drops it without a fade", async () => {
+  it("keeps the web version visible until the host acknowledges, then hides it", async () => {
     const view = renderNative(<Cta />);
     await view.nextFrame();
     const island = islandOf(view.container);
     expect(island.dataset.islandMode).toBe("pending");
-    expect(island.hasAttribute("data-island-arriving")).toBe(true);
     expect(island.hasAttribute("data-island-shown")).toBe(false);
     view.ackAll();
     expect(island.dataset.islandMode).toBe("native");
-    expect(island.hasAttribute("data-island-arriving")).toBe(true);
     expect(island.hasAttribute("data-island-shown")).toBe(true);
     expect(island.hasAttribute("aria-hidden")).toBe(false);
-  });
-
-  it("fades the web version again once a shown island has settled", async () => {
-    const view = renderNative(<Cta />);
-    await view.nextFrame();
-    view.ackAll();
-    const island = islandOf(view.container);
-    await waitFor(() => expect(island.hasAttribute("data-island-arriving")).toBe(false), {
-      timeout: 1000,
-    });
-    expect(island.hasAttribute("data-island-shown")).toBe(true);
-  });
-
-  it("shows the web version at once when the host fails an island it has not shown yet", async () => {
-    const view = renderNative(<Cta />);
-    await view.nextFrame();
-    const island = islandOf(view.container);
-    expect(island.hasAttribute("data-island-arriving")).toBe(true);
-    view.send({
-      event_name: "native_component_error",
-      id: view.operations()[0]?.id as string,
-      reason: "render_failed",
-    });
-    expect(island.dataset.islandMode).toBe("web");
-    expect(island.hasAttribute("data-island-arriving")).toBe(false);
   });
 
   it("keeps the web version and hides the native view while the host has not answered, then recovers", async () => {
@@ -171,7 +118,6 @@ describe("<Native> on a native host", () => {
     );
     expect(islandOf(view.container).dataset.islandMode).toBe("pending");
     expect(islandOf(view.container).hasAttribute("data-island-shown")).toBe(false);
-    expect(islandOf(view.container).hasAttribute("data-island-arriving")).toBe(false);
     await view.nextFrame();
     expect(view.operations().at(-1)).toEqual({
       op: "update",
@@ -196,7 +142,6 @@ describe("<Native> on a native host", () => {
     view.send({ event_name: "native_component_reset" });
     expect(islandOf(view.container).dataset.islandMode).toBe("pending");
     expect(islandOf(view.container).hasAttribute("data-island-shown")).toBe(false);
-    expect(islandOf(view.container).hasAttribute("data-island-arriving")).toBe(true);
     await view.nextFrame();
     expect(view.operations().at(-1)).toMatchObject({ op: "mount", visible: true });
     view.ackAll();
