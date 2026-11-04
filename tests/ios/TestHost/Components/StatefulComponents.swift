@@ -41,7 +41,7 @@ struct SignupFormView: View {
         )
       )
       Button(props.string("submitLabel") ?? "Sign up", action: submit)
-        .buttonStyle(.glassProminent)
+        .glassProminentButtonStyle()
         .frame(maxWidth: .infinity)
     }
     .textFieldStyle(.roundedBorder)
@@ -120,7 +120,7 @@ struct PlanPickerView: View {
           .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
+        .glassOrMaterial(in: RoundedRectangle(cornerRadius: 16))
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

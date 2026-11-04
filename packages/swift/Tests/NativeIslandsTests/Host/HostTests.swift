@@ -170,7 +170,10 @@ extension NativeBridgeTests {
       host.receive(pageMount())
       let manager = try #require(host.manager)
       async let answer = manager.request(from: "cta", name: "validate", payload: nil)
-      await Task.yield()
+      for _ in 0..<1000 where manager.pendingRequests["ios-1"] == nil {
+        await Task.yield()
+      }
+      #expect(manager.pendingRequests["ios-1"] != nil)
       host.receive([
         "event_name": "native_component_response",
         "id": "cta",

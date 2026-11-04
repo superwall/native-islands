@@ -11,8 +11,9 @@ the web content around it. Anything the host cannot draw stays web.
 
 It has two sides that speak one contract:
 
-- **Host (Swift):** the `NativeIslands` package, iOS 15+ to build, iOS 26+ to
-  draw. It works with any `WKWebView`; nothing in it knows about an app or a
+- **Host (Swift):** the `NativeIslands` package, iOS 15+ to build, iOS 16+ to
+  draw. Before iOS 26 glass falls back to a material (or its tint) in the same
+  shape, the way UIKit's own controls do. It works with any `WKWebView`; nothing in it knows about an app or a
   service.
 - **Page (JS):** `@superwall/native-islands` in `packages/web/`, with `/react` bindings.
 
@@ -66,7 +67,8 @@ examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
                         island, registered in ShowcaseComponents.swift, and
                         Components/Defaults/ the glass views TestHost shares
 performance/            run.sh, check.ts, compare.ts and baseline.json
-scripts/                simulator helpers and parallel UI test runs
+scripts/                simulator helpers, parallel UI test runs and the
+                        iOS runtime matrix with its WebKit view-tree diff
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never
@@ -96,7 +98,8 @@ Run only what your change touches; never a whole suite by hand.
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test test`; in a browser `bun run --cwd examples/showcase dev`
 - Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
-- UI tests on several simulators: `scripts/ui-tests.sh`; record screenshots with `--record` only after a deliberate visual change
+- UI tests on several simulators: `scripts/ui-tests.sh`, on every iOS major with `--runtimes 17.5,18.6,26.5,27.2`; record screenshots with `--record` only after a deliberate visual change (baselines are per iOS major)
+- Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`. What each iOS was proven on, and how versions differ, is in `docs/compatibility.md`
 - Performance: `performance/run.sh`; its comparison: `bun test performance`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 

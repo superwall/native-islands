@@ -1,7 +1,6 @@
 import NativeIslands
 import SwiftUI
 
-@available(iOS 26.0, macCatalyst 26.0, *)
 struct GlassButtonView: View {
   @ObservedObject var component: NativeComponentContext
 

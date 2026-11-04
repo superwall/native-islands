@@ -76,6 +76,7 @@ extension NativeIslandManager {
           continue
         }
       }
+      island.reattachHostIfMoved()
       if let hit = island.view.hitTest(local, with: event) {
         Self.holdWebGestures(above: island.view, upTo: view)
         return hit

@@ -1,0 +1,125 @@
+name: iOS compatibility
+
+# Runs the WebKit view-tree probe (WebKitLayoutTests) and the whole Swift suite
+# on one simulator of every iOS patch release from 16.0, one job per runtime,
+# then compares the trees. A job fails when WebKit stops building the scroll
+# views the host draws in, or when the host fails a test on that iOS;
+# the last job fails when a probed element loses its view or the view changes
+# type against the newest runtime.
+#
+# Manual and weekly only, like ios.yml: each job downloads a runtime (several
+# GB) on a paid macOS runner. Start it from the Actions tab or with
+#   gh workflow run compat.yml --ref <branch> -f runtimes=17.5,18.6
+#
+# macos-26 is the last runner image whose macOS still boots iOS 16 simulators.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtimes:
+        description: iOS versions to probe, comma-separated. Empty runs every patch release.
+        required: false
+        default: ""
+      xcode:
+        description: Xcode to build with (setup-xcode version, such as 26.4). Empty picks the newest Xcode that runs each runtime.
+        required: false
+        default: ""
+  schedule:
+    - cron: "17 4 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Every iOS simulator runtime Apple ships from 16.0 (`xcodes runtimes` lists
+  # them), as `xcodebuild -downloadPlatform iOS -buildVersion` takes them. Add
+  # each new release here.
+  ALL_RUNTIMES: >-
+    16.0,16.1,16.2,16.4,
+    17.0,17.0.1,17.2,17.4,17.5,
+    18.0,18.1,18.2,18.3.1,18.4,18.5,18.6,
+    26.0,26.0.1,26.1,26.2,26.3.1,26.4,26.4.1,26.5,
+    27.0,27.1,27.2
+
+jobs:
+  runtimes:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - id: list
+        env:
+          WANTED: ${{ inputs.runtimes }}
+        run: |
+          list="${WANTED:-$ALL_RUNTIMES}"
+          echo "list=$(echo "$list" | tr -d ' \n' | jq -Rc 'split(",") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+
+  probe:
+    needs: runtimes
+    name: iOS ${{ matrix.runtime }}
+    runs-on: macos-26
+    # Download, build and probe take 15 to 30 minutes; queueing does not count.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        runtime: ${{ fromJSON(needs.runtimes.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v4
+      # A runtime needs an Xcode at least as new as its major release, so iOS 27
+      # runtimes take Xcode 27 and older ones the newest stable Xcode.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ inputs.xcode || (startsWith(matrix.runtime, '27') && '27') || 'latest-stable' }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Install iOS ${{ matrix.runtime }}
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+        run: |
+          if xcrun simctl list runtimes available | grep -q "^iOS .*(${RUNTIME} "; then
+            echo "iOS $RUNTIME is installed."
+          else
+            xcodebuild -downloadPlatform iOS -buildVersion "$RUNTIME"
+          fi
+          xcrun simctl list runtimes available
+      - name: WebKit probe and Swift suite
+        run: scripts/compat-matrix.sh --runtimes "${{ matrix.runtime }}" --steps probe,swift
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: webkit-tree-${{ matrix.runtime }}
+          path: build/compat/trees/*.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: probe-results-${{ matrix.runtime }}
+          path: |
+            build/compat/logs
+            build/compat/*.xcresult
+
+  compare:
+    needs: probe
+    if: always() && needs.probe.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: webkit-tree-*
+          path: build/trees
+          merge-multiple: true
+      - name: Compare the view trees
+        run: |
+          status=0
+          bun scripts/webkit-tree-diff.ts build/trees > diff.txt || status=$?
+          cat diff.txt
+          { echo '```'; cat diff.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

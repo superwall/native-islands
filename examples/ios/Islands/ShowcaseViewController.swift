@@ -37,7 +37,9 @@ final class ShowcaseViewController: UIViewController, WKNavigationDelegate {
     webView.navigationDelegate = self
     webView.accessibilityIdentifier = "showcase"
     #if DEBUG
-    webView.isInspectable = true
+    if #available(iOS 16.4, *) {
+      webView.isInspectable = true
+    }
     #endif
     view.addSubview(webView)
     self.webView = webView

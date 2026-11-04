@@ -1,11 +1,10 @@
 import NativeIslands
 import SwiftUI
 
-/// The navigation bar of iOS 26 over every screen: a glass Back button while
+/// The navigation bar over every screen: a glass Back button while
 /// the stack can go back, the inline title, and the View Mode menu. It stays
 /// put as screens slide under it, as UINavigationBar does, and animates its
 /// items when the page changes them. `back` and `select` go to the page.
-@available(iOS 26.0, *)
 struct NavigationBarView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -17,7 +16,7 @@ struct NavigationBarView: View {
     let title = props.string("title") ?? ""
     let titleShown = props.bool("titleShown") != false
     let items = (props["items"] as? [Any] ?? []).compactMap(MenuView.Item.init)
-    GlassEffectContainer(spacing: 8) {
+    GlassGroup(spacing: 8) {
       HStack(spacing: 8) {
         ZStack(alignment: .leading) {
           if showsBack {
@@ -30,9 +29,9 @@ struct NavigationBarView: View {
                 .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .circle)
+            .glassOrMaterial(in: Circle())
             .accessibilityLabel("Back")
-            .transition(.blurReplace.combined(with: .scale(0.6)))
+            .transition(.opacity.combined(with: .scale(scale: 0.6)))
           }
         }
         .frame(width: Self.button, alignment: .leading)
@@ -55,13 +54,13 @@ struct NavigationBarView: View {
         }
         .buttonStyle(.plain)
         .menuOrder(.fixed)
-        .glassEffect(.regular.interactive(), in: .circle)
+        .glassOrMaterial(in: Circle())
         .accessibilityLabel(props.string("menuLabel") ?? "More")
       }
       .foregroundStyle(Color.primary)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    .animation(.smooth(duration: 0.35), value: showsBack)
+    .animation(.smoothly(duration: 0.35), value: showsBack)
     .animation(.easeInOut(duration: 0.2), value: title)
     .animation(.easeInOut(duration: 0.15), value: titleShown)
   }

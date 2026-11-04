@@ -3,7 +3,6 @@ import SwiftUI
 
 /// The Search tab beside the tab bar: a glass circle whose symbol matches the
 /// bar's items, tinted like a selected tab while Search is showing.
-@available(iOS 26.0, *)
 struct SearchTabView: View {
   @ObservedObject var component: NativeComponentContext
 

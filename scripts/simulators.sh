@@ -14,6 +14,40 @@ for runtime in reversed(runtimes):
             print(device["udid"]); sys.exit()
 sys.exit(1)
 ' "$name")" || { echo "No available simulator named $name" >&2; return 1; }
+  prepare_simulator_udid "$udid"
+}
+
+# Prints the udid of one iPhone simulator for each iOS version in $1
+# (comma-separated, "18" or "18.6"): the first of the names in $2 that runtime
+# has, or else its first iPhone. A version with no runtime installed fails.
+simulators_for_runtimes() {
+  xcrun simctl list -j runtimes devices available | python3 -I -c '
+import json, sys
+wanted = [v for v in sys.argv[1].split(",") if v]
+names = [n for n in sys.argv[2].split(",") if n]
+data = json.load(sys.stdin)
+runtimes = sorted(
+    (r for r in data["runtimes"] if r.get("platform") == "iOS" and r.get("isAvailable")),
+    key=lambda r: [int(p) for p in r["version"].split(".")],
+)
+missing = []
+for version in wanted:
+    matching = [r for r in runtimes if r["version"] == version or r["version"].startswith(version + ".")]
+    phones = [d for r in reversed(matching) for d in data["devices"].get(r["identifier"], []) if d["name"].startswith("iPhone")]
+    pick = next((d for n in names for d in phones if d["name"] == n), phones[0] if phones else None)
+    if pick is None:
+        missing.append(version)
+    else:
+        print(pick["udid"])
+if missing:
+    print("No iPhone simulator for iOS " + ", ".join(missing), file=sys.stderr)
+    sys.exit(1)
+' "$1" "$2"
+}
+
+# Boots the simulator $1 the way prepare_simulator does and prints its udid.
+prepare_simulator_udid() {
+  local udid="$1"
   if command -v simslim >/dev/null; then simslim on "$udid" >/dev/null 2>&1 || true; fi
   xcrun simctl boot "$udid" >/dev/null 2>&1 || true
   xcrun simctl bootstatus "$udid" -b >/dev/null

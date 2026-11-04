@@ -1,7 +1,6 @@
 import NativeIslands
 import SwiftUI
 
-@available(iOS 26.0, macCatalyst 26.0, *)
 struct ToggleView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var isOn: Bool?
@@ -23,7 +22,7 @@ struct ToggleView: View {
     .tint(props.color("tint"))
     .disabled(props.bool("disabled") == true)
     .fixedSize()
-    .onChange(of: value) { _, next in
+    .onChangeOf(value) { next in
       isOn = next
     }
   }

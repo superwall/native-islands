@@ -28,6 +28,8 @@ final class NativeIsland {
   var reportedSize: CGSize?
   var sizeObservation: NSKeyValueObservation?
   private(set) var topCut: CGFloat = 0
+  /// Where the hosting view sat in its window when it was last attached.
+  var attachedOrigin: CGPoint?
 
   var isShown: Bool {
     context.isVisible
