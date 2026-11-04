@@ -7,7 +7,7 @@ import WebKit
 final class ShowcaseViewController: UIViewController, WKNavigationDelegate {
   private let url: URL
   private var webView: IslandWebView?
-  private var pageShowsOutlines = false
+  private var hasPageReportedMode = false
 
   init(url: URL) {
     self.url = url
@@ -52,10 +52,12 @@ final class ShowcaseViewController: UIViewController, WKNavigationDelegate {
     case let .appearance(style):
       view.window?.overrideUserInterfaceStyle = style
     case let .outlines(shown):
-      // The page reports its mode as soon as it loads; only a change of mode
-      // overrides `-NativeIslandsOutlines YES`.
-      guard shown != pageShowsOutlines else { return }
-      pageShowsOutlines = shown
+      // The page reports its mode as soon as it loads, before anyone picks one,
+      // so that first report must not turn off `-NativeIslandsOutlines YES`.
+      // Every later report is a mode the person picked.
+      let isFirstReport = !hasPageReportedMode
+      hasPageReportedMode = true
+      guard shown || !isFirstReport else { return }
       webView?.islands?.showsOutlines = shown
     }
   }
