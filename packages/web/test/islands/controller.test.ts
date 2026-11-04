@@ -711,7 +711,14 @@ describe("toNativeProps", () => {
 });
 
 describe("default scheduler", () => {
-  it("flushes on the next animation frame", () => {
+  const mounted = async (post: (message: TToHostMessage) => void) => {
+    const islands = createNativeIslands({ capability, post });
+    islands.mount("a", spec());
+    await Promise.resolve();
+    return islands;
+  };
+
+  it("posts a new mount once the current task ends, before the next frame", async () => {
     const frames: FrameRequestCallback[] = [];
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       frames.push(callback);
@@ -720,32 +727,86 @@ describe("default scheduler", () => {
     const post = vi.fn();
     const islands = createNativeIslands({ capability, post });
     islands.mount("a", spec());
+    islands.mount("b", spec());
     expect(post).not.toHaveBeenCalled();
-    frames[0]?.(0);
+    await Promise.resolve();
     expect(post).toHaveBeenCalledTimes(1);
-    vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
-    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0]?.[0]).toMatchObject({
+      operations: [
+        { op: "mount", id: "a" },
+        { op: "mount", id: "b" },
+      ],
+    });
+    expect(frames).toHaveLength(0);
     vi.unstubAllGlobals();
   });
 
-  it("still flushes when animation frames never fire, as in a page preloaded off screen", () => {
+  it("sends an unmount queued in the same task with the new mount", async () => {
     vi.stubGlobal("requestAnimationFrame", () => 0);
     const post = vi.fn();
-    const islands = createNativeIslands({ capability, post });
-    islands.mount("a", spec());
+    const islands = await mounted(post);
+    islands.unmount("a");
+    islands.mount("b", spec());
+    await Promise.resolve();
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1]?.[0]).toMatchObject({
+      operations: [
+        { op: "unmount", id: "a" },
+        { op: "mount", id: "b" },
+      ],
+    });
     vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
-    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledTimes(2);
     vi.unstubAllGlobals();
   });
 
-  it("flushes by timer where animation frames do not exist", () => {
+  it("flushes updates on the next animation frame", async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const post = vi.fn();
+    const islands = await mounted(post);
+    islands.update("a", { props: { title: "Later" } });
+    await Promise.resolve();
+    expect(post).toHaveBeenCalledTimes(1);
+    frames[0]?.(0);
+    expect(post).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
+    expect(post).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("still flushes when animation frames never fire, as in a page preloaded off screen", async () => {
+    vi.stubGlobal("requestAnimationFrame", () => 0);
+    const post = vi.fn();
+    const islands = await mounted(post);
+    islands.update("a", { props: { title: "Later" } });
+    vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
+    expect(post).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("flushes by timer where animation frames do not exist", async () => {
     vi.stubGlobal("requestAnimationFrame", undefined);
     const post = vi.fn();
-    const islands = createNativeIslands({ capability, post });
-    islands.mount("a", spec());
+    const islands = await mounted(post);
+    islands.update("a", { props: { title: "Later" } });
     vi.advanceTimersByTime(NATIVE_FLUSH_FALLBACK_MS);
-    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledTimes(2);
     vi.unstubAllGlobals();
+  });
+});
+
+describe("custom scheduler", () => {
+  it("decides when a new mount is posted", async () => {
+    const { islands, posted, frame } = setup();
+    islands.mount("a", spec());
+    await Promise.resolve();
+    expect(posted).toHaveLength(0);
+    frame();
+    expect(posted).toHaveLength(1);
   });
 });
 

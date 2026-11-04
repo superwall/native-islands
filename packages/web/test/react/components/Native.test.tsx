@@ -94,6 +94,32 @@ describe("<Native> on a native host", () => {
     Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
   });
 
+  it("posts an island added to a page already showing before the next frame", async () => {
+    const Page = (props: { more: boolean }) => (
+      <>
+        <Cta title="First" />
+        {props.more ? <Cta title="Second" /> : null}
+      </>
+    );
+    const view = renderNative(<Page more={false} />);
+    await view.nextFrame();
+    view.ackAll();
+    const before = view.operations().length;
+    view.rerender(<Page more />);
+    expect(islandOf(view.container).dataset.islandMode).toBe("native");
+    const added = view.container.querySelectorAll<HTMLElement>("[data-island]")[1];
+    expect(added?.dataset.islandMode).toBe("pending");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(view.operations().slice(before)).toEqual([
+      expect.objectContaining({
+        op: "mount",
+        props: { title: "Second", prominence: "prominent" },
+      }),
+    ]);
+  });
+
   it("keeps the web version visible until the host acknowledges, then hides it", async () => {
     const view = renderNative(<Cta />);
     await view.nextFrame();

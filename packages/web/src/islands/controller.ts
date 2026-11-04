@@ -287,12 +287,26 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   let sequence = 0;
   let commandCount = 0;
   let scheduled = false;
+  let mountDue = false;
 
   const requestFlush = () => {
     if (scheduled) return;
     scheduled = true;
     schedule(() => {
       scheduled = false;
+      flush();
+    });
+  };
+
+  // A mount posted on the next frame reaches the host a frame after the page
+  // drew the island's web version. Posting it once the current task ends lets
+  // the host draw it in the frame the island first appears.
+  const requestMountFlush = () => {
+    if (options.schedule) return requestFlush();
+    if (mountDue) return;
+    mountDue = true;
+    queueMicrotask(() => {
+      mountDue = false;
       flush();
     });
   };
@@ -448,7 +462,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       state: {},
       revision: 0,
     });
-    requestFlush();
+    requestMountFlush();
     return { ok: true };
   };
 

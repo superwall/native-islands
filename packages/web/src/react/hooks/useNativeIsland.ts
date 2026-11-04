@@ -401,13 +401,15 @@ export const useNativeIsland = (
       setState({ mode: "pending", handoff: spec.handoff, anchorType: spec.anchor.type });
       return true;
     };
-    const watcher = layoutWatcherFor(element.ownerDocument);
-    stopWaiting = watcher.subscribe((pass) => {
-      if (pass !== "layout" || !tryMount()) return;
-      stopWaiting?.();
-      stopWaiting = undefined;
-    });
-    watcher.refresh();
+    if (!tryMount()) {
+      const watcher = layoutWatcherFor(element.ownerDocument);
+      stopWaiting = watcher.subscribe((pass) => {
+        if (pass !== "layout" || !tryMount()) return;
+        stopWaiting?.();
+        stopWaiting = undefined;
+      });
+      watcher.refresh();
+    }
     return () => {
       stopWaiting?.();
       readiness.end(id);
