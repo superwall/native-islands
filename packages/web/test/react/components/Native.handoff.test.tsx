@@ -164,6 +164,31 @@ describe("hand-off to the web version", () => {
     });
   });
 
+  it("builds no update for an island whose geometry did not change", async () => {
+    const view = renderNative(<Card />);
+    await view.nextFrame();
+    view.ackAll();
+    const update = vi.spyOn(view.islands, "update");
+    const scroll = async () => {
+      act(() => {
+        document.dispatchEvent(new Event("scroll"));
+      });
+      await view.nextFrame();
+    };
+
+    await scroll();
+    expect(update).not.toHaveBeenCalled();
+    (view.container.querySelector("button") as HTMLElement).dataset.rect = rectAttribute(
+      10,
+      160,
+      100,
+      40,
+    );
+    await scroll();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0]?.[1]).toMatchObject({ frame: { x: 10, y: 160 } });
+  });
+
   it("skips a layout pass when the children are gone", async () => {
     const view = renderNative(<Card />);
     await view.nextFrame();

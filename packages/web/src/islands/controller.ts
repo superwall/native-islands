@@ -321,6 +321,9 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   const report = options.report ?? defaultReport;
   const islands = new Map<string, Island>();
   const unmounts = new Set<string>();
+  // Islands whose wire spec may differ from what was last sent; a flush
+  // compares only these.
+  const changed = new Set<string>();
   const retired = new Map<string, Retired>();
   const reuses = supportsFeature(capability, "reuse");
   const commands = new Map<string, PendingCommand>();
@@ -370,6 +373,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     clearTimer(island);
     settleCommands(id, `Native component ${JSON.stringify(id)} fell back to web.`);
     islands.delete(id);
+    changed.delete(id);
     if (island.mountSequence !== undefined) {
       unmounts.add(id);
       requestFlush();
@@ -380,6 +384,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   const stall = (id: string, island: Island) => {
     island.timer = undefined;
     island.status = "stalled";
+    changed.add(id);
     requestFlush();
     call(id, () => island.listener.onStall?.());
   };
@@ -391,6 +396,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     for (const id of unmounts) operations.push({ op: "unmount", id });
     unmounts.clear();
     for (const [id, island] of islands) {
+      if (!changed.delete(id)) continue;
       const spec = wireOf(island);
       const { sent } = island;
       if (!anchorAllowed(spec)) {
@@ -504,6 +510,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       revision: 0,
       reuse,
     });
+    changed.add(id);
     if (reuse === undefined) {
       requestFlush();
       return { ok: true };
@@ -569,6 +576,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
             motion: patch.motion,
           };
     island.spec = { ...island.spec, ...rest, ...geometry, props };
+    changed.add(id);
     return true;
   };
 
@@ -584,6 +592,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     clearTimer(island);
     settleCommands(id, `Native component ${JSON.stringify(id)} unmounted.`);
     islands.delete(id);
+    changed.delete(id);
     // An island unmounted before its mount went out, as React's StrictMode
     // does, leaves the view it would have taken over for the next one.
     if (island.reuse) retired.set(island.reuse.id, island.reuse.entry);
@@ -615,6 +624,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     island.sent = undefined;
     island.mountSequence = undefined;
     island.status = "pending";
+    changed.add(id);
     call(id, () => island.listener.onPending?.());
   };
 
@@ -626,7 +636,10 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       clearTimer(island);
       const wasStalled = island.status === "stalled";
       island.status = "ready";
-      if (wasStalled) requestFlush();
+      if (wasStalled) {
+        changed.add(id);
+        requestFlush();
+      }
       call(id, () => island.listener.onReady?.());
     }
   };

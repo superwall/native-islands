@@ -1,4 +1,4 @@
-import { withoutUndefined } from "../../protocol/defined";
+import { sameJson, withoutUndefined } from "../../protocol/defined";
 import * as React from "react";
 import { supportsFeature } from "../../protocol/capability";
 import { ISLAND_PHASE_ATTRIBUTE } from "../../layout/attributes";
@@ -176,6 +176,7 @@ export const useNativeIsland = (
   latest.current = options;
   const mounted = React.useRef(false);
   const sentAnchor = React.useRef<TNativeAnchor | undefined>(undefined);
+  const sentGeometry = React.useRef<ReturnType<typeof geometryPatch> | undefined>(undefined);
   const motion = React.useRef<{
     at?: NativeAnchorOf;
     frame?: TNativeFrame;
@@ -385,6 +386,7 @@ export const useNativeIsland = (
           refresh: () => {
             sentAnchor.current = undefined;
             const geometry = evaluate(element);
+            sentGeometry.current = geometry && geometryPatch(geometry);
             return (
               geometry &&
               withoutUndefined({
@@ -411,6 +413,7 @@ export const useNativeIsland = (
       }
       live = true;
       mounted.current = true;
+      sentGeometry.current = geometryPatch(spec);
       setState(
         withoutUndefined({
           mode: "pending" as const,
@@ -455,8 +458,9 @@ export const useNativeIsland = (
     if (!mounted.current || !element) return;
     const spec = specOf(element);
     if (!spec) return;
+    sentGeometry.current = geometryPatch(spec);
     islands.update(id, {
-      ...geometryPatch(spec),
+      ...sentGeometry.current,
       props: spec.props,
       accessibility: spec.accessibility,
     });
@@ -471,7 +475,11 @@ export const useNativeIsland = (
     const relayout = () => {
       const geometry = evaluate(element);
       if (!geometry) return;
-      islands.update(id, geometryPatch(geometry));
+      const patch = geometryPatch(geometry);
+      if (!sameJson(patch, sentGeometry.current)) {
+        sentGeometry.current = patch;
+        islands.update(id, patch);
+      }
       setPlacement(geometry.handoff, geometry.anchor.type);
     };
     const follow = () => {
