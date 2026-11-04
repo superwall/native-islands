@@ -48,3 +48,20 @@ describe("ISLAND_STYLES", () => {
     expect(styles[0]?.textContent).toBe(ISLAND_STYLES);
   });
 });
+
+describe("the web version of an island the host takes over", () => {
+  it("hides at once, without the fade", () => {
+    ensureIslandStyles(document);
+    const rule = rulesOf().find((candidate) =>
+      candidate.selectorText.includes("data-island-reusing"),
+    );
+    expect(rule?.style.getPropertyValue("opacity")).toBe("0");
+    expect(rule?.style.getPropertyValue("transition")).toContain("none");
+    const wrapper = document.createElement("span");
+    wrapper.setAttribute("data-island", "symbol");
+    wrapper.setAttribute("data-island-reusing", "");
+    const child = wrapper.appendChild(document.createElement("span"));
+    document.body.appendChild(wrapper);
+    expect(child.matches(rule?.selectorText ?? "")).toBe(true);
+  });
+});

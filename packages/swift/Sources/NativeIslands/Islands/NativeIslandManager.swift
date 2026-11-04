@@ -17,6 +17,9 @@ final class NativeIslandManager: NativeIslandMessaging {
   var scrollObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
   var contentSizeObservations: [ObjectIdentifier: ContentSizeObservation] = [:]
   var parked: [String: ParkedMount] = [:]
+  var retired: [String: RetiredIsland] = [:]
+  var retiredCount = 0
+  let expire: @MainActor (@escaping @MainActor () -> Void) -> Void
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
   static let parkingAttempts = 20
   var requestTimeoutNanoseconds: UInt64 = 10_000_000_000
@@ -40,6 +43,11 @@ final class NativeIslandManager: NativeIslandMessaging {
     retry: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
     },
+    expire: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
+      DispatchQueue.main.asyncAfter(deadline: .now() + NativeIslandManager.retiredLifetime) {
+        MainActor.assumeIsolated { work() }
+      }
+    },
     notifications: NotificationCenter = .default
   ) {
     self.registry = registry
@@ -47,6 +55,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     self.send = send
     self.schedule = schedule
     self.retry = retry
+    self.expire = expire
     lifecycle = NativeLifecycleObservers(center: notifications)
     watchLifecycle()
   }
@@ -62,9 +71,12 @@ final class NativeIslandManager: NativeIslandMessaging {
     for operation in operations {
       switch operation {
       case .unmount(let id):
-        remove(id)
+        retire(id)
       case .mount(let mount):
-        if shouldPark(mount) {
+        if takeOver(mount, sequence: batch.sequence) {
+          islands[mount.id]?.context.acknowledge()
+          acknowledged.append(mount.id)
+        } else if shouldPark(mount) {
           park(mount, sequence: batch.sequence)
         } else if let error = mountIsland(mount, sequence: batch.sequence) {
           replies.append(error)
@@ -229,6 +241,7 @@ final class NativeIslandManager: NativeIslandMessaging {
 
   func remove(_ id: String) {
     parked[id] = nil
+    discardRetired(id)
     guard let island = islands.removeValue(forKey: id) else { return }
     island.sizeObservation?.invalidate()
     detachFromParent(island.host)
@@ -240,6 +253,7 @@ final class NativeIslandManager: NativeIslandMessaging {
 
   func clear(notifyPage: Bool) {
     parked.removeAll()
+    discardRetired()
     for id in Array(islands.keys) {
       remove(id)
     }
@@ -249,6 +263,18 @@ final class NativeIslandManager: NativeIslandMessaging {
     } else {
       recoveredUnreadableBatch = false
     }
+  }
+}
+
+// MARK: - Keeping
+
+extension NativeIslandManager {
+  func takeOut(_ id: String) -> NativeIsland? {
+    islands.removeValue(forKey: id)
+  }
+
+  func put(_ island: NativeIsland, as id: String) {
+    islands[id] = island
   }
 }
 

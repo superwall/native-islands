@@ -37,6 +37,7 @@ final class NativeTestHarness {
   var sent: [[NativeReply]] = []
   var scheduled: [@MainActor () -> Void] = []
   var retries: [@MainActor () -> Void] = []
+  var expirations: [@MainActor () -> Void] = []
   let notifications = NotificationCenter()
   lazy var manager = NativeIslandManager(
     registry: registry,
@@ -44,6 +45,7 @@ final class NativeTestHarness {
     send: { [unowned self] replies in sent.append(replies) },
     schedule: { [unowned self] work in scheduled.append(work) },
     retry: { [unowned self] work in retries.append(work) },
+    expire: { [unowned self] work in expirations.append(work) },
     notifications: notifications
   )
 
@@ -86,7 +88,8 @@ func mountOp(
   order: Int = 0,
   sizing: NativeSizing = .web,
   accessibility: NativeAccessibility? = nil,
-  stateRevision: Int? = nil
+  stateRevision: Int? = nil,
+  reuse: String? = nil
 ) -> NativeOperation {
   .mount(
     NativeMount(
@@ -100,7 +103,8 @@ func mountOp(
       order: order,
       sizing: sizing,
       accessibility: accessibility,
-      stateRevision: stateRevision
+      stateRevision: stateRevision,
+      reuse: reuse
     )
   )
 }
@@ -234,6 +238,8 @@ extension NativeBridgeTests {
       let view = harness.island("a")?.view
       harness.manager.apply(batch(2, .unmount(id: "a"), .unmount(id: "ghost")))
       harness.manager.apply(batch(3, .update(NativeUpdate(id: "ghost", visible: false))))
+      #expect(view?.isHidden == true)
+      harness.expirations.forEach { $0() }
       #expect(view?.superview == nil)
       #expect(harness.manager.islands.isEmpty)
       #expect(harness.sent.count == 1)
@@ -418,6 +424,7 @@ extension NativeBridgeTests {
       harness.manager.apply(batch(1, mountOp()))
       let host = try #require(harness.island("cta")?.host)
       harness.manager.apply(batch(2, .unmount(id: "cta")))
+      harness.expirations.forEach { $0() }
       #expect(host.parent == nil)
       #expect(controller.children.isEmpty)
       harness.manager.apply(batch(3, mountOp("a"), mountOp("b")))

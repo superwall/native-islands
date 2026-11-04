@@ -9,6 +9,8 @@ import {
   createNativeIslands,
   NATIVE_ACK_TIMEOUT_MS,
   NATIVE_FLUSH_FALLBACK_MS,
+  NATIVE_REUSE_LIMIT,
+  NATIVE_REUSE_WINDOW_MS,
   readNativeCapability,
   toNativeProps,
   type NativeIslandListener,
@@ -777,5 +779,145 @@ describe("announceReady", () => {
     });
     expect(islands.announceReady()).toBe(false);
     expect(posted).toEqual([]);
+  });
+});
+
+describe("taking over a view the host kept", () => {
+  const reusing = readNativeCapability({
+    protocol: 1,
+    components: { glassButton: 1, toggle: 2 },
+    features: ["reuse"],
+  });
+  const scroller = {
+    type: "scroller" as const,
+    scroller: {
+      id: "results",
+      frame: { x: 0, y: 0, width: 400, height: 800 },
+      content_size: { width: 400, height: 2000 },
+      scroll_offset: { x: 0, y: 0 },
+    },
+  };
+  const setupReuse = (capabilityResult = reusing) => {
+    const posted: TToHostMessage[] = [];
+    const pending: Array<() => void> = [];
+    const islands = createNativeIslands({
+      capability: capabilityResult,
+      post: (message) => {
+        expect(ToHostMessageSchema.safeParse(message).success).toBe(true);
+        posted.push(message);
+      },
+      schedule: (flush) => pending.push(flush),
+    });
+    const frame = () => {
+      for (const flush of pending.splice(0)) flush();
+    };
+    const operations = () =>
+      posted.flatMap((message) =>
+        message.event_name === "native_component_batch" ? message.operations : [],
+      );
+    const shown = (id: string) => {
+      islands.mount(id, spec({ anchor: scroller }));
+      frame();
+      const last = posted.at(-1);
+      const sequence = last?.event_name === "native_component_batch" ? last.sequence : 0;
+      islands.handle({ event_name: "native_component_ack", sequence, ids: [id] });
+    };
+    return { islands, posted, frame, operations, shown };
+  };
+
+  it("asks the host to take over an unmounted island's view, and posts before the next frame", async () => {
+    const { islands, frame, operations, shown } = setupReuse();
+    shown("old");
+    islands.unmount("old");
+    frame();
+    expect(islands.mayReuse("glassButton")).toBe(true);
+    expect(islands.mayReuse("toggle")).toBe(false);
+    expect(islands.reusable({ ...spec({ anchor: scroller }) })).toBe(true);
+    expect(islands.mount("new", spec({ anchor: scroller }))).toEqual({ ok: true, reusing: true });
+    await Promise.resolve();
+    expect(operations().at(-1)).toMatchObject({ op: "mount", id: "new", reuse: "old" });
+    expect(islands.mayReuse("glassButton")).toBe(false);
+    expect(islands.mount("other", spec({ anchor: scroller }))).toEqual({ ok: true });
+  });
+
+  it("sends the unmount and the take-over in one batch when they come in one commit", async () => {
+    const { islands, posted, operations, shown } = setupReuse();
+    shown("old");
+    const before = posted.length;
+    islands.unmount("old");
+    islands.mount("new", spec({ anchor: scroller }));
+    await Promise.resolve();
+    expect(posted).toHaveLength(before + 1);
+    expect(operations().slice(-2)).toMatchObject([
+      { op: "unmount", id: "old" },
+      { op: "mount", id: "new", reuse: "old" },
+    ]);
+  });
+
+  it("matches only the same component, props, sizing and scroller", () => {
+    const { islands, frame, shown } = setupReuse();
+    shown("old");
+    islands.unmount("old");
+    frame();
+    const otherScroller = { ...scroller, scroller: { ...scroller.scroller, id: "other" } };
+    expect(islands.reusable(spec({ anchor: otherScroller }))).toBe(false);
+    expect(islands.reusable(spec({ anchor: { type: "page" } }))).toBe(false);
+    expect(islands.reusable(spec({ anchor: scroller, props: { title: "Other" } }))).toBe(false);
+    expect(islands.reusable(spec({ anchor: scroller, sizing: "native" }))).toBe(false);
+    expect(islands.reusable(spec({ anchor: scroller, props: { bad: () => undefined } }))).toBe(
+      false,
+    );
+    expect(islands.mount("new", spec({ props: { title: "Other" }, anchor: scroller }))).toEqual({
+      ok: true,
+    });
+  });
+
+  it("keeps nothing for an island the host never showed, or without the reuse feature", () => {
+    const unacked = setupReuse();
+    unacked.islands.mount("old", spec({ anchor: scroller }));
+    unacked.frame();
+    unacked.islands.unmount("old");
+    expect(unacked.islands.mayReuse("glassButton")).toBe(false);
+
+    const without = setupReuse(capability);
+    without.shown("old");
+    without.islands.unmount("old");
+    expect(without.islands.mayReuse("glassButton")).toBe(false);
+  });
+
+  it("forgets unmounted islands after the reuse window and past the limit", () => {
+    const { islands, frame, shown } = setupReuse();
+    shown("old");
+    islands.unmount("old");
+    frame();
+    vi.advanceTimersByTime(NATIVE_REUSE_WINDOW_MS + 1);
+    expect(islands.mayReuse("glassButton")).toBe(false);
+
+    const rows = Array.from({ length: NATIVE_REUSE_LIMIT + 1 }, (_, index) => `row-${index}`);
+    for (const row of rows) shown(row);
+    for (const row of rows) islands.unmount(row);
+    frame();
+    const kept = rows.map((row) => islands.mount(`again-${row}`, spec({ anchor: scroller })));
+    expect(kept.filter((result) => result.ok && result.reusing)).toHaveLength(NATIVE_REUSE_LIMIT);
+  });
+
+  it("forgets every kept view when the host resets, and drops the take-over on a remount", async () => {
+    const { islands, frame, operations, shown } = setupReuse();
+    shown("old");
+    islands.unmount("old");
+    frame();
+    islands.resync();
+    expect(islands.mayReuse("glassButton")).toBe(false);
+
+    shown("second");
+    islands.unmount("second");
+    frame();
+    islands.mount("new", spec({ anchor: scroller }));
+    islands.resync();
+    await Promise.resolve();
+    frame();
+    const mounts = operations().filter((operation) => operation.id === "new");
+    expect(mounts).toHaveLength(1);
+    expect(mounts[0]).not.toHaveProperty("reuse");
   });
 });

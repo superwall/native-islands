@@ -57,6 +57,8 @@ export type NativeIslandState = {
   size?: TNativeSize;
   handoff?: NativeHandoff;
   anchorType?: TNativeAnchor["type"];
+  /** The host is taking over a view it kept, so the island shows native at once. */
+  reusing?: boolean;
   command: (name: string, args?: unknown, options?: { timeoutMs?: number }) => Promise<unknown>;
   state: () => Readonly<Record<string, unknown>> | undefined;
 };
@@ -72,6 +74,9 @@ const MESSAGES: Partial<Record<Reason, string>> = {
 };
 
 const TOLERANCE = 0.5;
+
+/** How long the web version stays hidden for a view the host takes over. */
+export const REUSE_GRACE_MS = 150;
 
 let nextOrder = 0;
 
@@ -285,7 +290,8 @@ export const useNativeIsland = (
     let live = false;
     let warned = false;
     let stopWaiting: (() => void) | undefined;
-    const tryMount = (): boolean => {
+    let grace: ReturnType<typeof setTimeout> | undefined;
+    const tryMount = (onlyReusing = false): boolean => {
       sentAnchor.current = undefined;
       const spec = specOf(element);
       if (!spec) {
@@ -308,6 +314,12 @@ export const useNativeIsland = (
         )
       ) {
         readiness.end(id);
+        return false;
+      }
+      if (
+        onlyReusing &&
+        !islands.reusable({ component, version, sizing, props: spec.props, anchor: spec.anchor })
+      ) {
         return false;
       }
       if (waits) readiness.begin(id);
@@ -340,12 +352,12 @@ export const useNativeIsland = (
           },
           onPending: () => {
             readiness.begin(id);
-            setState((previous) => ({ ...previous, mode: "pending" }));
+            setState((previous) => ({ ...previous, mode: "pending", reusing: undefined }));
           },
           onStall: () => {
             readiness.end(id);
             report(component, "timeout");
-            setState((previous) => ({ ...previous, mode: "pending" }));
+            setState((previous) => ({ ...previous, mode: "pending", reusing: undefined }));
           },
           onFallback: (reason, message) => {
             mounted.current = false;
@@ -398,18 +410,37 @@ export const useNativeIsland = (
       }
       live = true;
       mounted.current = true;
-      setState({ mode: "pending", handoff: spec.handoff, anchorType: spec.anchor.type });
+      setState(
+        withoutUndefined({
+          mode: "pending" as const,
+          handoff: spec.handoff,
+          anchorType: spec.anchor.type,
+          reusing: result.reusing,
+        }),
+      );
+      if (result.reusing) {
+        grace = setTimeout(() => {
+          setState((previous) => ({ ...previous, reusing: undefined }));
+        }, REUSE_GRACE_MS);
+      }
       return true;
     };
-    const watcher = layoutWatcherFor(element.ownerDocument);
-    stopWaiting = watcher.subscribe((pass) => {
-      if (pass !== "layout" || !tryMount()) return;
-      stopWaiting?.();
-      stopWaiting = undefined;
-    });
-    watcher.refresh();
+    // An island coming back where the host still holds a view like it, such
+    // as a search result showing again, mounts in this commit so the host
+    // can show that view in the frame the row first paints. Every other
+    // island waits for the next layout pass, when the page has settled.
+    if (!(islands.mayReuse(component) && tryMount(true))) {
+      const watcher = layoutWatcherFor(element.ownerDocument);
+      stopWaiting = watcher.subscribe((pass) => {
+        if (pass !== "layout" || !tryMount()) return;
+        stopWaiting?.();
+        stopWaiting = undefined;
+      });
+      watcher.refresh();
+    }
     return () => {
       stopWaiting?.();
+      clearTimeout(grace);
       readiness.end(id);
       if (!live) return;
       mounted.current = false;

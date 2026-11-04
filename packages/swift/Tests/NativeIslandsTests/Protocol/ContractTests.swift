@@ -108,6 +108,8 @@ struct ContractTests {
     #expect(toggle.sizing == .native)
     #expect(toggle.props["isOn"] == .bool(true))
     #expect(toggle.accessibility == nil)
+    #expect(toggle.reuse == "plans-monthly")
+    #expect(cta.reuse == nil)
     #expect(
       toggle.anchor == .scroller(
         NativeScroller(
