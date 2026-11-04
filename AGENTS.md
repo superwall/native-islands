@@ -97,6 +97,8 @@ Run only what your change touches; never a whole suite by hand.
 
 - JS tests: `bun run --cwd packages/web test:run test/<file>`
 - JS types: `bun run --cwd packages/web typecheck`
+- Web package build: `bun run --cwd packages/web build` (tsup, to `packages/web/dist`). Its exports point at `dist`; each also has a `source` condition that the workspace apps (Vite `resolve.conditions`, TS `customConditions`, `bun test --conditions source`) use to read `src`, so developing them needs no build
+- Package checks: `bunx publint packages/web --strict`, `cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only`; the packed tarball in fresh Vite and Next.js apps: `scripts/pack-smoke.sh` (needs the npm registry)
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`

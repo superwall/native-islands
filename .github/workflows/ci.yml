@@ -27,6 +27,10 @@ jobs:
       - run: bunx oxfmt --check packages/web tests examples performance
       - run: bun run --cwd packages/web typecheck
       - run: bun run --cwd packages/web test:coverage
+      - run: bun run --cwd packages/web build
+      - run: bunx publint packages/web --strict
+      - run: cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only
+      - run: scripts/pack-smoke.sh
       - run: bun test performance
       - run: bun run --cwd tests/pages build
       - run: cd examples/showcase && bun test --conditions source test
