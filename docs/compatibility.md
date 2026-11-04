@@ -140,7 +140,40 @@ scripts/compat-matrix.sh --list               # what it would run
 ```
 
 It prints one line per runtime and then the tree comparison. The trees, logs and
-result bundles are in `build/compat/`.
+result bundles are in `build/compat/`. `--steps probe,swift,ui` adds the whole
+Swift suite and TestHost's alignment tests (every island within 0.5 pt of its
+web element, pages pushed and popped) on each runtime.
+
+## Looks per iOS release
+
+Each iOS release draws controls its own way, so TestHost's screenshot baselines
+are kept per major release in `tests/ios/Baselines/iOS-<major>/<device>/`, each
+recorded on that release's newest runtime here:
+
+```bash
+scripts/ui-tests.sh --runtimes 17.5,18.6,26.5,27.2              # alignment and screenshots
+scripts/ui-tests.sh --runtimes 17.5,18.6,26.5,27.2 --record --only ScreenshotUITests
+```
+
+`--runtimes` takes one iPhone per runtime, the first of `--devices` it has.
+iOS 27 also keeps iPhone Air baselines. A page is photographed once two shots
+half a second apart match, as glass can take a moment to finish drawing its
+edge, and the home indicator strip is left out, since UIKit shades it
+differently between runs.
+
+Below iOS 18 SwiftUI hit-tests its content where the hosting view sat when it
+last entered the window. WebKit slides a pushed page in by animating a layer far
+above the island, so a SwiftUI button on that page took no taps on iOS 17. The
+host attaches an island's hosting view again when a touch lands on it after it
+moved; `AlignmentUITests.testPagesPushAndPopWithTheirIslandsAligned` taps
+through a push on every runtime.
+
+TestHost's alignment tests pass on 17.5, 18.6, 26.1, 26.4.1, 26.5, 27.0, 27.1
+and 27.2. On the iOS 26.3.1 simulator here, WebKit's page process crashes in
+JavaScriptCore (`EXC_BAD_ACCESS` in `regExpProtoFuncSplitFast`) on a few page
+loads, a different few each run, so those pages never report and their tests
+time out. The same pages pass on 26.1 and 26.4.1, and the crash is inside the
+runtime's own JavaScriptCore, so 26.3.1 is left out of the UI runs.
 
 macOS 27 does not boot iOS 16 simulators, so iOS 16 runs only in CI. The
 `iOS compatibility` workflow (`.github/workflows/compat.yml`) runs the probe on

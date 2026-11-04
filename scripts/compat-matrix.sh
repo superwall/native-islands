@@ -6,6 +6,11 @@
 #
 #   scripts/compat-matrix.sh                      # the WebKit probe everywhere
 #   scripts/compat-matrix.sh --steps probe,swift  # and the whole Swift suite
+#   scripts/compat-matrix.sh --steps probe,swift,ui  # and islands on their web elements in TestHost
+#
+# The ui step runs AlignmentUITests on each runtime's simulator. Screenshots
+# are compared per iOS major on the simulators that have baselines:
+# scripts/ui-tests.sh --runtimes 17.5,18.6,26.5,27.2.
 #   scripts/compat-matrix.sh --runtimes 17.5,18.6,27.2
 #   scripts/compat-matrix.sh --list               # the runtimes and simulators it would use
 set -euo pipefail
@@ -89,9 +94,20 @@ while read -r key version udid name; do
     case "$step" in
       probe) only=(-only-testing:NativeIslandsTests/NativeBridgeTests/WebKitLayoutTests) ;;
       swift) only=() ;;
+      ui) ;;
       *) echo "unknown step $step" >&2; exit 2 ;;
     esac
     log="$OUT/logs/$key-$step.log"
+    if [ "$step" = ui ]; then
+      if "$ROOT/scripts/ui-tests.sh" --udids "$udid" --only AlignmentUITests --out "$OUT/ui/$key" >"$log" 2>&1; then
+        row="$row $step pass"
+      else
+        row="$row $step FAIL"
+        failed=1
+        grep -E "error:|differs from its baseline|No baseline" "$log" | head -20 >&2 || true
+      fi
+      continue
+    fi
     if TEST_RUNNER_WEBKIT_TREE_DIR="$OUT/trees" xcodebuild test-without-building \
       -scheme NativeIslands -destination "id=$udid" -derivedDataPath "$DERIVED" \
       ${only[@]+"${only[@]}"} -resultBundlePath "$OUT/$key-$step.xcresult" \

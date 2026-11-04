@@ -28,6 +28,8 @@ final class NativeIsland {
   var reportedSize: CGSize?
   var sizeObservation: NSKeyValueObservation?
   private(set) var topCut: CGFloat = 0
+  /// Where the hosting view sat in its window when it was last attached.
+  private(set) var attachedOrigin: CGPoint?
 
   var isShown: Bool {
     context.isVisible
@@ -218,6 +220,24 @@ final class NativeIsland {
     mask.frame = CGRect(origin: .zero, size: view.bounds.size)
     mask.draw(area: shape.area, holes: shape.holes)
     view.mask = mask
+  }
+
+  /// Before iOS 18, SwiftUI hit-tests its content where the hosting view sat
+  /// when it last entered the window. WebKit slides a page in by animating a
+  /// layer far above the island, so its controls would take no taps there;
+  /// attaching the hosting view again makes SwiftUI place it anew. Returns
+  /// whether it did.
+  @discardableResult
+  func reattachHostIfMoved() -> Bool {
+    if #available(iOS 18.0, *) { return false }
+    guard host.view.window != nil, let parent = host.view.superview,
+          let index = parent.subviews.firstIndex(of: host.view) else { return false }
+    let origin = host.view.convert(CGPoint.zero, to: nil)
+    guard origin != attachedOrigin else { return false }
+    attachedOrigin = origin
+    host.view.removeFromSuperview()
+    parent.insertSubview(host.view, at: index)
+    return true
   }
 
   func reorder(_ order: Int) {

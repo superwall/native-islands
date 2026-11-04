@@ -3,13 +3,16 @@ import UIKit
 import XCTest
 
 /// Compares each still page, once its islands are drawn, with a recorded
-/// screenshot. Baselines live in `BASELINES_DIR/<device>/<page>.png`; run with
+/// screenshot. Baselines live in `BASELINES_DIR/iOS-<major>/<device>/<page>.png`; run with
 /// `RECORD_BASELINES=1` to write them. Moving pages (motion, stress) are left out.
 final class ScreenshotUITests: XCTestCase {
   /// A pixel differs when any channel moves by more than this, out of 255.
   static let channelTolerance = 24
   /// The share of differing pixels a page may have before it fails.
   static let allowedShare = 0.002
+  /// The strip at the bottom left out of the comparison, in points: the
+  /// home indicator UIKit lightens or darkens over the page between runs.
+  static let homeIndicatorStrip: CGFloat = 21
 
   override func setUp() {
     continueAfterFailure = false
@@ -30,8 +33,7 @@ final class ScreenshotUITests: XCTestCase {
     }
     let app = XCUIApplication.pages(route: route, arguments: ["-AppleInterfaceStyle", "Light"])
     app.waitUntilAligned()
-    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
-    let screenshot = XCUIScreen.main.screenshot()
+    let screenshot = Self.settledScreenshot()
     let directory = URL(fileURLWithPath: root).appendingPathComponent(Self.deviceFolder)
     let baseline = directory.appendingPathComponent("\(route).png")
     attach(screenshot.pngRepresentation, named: "\(route) actual")
@@ -45,7 +47,12 @@ final class ScreenshotUITests: XCTestCase {
       return
     }
     let result = try XCTUnwrap(
-      ImageDiff.compare(screenshot.pngRepresentation, expected, channelTolerance: Self.channelTolerance)
+      ImageDiff.compare(
+        screenshot.pngRepresentation,
+        expected,
+        channelTolerance: Self.channelTolerance,
+        ignoringBottom: Self.homeIndicatorStrip * screenshot.image.scale
+      )
     )
     if result.share > Self.allowedShare {
       attach(expected, named: "\(route) baseline")
@@ -61,6 +68,28 @@ final class ScreenshotUITests: XCTestCase {
     }
   }
 
+  /// A screenshot once two taken half a second apart match, so glass that
+  /// is still fading in its edge is not compared halfway; the last one after
+  /// `timeout` otherwise.
+  static func settledScreenshot(timeout: TimeInterval = 6) -> XCUIScreenshot {
+    let deadline = Date().addingTimeInterval(timeout)
+    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+    var last = XCUIScreen.main.screenshot()
+    while Date() < deadline {
+      RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+      let next = XCUIScreen.main.screenshot()
+      let change = ImageDiff.compare(
+        next.pngRepresentation,
+        last.pngRepresentation,
+        channelTolerance: channelTolerance,
+        ignoringBottom: homeIndicatorStrip * next.image.scale
+      )
+      last = next
+      if let change, change.differing == 0 { break }
+    }
+    return last
+  }
+
   private func attach(_ png: Data, named name: String) {
     let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
     attachment.name = name
@@ -68,11 +97,18 @@ final class ScreenshotUITests: XCTestCase {
     add(attachment)
   }
 
-  /// One folder per simulator model and screen size, since each renders differently.
+  /// One folder per iOS major release, then per simulator model and screen
+  /// size, since each draws its controls and glass differently.
   static var deviceFolder: String {
     let size = XCUIScreen.main.screenshot().image.size
     let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? UIDevice.current.model
-    return "\(model)-\(Int(size.width))x\(Int(size.height))"
+    return "\(osFolder(UIDevice.current.systemVersion))/\(model)-\(Int(size.width))x\(Int(size.height))"
+  }
+
+  /// `iOS-18` for `18.6`; a version with no number is filed as `iOS-unknown`.
+  static func osFolder(_ version: String) -> String {
+    let major = version.split(separator: ".").first.flatMap { Int($0) }
+    return "iOS-\(major.map(String.init) ?? "unknown")"
   }
 }
 
@@ -84,20 +120,22 @@ enum ImageDiff {
     var share: Double { total == 0 ? 1 : Double(differing) / Double(total) }
   }
 
-  static func compare(_ first: Data, _ second: Data, channelTolerance: Int) -> Result? {
+  /// Leaves out the bottom `ignoringBottom` rows of pixels.
+  static func compare(_ first: Data, _ second: Data, channelTolerance: Int, ignoringBottom: CGFloat = 0) -> Result? {
     guard let one = pixels(first), let two = pixels(second) else { return nil }
     guard one.width == two.width, one.height == two.height else {
       return Result(differing: max(one.width * one.height, 1), total: max(one.width * one.height, 1))
     }
+    let rows = max(0, one.height - Int(ignoringBottom.rounded(.up)))
     var differing = 0
-    for index in stride(from: 0, to: one.bytes.count, by: 4) {
+    for index in stride(from: 0, to: rows * one.width * 4, by: 4) {
       for channel in 0..<3
       where abs(Int(one.bytes[index + channel]) - Int(two.bytes[index + channel])) > channelTolerance {
         differing += 1
         break
       }
     }
-    return Result(differing: differing, total: one.width * one.height)
+    return Result(differing: differing, total: max(rows * one.width, 1))
   }
 
   struct Bitmap {
