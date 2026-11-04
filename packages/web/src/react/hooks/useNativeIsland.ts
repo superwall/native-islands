@@ -293,7 +293,7 @@ export const useNativeIsland = (
       clearTimeout(arrival);
       arrival = undefined;
     };
-    const tryMount = (): boolean => {
+    const tryMount = (fresh: boolean): boolean => {
       sentAnchor.current = undefined;
       const spec = specOf(element);
       if (!spec) {
@@ -414,12 +414,14 @@ export const useNativeIsland = (
         mode: "pending",
         handoff: spec.handoff,
         anchorType: spec.anchor.type,
-        arriving: waits,
+        arriving: waits && fresh,
       });
       // The web version stays hidden while the host is expected to answer
       // within a frame or two; past that, the page can no longer tell whether
-      // the island will show, so it shows the web version again.
-      if (waits) {
+      // the island will show, so it shows the web version again. An island
+      // that waited for a transition has already shown its web version, and
+      // hiding it now would blank it until the host answers.
+      if (waits && fresh) {
         arrival = setTimeout(() => {
           arrival = undefined;
           setState((previous) => ({ ...previous, arriving: false }));
@@ -427,10 +429,10 @@ export const useNativeIsland = (
       }
       return true;
     };
-    if (!tryMount()) {
+    if (!tryMount(true)) {
       const watcher = layoutWatcherFor(element.ownerDocument);
       stopWaiting = watcher.subscribe((pass) => {
-        if (pass !== "layout" || !tryMount()) return;
+        if (pass !== "layout" || !tryMount(false)) return;
         stopWaiting?.();
         stopWaiting = undefined;
       });
