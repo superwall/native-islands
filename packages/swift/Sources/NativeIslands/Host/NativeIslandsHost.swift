@@ -15,6 +15,15 @@ public final class NativeIslandsHost {
   public private(set) var isReady = true
   public var onReady: (@MainActor (NativeIslandsReadiness) -> Void)?
 
+  /// Draws a magenta outline and the component's name over every native
+  /// island, to show which elements of the page are native. Off by default;
+  /// a Debug build launched with `-NativeIslandsOutlines YES` starts with it on.
+  /// Does nothing while the host offers no islands.
+  public var showsOutlines: Bool {
+    get { manager?.outlines.isShown ?? false }
+    set { manager?.outlines.isShown = newValue }
+  }
+
   let manager: NativeIslandManager?
   private let surface: WebViewSurface?
   private let schedule: NativeIslandsScheduler
@@ -79,6 +88,9 @@ public final class NativeIslandsHost {
     }
     if NativeMountTrace.isRequested() {
       manager.trace = NativeMountTrace()
+    }
+    if NativeIslandOutlines.isRequested() {
+      manager.outlines.isShown = true
     }
     #endif
     holdDocument()
