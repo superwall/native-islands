@@ -174,6 +174,10 @@ const relayOut = (island: SimulatedIsland) => {
   if (island.visible) island.element.style.opacity = String(island.opacity ?? 1);
 };
 
+const SIMULATED_REUSE_LIMIT = 128;
+
+const SIMULATED_REUSE_MS = 65_000;
+
 export const installNativeSimulator = (options: NativeSimulatorOptions = {}): NativeSimulator => {
   const global = hostWindow();
   const document = window.document;
@@ -185,6 +189,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
   const failing = new Set(options.failing);
   const silent = new Set(options.silent);
   const islands = new Map<string, SimulatedIsland>();
+  const retired = new Map<string, { island: SimulatedIsland; at: number }>();
   const followSticky = (event: Event) => {
     for (const island of islands.values()) {
       if (island.sticky && island.scroller === event.target) relayOut(island);
@@ -295,9 +300,41 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     revisions.delete(id);
   };
 
+  const discardRetired = (id: string) => {
+    retired.get(id)?.island.element.remove();
+    retired.delete(id);
+  };
+
+  // Keeps an unmounted island's element, hidden, for a new island to take
+  // over, as the Swift host keeps its view.
+  const retire = (id: string) => {
+    const island = islands.get(id);
+    if (!island) return;
+    islands.delete(id);
+    revisions.delete(id);
+    island.element.style.display = "none";
+    retired.set(id, { island, at: Date.now() });
+    if (retired.size <= SIMULATED_REUSE_LIMIT) return;
+    for (const oldest of retired.keys()) {
+      discardRetired(oldest);
+      break;
+    }
+  };
+
+  const takeRetired = (from: string | undefined, component: string) => {
+    const entry = from === undefined ? undefined : retired.get(from);
+    if (from === undefined || !entry) return undefined;
+    retired.delete(from);
+    if (entry.island.component !== component || Date.now() - entry.at > SIMULATED_REUSE_MS) {
+      entry.island.element.remove();
+      return undefined;
+    }
+    return entry.island.element;
+  };
+
   const apply = (operation: TNativeOperation, acked: string[], sequence: number) => {
     if (operation.op === "unmount") {
-      remove(operation.id);
+      retire(operation.id);
       return;
     }
     if (operation.op === "mount") {
@@ -321,7 +358,8 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         return;
       }
       remove(operation.id);
-      const element = document.createElement("div");
+      const kept = takeRetired(operation.reuse, operation.component);
+      const element = kept ?? document.createElement("div");
       element.setAttribute(SIMULATED_ISLAND_ATTRIBUTE, operation.id);
       Object.assign(element.style, {
         position: "absolute",
@@ -346,6 +384,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         frame: operation.frame,
       };
       if (!attach(island, operation.anchor)) {
+        element.remove();
         send({
           event_name: "native_component_error",
           id: operation.id,
@@ -364,6 +403,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         operation.opacity,
         operation.motion,
       );
+      element.style.display = "";
       show(island);
       const size = operation.sizing === "native" ? sizes[operation.component] : undefined;
       if (size) send({ event_name: "native_component_size", id: operation.id, size, sequence });
@@ -470,7 +510,17 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     protocol: NATIVE_PROTOCOL_VERSION,
     components: { ...components },
     anchors: ["page", "scroller", "screen"],
-    features: ["state", "requests", "commands", "layered", "sticky", "clip", "transform", "motion"],
+    features: [
+      "state",
+      "requests",
+      "commands",
+      "layered",
+      "sticky",
+      "clip",
+      "transform",
+      "motion",
+      "reuse",
+    ],
   };
 
   return {
@@ -539,6 +589,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     uninstall: () => {
       document.removeEventListener("scroll", followSticky, { capture: true });
       for (const island of islands.values()) island.element.remove();
+      for (const id of retired.keys()) discardRetired(id);
       for (const [scroller, position] of positioned) scroller.style.position = position;
       positioned.clear();
       pageLayer.remove();

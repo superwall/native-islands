@@ -57,7 +57,7 @@ export type NativeIslandState = {
   size?: TNativeSize;
   handoff?: NativeHandoff;
   anchorType?: TNativeAnchor["type"];
-  /** The host is taking over a view it kept, so the island shows native at once. */
+  /** The host is taking over a view it kept, so the web version goes without a fade. */
   reusing?: boolean;
   command: (name: string, args?: unknown, options?: { timeoutMs?: number }) => Promise<unknown>;
   state: () => Readonly<Record<string, unknown>> | undefined;
@@ -75,7 +75,7 @@ const MESSAGES: Partial<Record<Reason, string>> = {
 
 const TOLERANCE = 0.5;
 
-/** How long the web version stays hidden for a view the host takes over. */
+/** How long after a take-over the web version still goes without a fade. */
 export const REUSE_GRACE_MS = 150;
 
 let nextOrder = 0;
@@ -402,6 +402,7 @@ export const useNativeIsland = (
             );
           },
         },
+        { reuse: onlyReusing },
       );
       if (!result.ok) {
         readiness.end(id);

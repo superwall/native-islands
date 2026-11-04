@@ -833,11 +833,33 @@ describe("taking over a view the host kept", () => {
     expect(islands.mayReuse("glassButton")).toBe(true);
     expect(islands.mayReuse("toggle")).toBe(false);
     expect(islands.reusable({ ...spec({ anchor: scroller }) })).toBe(true);
-    expect(islands.mount("new", spec({ anchor: scroller }))).toEqual({ ok: true, reusing: true });
+    expect(islands.mount("plain", spec({ anchor: scroller }))).toEqual({ ok: true });
+    expect(islands.reusable({ ...spec({ anchor: scroller }) })).toBe(true);
+    expect(islands.mount("new", spec({ anchor: scroller }), {}, { reuse: true })).toEqual({
+      ok: true,
+      reusing: true,
+    });
     await Promise.resolve();
     expect(operations().at(-1)).toMatchObject({ op: "mount", id: "new", reuse: "old" });
     expect(islands.mayReuse("glassButton")).toBe(false);
-    expect(islands.mount("other", spec({ anchor: scroller }))).toEqual({ ok: true });
+    expect(islands.mount("other", spec({ anchor: scroller }), {}, { reuse: true })).toEqual({
+      ok: true,
+    });
+  });
+
+  it("gives the kept view back when the island that took it unmounts before it is sent", async () => {
+    const { islands, frame, operations, shown } = setupReuse();
+    shown("old");
+    islands.unmount("old");
+    frame();
+    islands.mount("first", spec({ anchor: scroller }), {}, { reuse: true });
+    islands.unmount("first");
+    expect(islands.mount("second", spec({ anchor: scroller }), {}, { reuse: true })).toEqual({
+      ok: true,
+      reusing: true,
+    });
+    await Promise.resolve();
+    expect(operations().at(-1)).toMatchObject({ op: "mount", id: "second", reuse: "old" });
   });
 
   it("sends the unmount and the take-over in one batch when they come in one commit", async () => {
@@ -845,7 +867,7 @@ describe("taking over a view the host kept", () => {
     shown("old");
     const before = posted.length;
     islands.unmount("old");
-    islands.mount("new", spec({ anchor: scroller }));
+    islands.mount("new", spec({ anchor: scroller }), {}, { reuse: true });
     await Promise.resolve();
     expect(posted).toHaveLength(before + 1);
     expect(operations().slice(-2)).toMatchObject([
@@ -897,7 +919,9 @@ describe("taking over a view the host kept", () => {
     for (const row of rows) shown(row);
     for (const row of rows) islands.unmount(row);
     frame();
-    const kept = rows.map((row) => islands.mount(`again-${row}`, spec({ anchor: scroller })));
+    const kept = rows.map((row) =>
+      islands.mount(`again-${row}`, spec({ anchor: scroller }), {}, { reuse: true }),
+    );
     expect(kept.filter((result) => result.ok && result.reusing)).toHaveLength(NATIVE_REUSE_LIMIT);
   });
 
@@ -912,7 +936,7 @@ describe("taking over a view the host kept", () => {
     shown("second");
     islands.unmount("second");
     frame();
-    islands.mount("new", spec({ anchor: scroller }));
+    islands.mount("new", spec({ anchor: scroller }), {}, { reuse: true });
     islands.resync();
     await Promise.resolve();
     frame();

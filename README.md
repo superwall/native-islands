@@ -113,6 +113,19 @@ island on its first frame is drawn (`native_islands_ready`), with a timeout so
 a page without islands still shows. Pages that are rendered but not on screen
 yet get their islands up front, so a page that slides in already has them.
 
+An island that comes back, such as a search result showing again, reuses the
+native view it had (the `reuse` feature). When the page unmounts an island the
+host has shown, a host that offers `reuse` may keep its view hidden instead of
+destroying it. The page remembers it for 60 seconds and at most 128 at once. A
+new island with the same component, version, sizing, props and scrolling area
+that mounts while its row first renders names the old id in its mount's
+`reuse` field, and goes out in that commit. The host shows the kept view in
+its place, with no fade, and acknowledges it; the page keeps the web version
+up until then and removes it at once. A host that no longer has the view, or
+cannot use it, mounts the island as usual. Hosts should keep views a little
+longer than the page asks (the Swift host keeps them 65 seconds), and drop
+them when the page reloads.
+
 ### Only public API
 
 Everything uses public UIKit and WebKit: `UIScrollView`, `hitTest`,

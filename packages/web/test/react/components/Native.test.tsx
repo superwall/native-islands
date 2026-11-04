@@ -525,7 +525,7 @@ describe("<Native> coming back where the host kept its view", () => {
     return { view, before };
   };
 
-  it("hides the web version from its first paint and asks the host for the kept view at once", async () => {
+  it("keeps the web version up, asks the host for the kept view at once, then swaps without a fade", async () => {
     const { view, before } = await leaveAndReturn(<Cta />);
     const island = islandOf(view.container);
     expect(island.dataset.islandMode).toBe("pending");
@@ -538,11 +538,11 @@ describe("<Native> coming back where the host kept its view", () => {
       expect.objectContaining({ op: "mount", reuse: expect.any(String) }),
     ]);
     view.ackAll();
-    expect(island.hasAttribute("data-island-reusing")).toBe(false);
+    expect(island.hasAttribute("data-island-reusing")).toBe(true);
     expect(island.hasAttribute("data-island-shown")).toBe(true);
   });
 
-  it("shows the web version again when the host has not shown the view in time", async () => {
+  it("fades as usual when the host takes longer than the grace period", async () => {
     const { view } = await leaveAndReturn(<Cta />);
     const island = islandOf(view.container);
     await waitFor(() => expect(island.hasAttribute("data-island-reusing")).toBe(false), {
@@ -568,6 +568,23 @@ describe("<Native> coming back where the host kept its view", () => {
     const island = islandOf(view.container);
     expect(island.dataset.islandMode).toBe("web");
     expect(island.hasAttribute("data-island-reusing")).toBe(false);
+  });
+
+  it("takes over nothing for an island that mounts once its page has come on stage", async () => {
+    const Entering = ({ phase }: { phase?: string }) => (
+      <div id="panel" data-island-phase={phase}>
+        <Cta />
+      </div>
+    );
+    const { view, before } = await leaveAndReturn(<Entering phase="enter" />);
+    await view.nextFrame();
+    expect(view.operations().slice(before)).toEqual([]);
+    view.rerender(<Entering />);
+    await view.nextFrame();
+    const island = islandOf(view.container);
+    expect(island.hasAttribute("data-island-reusing")).toBe(false);
+    expect(view.operations().slice(before)).toEqual([expect.objectContaining({ op: "mount" })]);
+    expect(view.operations().at(-1)).not.toHaveProperty("reuse");
   });
 
   it("waits for the next layout pass, as before, when the host kept nothing like it", async () => {

@@ -12,9 +12,9 @@ import {
 export const ISLAND_STYLES = [
   `:where([${ISLAND_COMPONENT_ATTRIBUTE}]) > * { transition: opacity var(--island-fade, 120ms) ease; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_SHOWN_ATTRIBUTE}] > * { opacity: 0; }`,
-  // The host shows a view it takes over in the frame it mounts, without a
-  // fade, so the web version goes at once instead of crossfading.
-  `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_REUSING_ATTRIBUTE}] > * { opacity: 0; transition: none; }`,
+  // The host shows a view it takes over without a fade, so the web version
+  // stays up until it does, then goes at once instead of crossfading.
+  `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_REUSING_ATTRIBUTE}] > * { transition: none; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_CONCEALED_ATTRIBUTE}]:not([${ISLAND_PROBE_ATTRIBUTE}]) { visibility: hidden; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_PROBE_ATTRIBUTE}] * { pointer-events: auto !important; }`,
   // While content in a scroller animates, WebKit composites what follows it.

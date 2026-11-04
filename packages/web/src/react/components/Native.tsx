@@ -146,7 +146,7 @@ export const Native = ({
         [ISLAND_HANDOFF_ATTRIBUTE]: mode === "web" ? undefined : handoff,
         [ISLAND_SHOWN_ATTRIBUTE]: shown ? "" : undefined,
         [ISLAND_REUSING_ATTRIBUTE]:
-          mode === "pending" && reusing && handoff === undefined ? "" : undefined,
+          mode !== "web" && reusing && handoff === undefined ? "" : undefined,
         [ISLAND_CONCEALED_ATTRIBUTE]: concealed ? "" : undefined,
       }}
       aria-hidden={hidden ? true : undefined}
