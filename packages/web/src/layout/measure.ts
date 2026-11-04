@@ -1,6 +1,7 @@
 import type { TNativeAnchor, TNativeFrame, TNativeSticky } from "../protocol/schemas";
 import { ISLAND_SCROLLER_ATTRIBUTE } from "./attributes";
 import { layoutWatcherFor } from "./watcher";
+import { remember, styleOf } from "./pass";
 
 export type NativeAnchorKind = "page" | "scroller" | "screen" | "tracked";
 
@@ -23,10 +24,10 @@ export type PlacementOptions = {
 // reports a rect at 0,0 that would stretch the union to the origin, and a
 // display: contents one is looked through to its own children.
 export const boxElementsOf = (wrapper: HTMLElement): HTMLElement[] => {
-  if (getComputedStyle(wrapper).display !== "contents") return [wrapper];
+  if (styleOf(wrapper).display !== "contents") return [wrapper];
   return Array.from(wrapper.children).flatMap((child) => {
     if (!(child instanceof HTMLElement)) return [];
-    const display = getComputedStyle(child).display;
+    const display = styleOf(child).display;
     if (display === "none") return [];
     return display === "contents" ? boxElementsOf(child) : [child];
   });
@@ -51,7 +52,7 @@ export const unionRect = (elements: readonly Element[]): TNativeFrame | undefine
 const SCROLLING = /auto|scroll/;
 
 export const isScroller = (element: Element): boolean => {
-  const style = getComputedStyle(element);
+  const style = styleOf(element);
   return (
     (SCROLLING.test(style.overflowY) && element.scrollHeight > element.clientHeight) ||
     (SCROLLING.test(style.overflowX) && element.scrollWidth > element.clientWidth)
@@ -84,7 +85,7 @@ export const anchorOf = (start: Element, options: PlacementOptions = {}): Native
     element && element !== body && element !== documentElement;
     element = element.parentElement
   ) {
-    const style = getComputedStyle(element);
+    const style = styleOf(element);
     if (element !== start && pending) {
       const contains = pending === "fixed" ? containsFixed(style) : containsAbsolute(style);
       if (!contains) continue;
@@ -132,7 +133,7 @@ export const unstuckOf = (
   const document = element.ownerDocument;
   const parent = element.parentElement;
   if (!parent) return undefined;
-  const style = getComputedStyle(element);
+  const style = styleOf(element);
   const top = pixels(style.top);
   const bottom = pixels(style.bottom);
   if (top === undefined && bottom === undefined) return undefined;
@@ -148,7 +149,7 @@ export const unstuckOf = (
       if (!rect) return undefined;
       const box = element.getBoundingClientRect();
       const outer = parent.getBoundingClientRect();
-      const parentStyle = getComputedStyle(parent);
+      const parentStyle = styleOf(parent);
       const inset = (side: "Top" | "Bottom" | "Left" | "Right") =>
         (Number.parseFloat(parentStyle[`border${side}Width`]) || 0) +
         (Number.parseFloat(parentStyle[`padding${side}`]) || 0);
@@ -196,39 +197,42 @@ export const scrollerIdOf = (element: Element): string => {
   return id;
 };
 
-export const scaleOf = (element: HTMLElement): { x: number; y: number } => {
-  const rect = element.getBoundingClientRect();
-  return {
-    x: element.offsetWidth > 0 && rect.width > 0 ? rect.width / element.offsetWidth : 1,
-    y: element.offsetHeight > 0 && rect.height > 0 ? rect.height / element.offsetHeight : 1,
-  };
-};
+export const scaleOf = (element: HTMLElement): { x: number; y: number } =>
+  remember(element, "scale", () => {
+    const rect = element.getBoundingClientRect();
+    return {
+      x: element.offsetWidth > 0 && rect.width > 0 ? rect.width / element.offsetWidth : 1,
+      y: element.offsetHeight > 0 && rect.height > 0 ? rect.height / element.offsetHeight : 1,
+    };
+  });
 
-export const contentBoxOf = (scroller: HTMLElement): TNativeFrame => {
-  const rect = scroller.getBoundingClientRect();
-  const scale = scaleOf(scroller);
-  return {
-    x: rect.left + scroller.clientLeft * scale.x,
-    y: rect.top + scroller.clientTop * scale.y,
-    width: scroller.clientWidth * scale.x,
-    height: scroller.clientHeight * scale.y,
-  };
-};
+export const contentBoxOf = (scroller: HTMLElement): TNativeFrame =>
+  remember(scroller, "box", () => {
+    const rect = scroller.getBoundingClientRect();
+    const scale = scaleOf(scroller);
+    return {
+      x: rect.left + scroller.clientLeft * scale.x,
+      y: rect.top + scroller.clientTop * scale.y,
+      width: scroller.clientWidth * scale.x,
+      height: scroller.clientHeight * scale.y,
+    };
+  });
 
-export const scrollOffsetOf = (scroller: HTMLElement): { x: number; y: number } => {
-  const style = getComputedStyle(scroller);
-  const flex = style.display.includes("flex");
-  const flipX = (style.direction === "rtl") !== (flex && style.flexDirection === "row-reverse");
-  const flipY = flex && style.flexDirection === "column-reverse";
-  return {
-    x: flipX
-      ? scroller.scrollLeft + scroller.scrollWidth - scroller.clientWidth
-      : scroller.scrollLeft,
-    y: flipY
-      ? scroller.scrollTop + scroller.scrollHeight - scroller.clientHeight
-      : scroller.scrollTop,
-  };
-};
+export const scrollOffsetOf = (scroller: HTMLElement): { x: number; y: number } =>
+  remember(scroller, "offset", () => {
+    const style = styleOf(scroller);
+    const flex = style.display.includes("flex");
+    const flipX = (style.direction === "rtl") !== (flex && style.flexDirection === "row-reverse");
+    const flipY = flex && style.flexDirection === "column-reverse";
+    return {
+      x: flipX
+        ? scroller.scrollLeft + scroller.scrollWidth - scroller.clientWidth
+        : scroller.scrollLeft,
+      y: flipY
+        ? scroller.scrollTop + scroller.scrollHeight - scroller.clientHeight
+        : scroller.scrollTop,
+    };
+  });
 
 export const frameIn = (
   anchor: NativeAnchorOf,

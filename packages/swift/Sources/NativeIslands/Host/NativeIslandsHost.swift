@@ -77,6 +77,9 @@ public final class NativeIslandsHost {
       alignmentProbe = probe
       probe.start()
     }
+    if NativeMountTrace.isRequested() {
+      manager.trace = NativeMountTrace()
+    }
     #endif
     holdDocument()
   }

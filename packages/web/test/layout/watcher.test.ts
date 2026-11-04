@@ -9,6 +9,7 @@ import {
   PRUNE_EVERY,
   type LayoutPass,
 } from "../../src/layout/watcher";
+import { remember } from "../../src/layout/pass";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -161,6 +162,22 @@ describe("createLayoutWatcher", () => {
     expect(set).not.toHaveBeenCalled();
     expect(removed).not.toHaveBeenCalled();
     stopSecond();
+    stop();
+  });
+
+  it("runs every listener of a pass in one layout pass, sharing what they read", () => {
+    const { watcher, stop, frame } = setup();
+    const scroller = document.createElement("div");
+    const read = vi.fn(() => ({ x: 0, y: 0 }));
+    const stopOne = watcher.subscribe(() => remember(scroller, "offset", read));
+    const stopTwo = watcher.subscribe(() => remember(scroller, "offset", read));
+    document.dispatchEvent(new Event("scroll"));
+    frame();
+    expect(read).toHaveBeenCalledTimes(1);
+    frame();
+    expect(read).toHaveBeenCalledTimes(2);
+    stopOne();
+    stopTwo();
     stop();
   });
 

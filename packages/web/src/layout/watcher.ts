@@ -3,6 +3,7 @@ import {
   SHOWN_ISLAND_SELECTOR,
   SIMULATOR_LAYER_ATTRIBUTE,
 } from "./attributes";
+import { inLayoutPass } from "./pass";
 
 const GEOMETRY = new Set([
   "all",
@@ -131,9 +132,10 @@ export const createLayoutWatcher = (document: Document): LayoutWatcher => {
   let teardown: (() => void) | undefined;
   let observer: MutationObserver | undefined;
 
-  const emit = (pass: LayoutPass) => {
-    for (const listener of listeners) listener(pass);
-  };
+  const emit = (pass: LayoutPass) =>
+    inLayoutPass(document, () => {
+      for (const listener of listeners) listener(pass);
+    });
 
   const prune = () => {
     for (const element of live.keys()) {
