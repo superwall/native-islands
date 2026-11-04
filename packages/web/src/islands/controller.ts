@@ -1,4 +1,4 @@
-import { withoutUndefined } from "../protocol/defined";
+import { sameJson, withoutUndefined } from "../protocol/defined";
 import {
   NATIVE_PROTOCOL_VERSION,
   NativeComponentLimits,
@@ -251,8 +251,6 @@ export const toNativeProps = (
   return converted.ok && isPlainObject(converted.value) ? converted.value : undefined;
 };
 
-const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
-
 const layerOf = (spec: NativeIslandSpec) =>
   withoutUndefined({
     sticky: spec.sticky,
@@ -427,10 +425,10 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
       }
       const changes: Record<string, unknown> = {};
       for (const key of UPDATABLE) {
-        if (spec[key] !== undefined && !same(spec[key], sent[key])) changes[key] = spec[key];
+        if (spec[key] !== undefined && !sameJson(spec[key], sent[key])) changes[key] = spec[key];
       }
       const layer = layerOf(spec);
-      if (!same(layer, layerOf(sent))) changes.frame = spec.frame;
+      if (!sameJson(layer, layerOf(sent))) changes.frame = spec.frame;
       if ("frame" in changes) Object.assign(changes, layer);
       if (Object.keys(changes).length === 0) continue;
       const operation = parseOperation({

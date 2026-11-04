@@ -18,7 +18,10 @@ describe("sameJson", () => {
     expect(sameJson(frame, { x: 1, y: [2, { z: 3 }] })).toBe(true);
     expect(sameJson(frame, { x: 1, y: [2, { z: 4 }] })).toBe(false);
     expect(sameJson({ a: 1 }, { a: 1, b: 2 })).toBe(false);
-    expect(sameJson({ a: 1, b: undefined }, { a: 1, c: undefined })).toBe(false);
+    expect(sameJson({ a: 1, b: undefined }, { a: 1, c: undefined })).toBe(true);
+    expect(sameJson({ a: 1, b: undefined }, { a: 1 })).toBe(true);
+    expect(sameJson({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true);
+    expect(sameJson({ a: undefined }, { b: 1 })).toBe(false);
     expect(sameJson([1], { 0: 1 })).toBe(false);
     expect(sameJson(1, 2)).toBe(false);
     expect(sameJson(null, {})).toBe(false);
