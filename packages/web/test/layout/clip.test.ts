@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handoffOf, inTransition, type HandoffOptions } from "../../src/layout/handoff";
-import { createNativeIslands, readNativeCapability, type TToHostMessage } from "../../src";
+import { createNativeIslands } from "../../src/islands/controller";
+import { readNativeCapability } from "../../src/protocol/capability";
+import type { TToHostMessage } from "../../src/protocol/messages";
 import { placementOf, type NativePlacement } from "../../src/layout/measure";
 import { createLayoutWatcher } from "../../src/layout/watcher";
 import {

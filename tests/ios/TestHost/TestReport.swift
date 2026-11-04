@@ -1,5 +1,5 @@
 import Darwin
-import NativeIslands
+@_spi(Testing) import NativeIslands
 import QuartzCore
 import UIKit
 import WebKit

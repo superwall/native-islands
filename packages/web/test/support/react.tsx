@@ -1,14 +1,11 @@
 import { act, render } from "@testing-library/react";
 import * as React from "react";
 import { vi } from "vitest";
-import {
-  ISLAND_COMPONENT_ATTRIBUTE,
-  NATIVE_CAPABILITY_GLOBAL,
-  type NativeIslands,
-  type NativeIslandsTransport,
-  type TToHostMessage,
-  type TToPageMessage,
-} from "../../src";
+import { ISLAND_COMPONENT_ATTRIBUTE } from "../../src/layout/attributes";
+import { NATIVE_CAPABILITY_GLOBAL } from "../../src/protocol/schemas";
+import type { NativeIslands } from "../../src/islands/controller";
+import type { NativeIslandsTransport } from "../../src/bridge/transport";
+import type { TToHostMessage, TToPageMessage } from "../../src/protocol/messages";
 import { connectNativeIslands } from "../../src/bridge/connect";
 import { NativeIslandsProvider } from "../../src/react";
 

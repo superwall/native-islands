@@ -26,6 +26,14 @@
       "source": "./src/index.ts",
       "import": "./dist/index.js"
     },
+    "./protocol": {
+      "types": {
+        "source": "./src/protocol/index.ts",
+        "default": "./dist/protocol.d.ts"
+      },
+      "source": "./src/protocol/index.ts",
+      "import": "./dist/protocol.js"
+    },
     "./react": {
       "types": {
         "source": "./src/react/index.ts",

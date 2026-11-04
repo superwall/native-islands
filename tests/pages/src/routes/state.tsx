@@ -64,7 +64,7 @@ export default function State() {
           ref={form}
           onStateChange={(state) => edit(state)}
           onSubmit={submit}
-          requests={{ validateEmail: ({ email }) => ({ error: emailError(email) }) }}
+          onValidateEmail={({ email }) => ({ error: emailError(email) })}
         >
           <form
             className="form"

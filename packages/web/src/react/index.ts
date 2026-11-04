@@ -15,6 +15,7 @@ export {
   type NativeEventHandlers,
   type NativeRequest,
   type NativeRequestHandlers,
+  type NativeStateHandlers,
 } from "./components/define";
 export {
   Native,
@@ -22,7 +23,6 @@ export {
   type NativeCommandOptions,
   type NativeCommonProps,
   type NativeHandle,
-  type NativeIslandHandle,
   type NativeProps,
   type NativeValue,
 } from "./components/Native";

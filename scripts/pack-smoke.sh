@@ -18,7 +18,7 @@ if [ -n "$unexpected" ]; then
   echo "$unexpected"
   exit 1
 fi
-for file in LICENSE README.md dist/index.js dist/index.d.ts dist/react.js dist/react.d.ts dist/simulator.js dist/simulator.d.ts; do
+for file in LICENSE README.md dist/index.js dist/index.d.ts dist/react.js dist/react.d.ts dist/simulator.js dist/simulator.d.ts dist/protocol.js dist/protocol.d.ts; do
   echo "$contents" | grep -qx "$file" || { echo "error: the tarball is missing $file"; exit 1; }
 done
 head -c 13 <(tar -xzOf "$tarball" package/dist/react.js) | grep -q '"use client"' || {
@@ -35,7 +35,8 @@ install() {
 write_islands() {
   cat >"$1" <<'TSX'
 "use client";
-import { NATIVE_PROTOCOL_VERSION, nativeSupport } from "native-islands";
+import { nativeSupport } from "native-islands";
+import { NATIVE_PROTOCOL_VERSION } from "native-islands/protocol";
 import { defineNativeComponent, NativeIslandsProvider, useNativeSupport } from "native-islands/react";
 import { installNativeSimulator, type NativeSimulator } from "native-islands/simulator";
 import { useEffect, useState } from "react";
@@ -155,7 +156,7 @@ write_islands app/islands.tsx
 # The page is a server component that renders the islands directly, so the build prerenders the provider and its
 # islands with no `window`. The prerendered HTML must hold each island's web version.
 cat >app/page.tsx <<'TSX'
-import { NATIVE_PROTOCOL_VERSION } from "native-islands";
+import { NATIVE_PROTOCOL_VERSION } from "native-islands/protocol";
 import { Islands } from "./islands";
 
 export default function Page() {

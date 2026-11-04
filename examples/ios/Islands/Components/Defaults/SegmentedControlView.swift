@@ -1,22 +1,18 @@
 import NativeIslands
 import SwiftUI
 
+/// A segmented control whose selection is state, like `ToggleView`.
 struct SegmentedControlView: View {
   @ObservedObject var component: NativeComponentContext
-  @State private var selected: Int?
 
   var body: some View {
     let props = component.props
     let segments = props.strings("segments") ?? []
-    let value = props.int("selectedIndex") ?? 0
     Picker(
       "",
       selection: Binding(
-        get: { selected ?? value },
-        set: { next in
-          selected = next
-          component.emit("change", payload: ["selectedIndex": next])
-        }
+        get: { props.int("selectedIndex") ?? 0 },
+        set: { component.setState(["selectedIndex": $0]) }
       )
     ) {
       ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
@@ -27,8 +23,5 @@ struct SegmentedControlView: View {
     .labelsHidden()
     .disabled(props.bool("disabled") == true)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .onChangeOf(value) { next in
-      selected = next
-    }
   }
 }

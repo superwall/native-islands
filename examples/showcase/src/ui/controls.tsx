@@ -23,11 +23,7 @@ export const Toggle = ({
   isOn: boolean;
   onChange: (isOn: boolean) => void;
 }) => (
-  <NativeToggle
-    isOn={isOn}
-    native={useNativeEnabled()}
-    onChange={({ isOn: next }) => onChange(next)}
-  >
+  <NativeToggle isOn={isOn} native={useNativeEnabled()} onIsOnChange={onChange}>
     <button
       type="button"
       role="switch"
@@ -52,7 +48,7 @@ export const Segmented = ({
     segments={segments}
     selectedIndex={selectedIndex}
     native={useNativeEnabled()}
-    onChange={({ selectedIndex: index }) => onChange(index)}
+    onSelectedIndexChange={onChange}
   >
     <div className="web-segmented" role="group">
       {segments.map((segment, index) => (

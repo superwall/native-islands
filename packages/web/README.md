@@ -17,11 +17,12 @@ npm install native-islands
 
 React 19 or later is an optional peer, needed only for `/react`.
 
-| Entry                      | For                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `native-islands`           | Any page, no framework: the island controller, the WebKit transport, layout helpers, the protocol schemas          |
-| `native-islands/react`     | React bindings                                                                                                     |
-| `native-islands/simulator` | A host written in JS that draws outlines where native views would sit, for browsers and tests. No framework needed |
+| Entry                      | For                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `native-islands`           | Any page, no framework: `connectNativeIslands`, the capability helpers, `NativeCommandError` and `ISLAND_PHASE_ATTRIBUTE` |
+| `native-islands/react`     | React bindings                                                                                                            |
+| `native-islands/protocol`  | The zod schemas, message types and wire constants, for anyone writing another host or transport                           |
+| `native-islands/simulator` | A host written in JS that draws outlines where native views would sit, for browsers and tests. No framework needed        |
 
 ## React
 
@@ -46,6 +47,20 @@ returns `"unavailable"`. Islands go native once the page hydrates in an app.
 ### `defineNativeComponent`
 
 Types a component the app registered. Everything in the spec is optional.
+Every message from native arrives as an `on…` prop: an event `submit` as
+`onSubmit(payload)`, a state key `email` as `onEmailChange(next)`, called only
+when that key changes, and a request `validateEmail` as
+`onValidateEmail(payload)`, whose return value, or a promise of it, is the
+reply. A request with no handler fails, so native never waits on it.
+
+Use state for a value the user owns (a switch, a slider, typed text) and an
+event for a moment (a press, a submit). State carries a revision, so the app
+ignores a stale echo of an older value. Keep the names of events, state keys
+and requests apart: they share one set of `on…` props, so an event
+`valueChange` and a state key `value` would both be `onValueChange`, and a
+request `submit` would run the `onSubmit` handler of an event `submit` and
+send back what it returns.
+
 Colours in `colorProps` can be any CSS colour or `var(--token)`; they are
 resolved before they reach native. Islands that share a `glassGroup` prop blend
 like system glass. The example pages define a set of glass buttons and controls
@@ -66,8 +81,8 @@ const form = useRef<NativeHandle<...>>(null);
   ref={form}
   title="Join"
   onSubmit={({ email }) => send(email)}
-  onStateChange={(state, changed) => setEcho(state.email)}
-  requests={{ validateEmail: ({ email }) => ({ error: valid(email) ? undefined : "Check it" }) }}
+  onEmailChange={(email) => setEcho(email)}
+  onValidateEmail={({ email }) => ({ error: valid(email) ? undefined : "Check it" })}
 >
   <WebSignupForm />
 </SignupForm>
@@ -83,15 +98,14 @@ await form.current?.command("focus", { field: "email" });
 
 Every defined component also takes:
 
-| Prop            | Type                            | Default                                            |
-| --------------- | ------------------------------- | -------------------------------------------------- |
-| `children`      | `ReactNode`                     | the web version                                    |
-| `native`        | `boolean`                       | `true`; `false` keeps the web version              |
-| `islandId`      | `string`                        | a generated id                                     |
-| `accessibility` | `{ label?, traits? }`           | read from the children                             |
-| `onStateChange` | `(state, changed) => void`      | none                                               |
-| `requests`      | handlers by name, sync or async | none: requests fail                                |
-| `ref`           | `NativeHandle`                  | `command(name, args, { timeoutMs })` and `state()` |
+| Prop            | Type                       | Default                                            |
+| --------------- | -------------------------- | -------------------------------------------------- |
+| `children`      | `ReactNode`                | the web version                                    |
+| `native`        | `boolean`                  | `true`; `false` keeps the web version              |
+| `islandId`      | `string`                   | a generated id                                     |
+| `accessibility` | `{ label?, traits? }`      | read from the children                             |
+| `onStateChange` | `(state, changed) => void` | none: the whole state with the keys that changed   |
+| `ref`           | `NativeHandle`             | `command(name, args, { timeoutMs })` and `state()` |
 
 ### `Native`
 

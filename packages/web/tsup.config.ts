@@ -4,6 +4,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    protocol: "src/protocol/index.ts",
     react: "src/react/index.ts",
     simulator: "src/simulator/index.ts",
   },

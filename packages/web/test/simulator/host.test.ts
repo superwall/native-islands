@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TToPageMessage, TNativeOperation } from "../../src";
+import type { TToPageMessage } from "../../src/protocol/messages";
+import type { TNativeOperation } from "../../src/protocol/schemas";
 import {
   installNativeSimulator,
   SIMULATED_COMPONENTS,

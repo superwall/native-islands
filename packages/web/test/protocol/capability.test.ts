@@ -6,7 +6,7 @@ import {
   readNativeCapability,
   supportsAnchor,
   supportsFeature,
-} from "../../src";
+} from "../../src/protocol/capability";
 
 const available = readNativeCapability({
   protocol: 1,

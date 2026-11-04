@@ -1,12 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  connectNativeIslands,
-  NATIVE_CAPABILITY_GLOBAL,
-  NATIVE_RECEIVER_GLOBAL,
-  type NativeIslandsTransport,
-  type NativeIslandSpec,
-  type TToHostMessage,
-} from "../../src";
+import { connectNativeIslands } from "../../src/bridge/connect";
+import { NATIVE_CAPABILITY_GLOBAL } from "../../src/protocol/schemas";
+import { NATIVE_RECEIVER_GLOBAL, type NativeIslandsTransport } from "../../src/bridge/transport";
+import type { NativeIslandSpec } from "../../src/islands/controller";
+import type { TToHostMessage } from "../../src/protocol/messages";
 
 const capability = {
   protocol: 1,

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { createWebKitTransport, type TToHostMessage } from "../../src";
-import { hostWindow } from "../../src/bridge/transport";
+import { createWebKitTransport, hostWindow } from "../../src/bridge/transport";
+import type { TToHostMessage } from "../../src/protocol";
 
 const reset: TToHostMessage = {
   event_name: "native_component_batch",

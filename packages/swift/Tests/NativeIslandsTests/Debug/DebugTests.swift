@@ -2,7 +2,7 @@ import SwiftUI
 import Testing
 import UIKit
 import WebKit
-@testable import NativeIslands
+@_spi(Testing) @testable import NativeIslands
 
 extension NativeBridgeTests {
   @Suite
