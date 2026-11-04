@@ -15,7 +15,7 @@ It has two sides that speak one contract:
   draw. Before iOS 26 glass falls back to a material (or its tint) in the same
   shape, the way UIKit's own controls do. It works with any `WKWebView`; nothing in it knows about an app or a
   service.
-- **Page (JS):** `@superwall/native-islands` in `packages/web/`, with `/react` bindings.
+- **Page (JS):** `native-islands` in `packages/web/`, with `/react` bindings.
 
 ## The contract is the source of truth
 
@@ -36,7 +36,7 @@ that the other cannot read fails a test.
 ```
 tests/fixtures/         messages.json: one example of every wire message,
                         decoded by the tests of both packages
-packages/web/           @superwall/native-islands (page side)
+packages/web/           native-islands (page side)
   src/protocol/         zod schemas, message types, capability reader
   src/bridge/           WebKit transport and connectNativeIslands
   src/islands/          the island controller: batching, acks, state,

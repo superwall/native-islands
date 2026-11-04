@@ -1,4 +1,4 @@
-import { defineNativeComponent } from "@superwall/native-islands/react";
+import { defineNativeComponent } from "native-islands/react";
 
 /**
  * Components the app registers itself. The host only knows a name, a version

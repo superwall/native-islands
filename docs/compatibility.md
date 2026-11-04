@@ -1,6 +1,6 @@
 # iOS and WebKit compatibility
 
-NativeIslands draws inside the UIKit views WebKit builds for a page. It does not
+Native Islands draws inside the UIKit views WebKit builds for a page. It does not
 use a private API, but it does rely on how WebKit lays those views out. This
 page records what that layout is on each iOS version, how it was measured, and
 how to measure it again.

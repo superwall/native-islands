@@ -1,10 +1,10 @@
-# NativeIslands
+# Native Islands
 
 **Real UIKit and SwiftUI views inside a `WKWebView` page.** Write the page once
 in React, mark the few elements that should be native, and on iOS the app draws
 them as real native views (Liquid Glass buttons, switches, maps, charts, your
 own components) exactly where the web element sits. In a browser, and in any
-app without NativeIslands, the same page shows its web version.
+app without Native Islands, the same page shows its web version.
 
 <p align="center">
   <img src="docs/assets/showcase-components-light.png" width="260" alt="The Islands example app's Components tab in light mode: a large title, an inset grouped list and a floating Liquid Glass tab bar, all one web page">
@@ -16,10 +16,9 @@ app without NativeIslands, the same page shows its web version.
 <p align="center"><sub>Every screen above is one web page in a <code>WKWebView</code>. The glass, the map and the tab bar are native.</sub></p>
 
 > [!WARNING]
-> **NativeIslands is experimental.** It is early, it has rough edges, and the
+> **Native Islands is experimental.** It is early, it has rough edges, and the
 > contract between page and app, and the APIs on both sides, will change
-> between versions. It is not on npm yet. Read [Status](#status) before you
-> build on it.
+> between versions. Read [Status](#status) before you build on it.
 
 ---
 
@@ -38,7 +37,7 @@ every screen has to be built twice and kept in step forever. React Native gives
 you native views at the price of leaving the web: no DOM, no CSS, no npm
 package that touches either.
 
-NativeIslands is a third option. The page stays a web page, with all of the
+Native Islands is a third option. The page stays a web page, with all of the
 web: any React code, any CSS, any library, deployed the way it is today. Only
 the elements you choose become native, and they are not imitations drawn in
 CSS. They are the real UIKit and SwiftUI views, with real Liquid Glass sampling
@@ -61,10 +60,10 @@ web view and move it on every scroll event. That approach is always a frame
 late, it slides over sheets and footers it should sit under, and it falls
 apart the moment the page animates.
 
-NativeIslands relies on a detail of how WebKit works on iOS. A `WKWebView` is
+Native Islands relies on a detail of how WebKit works on iOS. A `WKWebView` is
 not one flat picture: WebKit builds the page out of real UIKit views. The page
 scrolls in a `UIScrollView`, and every `overflow: auto` area on the page gets
-its own native scroll view, a `WKChildScrollView`. So NativeIslands does not
+its own native scroll view, a `WKChildScrollView`. So Native Islands does not
 float views above the page. It puts each native view **inside the scroll view
 that holds its element**, at the element's exact spot, as a sibling of the
 layers WebKit draws the page with.
@@ -130,9 +129,19 @@ moves the native view with it. Web content that covers an island is cut out of
 the native view, and see-through covers, such as a sheet's dimmed backdrop,
 are laid over it in their colour, so the island stays native under them too.
 
-Values travel both ways. A native view can send events, keep state the page
-can read, ask the page a question and await the answer, and take commands
-such as "focus":
+Values travel both ways, in five kinds of message. Each has one direction and
+one job:
+
+| Kind         | Direction                     | What it is for                                                        | Example                |
+| ------------ | ----------------------------- | --------------------------------------------------------------------- | ---------------------- |
+| **props**    | page → native                 | What to draw. Sent again whenever React re-renders with new values.   | `title`, `prominence`  |
+| **events**   | native → page                 | Something happened. Fire and forget, like a DOM event.                | `press`, `submit`      |
+| **state**    | native → page, kept           | A value the native view owns, which the page can read at any time.    | the text typed so far  |
+| **requests** | native → page, with an answer | The native view asks the page and awaits its reply.                   | "is this email valid?" |
+| **commands** | page → native, with an answer | The page tells the native view to do something and awaits the result. | `focus`, `reset`       |
+
+Props and commands go down, the other three come up. A component declares
+only the kinds it uses:
 
 ```tsx
 const SignupForm = defineNativeComponent<{
@@ -183,8 +192,8 @@ among the subviews.
 
 Every failure falls back to the web. If a future iOS changes that layout, no
 scroll view matches and the element stays web. A host that cannot draw a
-component, an iOS below 16, a browser, or a page that cannot tell, all show
-the web version. The page never breaks; at worst it is a little less native.
+component, an iOS it was not built for, a browser, or a page that cannot tell,
+all show the web version. The page never breaks; at worst it is a little less native.
 
 ## Proof
 
@@ -193,18 +202,18 @@ results are written down.
 
 ### Compatibility
 
-Islands draw natively on **every iOS from 16 to 27**. Below iOS 26 they keep
-the look Apple's own controls have there, a system material in the same
-shape, never the web version.
+Islands are tested and draw natively on **every iOS from 16 to 27**, the
+releases we can run in CI and on simulators today. Below iOS 26 they keep the
+look Apple's own controls have there, a system material in the same shape,
+never the web version.
 
-| iOS            | Islands  | Glass looks like | WebKit probe | Swift suite | Alignment (0.5 pt)  | Screenshots |
-| -------------- | -------- | ---------------- | ------------ | ----------- | ------------------- | ----------- |
-| 15 and earlier | web only | (web version)    | –            | –           | –                   | –           |
-| 16.0–16.4      | native   | system material  | CI only      | CI only     | –                   | –           |
-| 17.5           | native   | system material  | pass         | pass        | pass                | `iOS-17`    |
-| 18.6           | native   | system material  | pass         | pass        | pass                | `iOS-18`    |
-| 26.1–26.5      | native   | Liquid Glass     | pass         | pass        | pass, except 26.3.1 | `iOS-26`    |
-| 27.0–27.2      | native   | Liquid Glass     | pass         | pass        | pass                | `iOS-27`    |
+| iOS       | Islands | Glass looks like | WebKit probe | Swift suite | Alignment (0.5 pt)  | Screenshots |
+| --------- | ------- | ---------------- | ------------ | ----------- | ------------------- | ----------- |
+| 16.0–16.4 | native  | system material  | CI only      | CI only     | –                   | –           |
+| 17.5      | native  | system material  | pass         | pass        | pass                | `iOS-17`    |
+| 18.6      | native  | system material  | pass         | pass        | pass                | `iOS-18`    |
+| 26.1–26.5 | native  | Liquid Glass     | pass         | pass        | pass, except 26.3.1 | `iOS-26`    |
+| 27.0–27.2 | native  | Liquid Glass     | pass         | pass        | pass                | `iOS-27`    |
 
 Three layers catch three kinds of breakage. A **WebKit probe** loads a fixture
 page into a real `WKWebView` on each runtime, records its view tree, and diffs
@@ -238,13 +247,13 @@ to measure it on your own phone, is in
 
 ## Status
 
-NativeIslands is experimental and early. It runs a full example app and a
-gallery of regression pages on every iOS from 16 to 27, but it has not
-shipped in a production app yet, and you should expect bugs, missing pieces
-and breaking changes. Every young cross-platform layer goes through this
+Native Islands is experimental and early. It runs a full example app and a
+gallery of regression pages on every iOS from 16 to 27, and you should expect
+bugs, missing pieces and breaking changes. Every young cross-platform layer goes through this
 stage; the goal of publishing now is to go through it in the open.
 
-Known limits today:
+Known limits today. Each is small, specific and written down, so you know
+exactly where the edges are:
 
 - **Layout-driven motion trails by a frame.** An element that moves by layout
   (a resize, a width animation) is followed by a message each frame, so its
@@ -262,8 +271,6 @@ Known limits today:
   nested inside a list can sit about 0.5 pt off until the next layout pass.
   The alignment test marks this one case as an expected failure.
 - **iOS only.** There is no Android host yet.
-- **No components ship with the packages.** You register your own native
-  views; the example app has a set of glass buttons and controls to copy from.
 
 ### Has this been done before?
 
@@ -283,19 +290,22 @@ There are two packages, one per side, and they speak one contract.
 `tests/fixtures/messages.json` holds an example of every message, and the
 tests of both packages decode it, so neither side can drift from the other.
 
-| Side       | Package                     | Where                                  |
-| ---------- | --------------------------- | -------------------------------------- |
-| App (iOS)  | `NativeIslands` (SwiftPM)   | `packages/swift/Sources/NativeIslands` |
-| Page (web) | `@superwall/native-islands` | [`packages/web/`](packages/web/)       |
+| Side       | Package                   | Where                                  |
+| ---------- | ------------------------- | -------------------------------------- |
+| App (iOS)  | `NativeIslands` (SwiftPM) | `packages/swift/Sources/NativeIslands` |
+| Page (web) | `native-islands` (npm)    | [`packages/web/`](packages/web/)       |
 
-The Swift package builds for iOS 15 and draws islands from iOS 16. Add it with
-Swift Package Manager from `https://github.com/superwall/native-islands`. The
-web package is not on npm yet; until it is, depend on it from this repository.
+Add the page side from npm, and the app side with Swift Package Manager from
+`https://github.com/superwall/native-islands`:
+
+```bash
+npm install native-islands
+```
 
 ### On the page
 
 ```tsx
-import { defineNativeComponent, NativeIslandsProvider } from "@superwall/native-islands/react";
+import { defineNativeComponent, NativeIslandsProvider } from "native-islands/react";
 
 const GlassButton = defineNativeComponent<{
   props: { title: string; prominence?: "regular" | "prominent" };
@@ -312,7 +322,10 @@ const GlassButton = defineNativeComponent<{
 The children are the web version. The app draws the native button in their
 place when it registered `glassButton`, and the children show everywhere else.
 The full page API, including state, requests, commands and use without React,
-is in [`packages/web/README.md`](packages/web/README.md).
+is in [`packages/web/README.md`](packages/web/README.md). The packages don't
+ship ready-made native components yet, and a components package is in the
+works. Until then, the example app has a set of glass buttons and controls to
+copy from.
 
 ### In the app
 
@@ -403,7 +416,7 @@ bun install
 cd examples/ios && xcodegen && open Islands.xcodeproj
 ```
 
-Run it on an iOS 16+ simulator or device. The app bundles the page and needs
+Run it on a simulator or an iPhone. The app bundles the page and needs
 no network, except for the sample video. Launch it with `-screen <id>` (such
 as `-screen maps`) or `-tab <id>` to open one screen. Camera and Picture in
 Picture need a real iPhone.
@@ -420,7 +433,7 @@ Then open `http://localhost:5173/?native=simulate`, or
 
 `tests/pages/` is the scenario gallery behind the tests: regression pages for
 every scenario, and a three-page flow that shows islands sliding in with their
-page. `tests/ios/` is TestHost, the iOS 16+ app that bundles them. In a
+page. `tests/ios/` is TestHost, the app that bundles them. In a
 browser, `?route=<name>` opens one page (`buttons`, `controls`, `scrolling`,
 `motion`, `overlays`, `stress`, `state`, `flow-plans`); in TestHost it is
 `-route <name>`, and `-NativeIslandsAlignmentLog YES` logs each native frame
@@ -442,11 +455,11 @@ Every check, the contract rules and the code style are in
 
 ## License
 
-NativeIslands is released under the
+Native Islands is released under the
 [Functional Source License 1.1, MIT Future License](LICENSE) (FSL-1.1-MIT).
 You can use, change and ship it in your own apps and products for any purpose
 except a competing use: a commercial product or service that substitutes for
-NativeIslands, or for a Superwall product built on it, or that offers
+Native Islands, or for a Superwall product built on it, or that offers
 substantially the same functionality. Each release becomes plain MIT two years
 after it is published. The FSL is a
 [Fair Source](https://fair.io) licence, not an OSI-approved open source one.

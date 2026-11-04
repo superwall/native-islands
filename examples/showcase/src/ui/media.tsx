@@ -1,5 +1,5 @@
-import type { NativeHandle } from "@superwall/native-islands/react";
-import { useNativeSupport } from "@superwall/native-islands/react";
+import type { NativeHandle } from "native-islands/react";
+import { useNativeSupport } from "native-islands/react";
 import * as React from "react";
 import { useScreenShowing } from "../app/nav";
 import { useAccent, useNativeEnabled } from "../app/preferences";

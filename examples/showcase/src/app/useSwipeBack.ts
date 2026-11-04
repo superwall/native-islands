@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
+import { ISLAND_PHASE_ATTRIBUTE } from "native-islands";
 import { belowOffset, completesSwipe, lockAxis, startsSwipe, swipeProgress } from "./swipe";
 
 const SETTLE_MS = 320;

@@ -1,4 +1,4 @@
-import { defineNativeComponent } from "@superwall/native-islands/react";
+import { defineNativeComponent } from "native-islands/react";
 
 type GlassGroup = {
   glassGroup?: string;

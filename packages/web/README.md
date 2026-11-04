@@ -1,9 +1,9 @@
-# @superwall/native-islands
+# native-islands
 
-The page side of [NativeIslands](../../README.md). Wrap a web element, and in an
+The page side of [Native Islands](../../README.md). Wrap a web element, and in an
 iOS app that hosts islands it is replaced by a real UIKit or SwiftUI view,
 placed exactly where the element is. In a browser, and in any app without
-NativeIslands, the web element stays. The page does not branch.
+Native Islands, the web element stays. The page does not branch.
 
 > [!WARNING]
 > **Experimental.** The API and the contract with the app will change between
@@ -11,15 +11,17 @@ NativeIslands, the web element stays. The page does not branch.
 
 ## Install
 
-The package is not on npm yet. Until it is, depend on it from this repository
-(it lives in `packages/web/`). React 19 or later is an optional peer, needed
-only for `/react`.
+```bash
+npm install native-islands
+```
 
-| Entry                                 | For                                                                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `@superwall/native-islands`           | Any page, no framework: the island controller, the WebKit transport, layout helpers, the protocol schemas          |
-| `@superwall/native-islands/react`     | React bindings                                                                                                     |
-| `@superwall/native-islands/simulator` | A host written in JS that draws outlines where native views would sit, for browsers and tests. No framework needed |
+React 19 or later is an optional peer, needed only for `/react`.
+
+| Entry                      | For                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `native-islands`           | Any page, no framework: the island controller, the WebKit transport, layout helpers, the protocol schemas          |
+| `native-islands/react`     | React bindings                                                                                                     |
+| `native-islands/simulator` | A host written in JS that draws outlines where native views would sit, for browsers and tests. No framework needed |
 
 ## React
 
@@ -108,7 +110,7 @@ The untyped form `defineNativeComponent` is built on.
 ## Without React
 
 ```ts
-import { connectNativeIslands } from "@superwall/native-islands";
+import { connectNativeIslands } from "native-islands";
 
 const { islands, disconnect } = connectNativeIslands();
 islands.mount(

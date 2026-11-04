@@ -1,6 +1,6 @@
-# Contributing to NativeIslands
+# Contributing to Native Islands
 
-Thanks for taking a look. NativeIslands is experimental: the contract between
+Thanks for taking a look. Native Islands is experimental: the contract between
 page and host still changes, and so do the APIs on both sides. Bug reports with
 a page that reproduces them are the most useful thing you can send.
 
@@ -78,6 +78,6 @@ coding agents follow here; they apply to people too.
 
 ## Licence
 
-NativeIslands is released under the [Functional Source License 1.1, MIT
+Native Islands is released under the [Functional Source License 1.1, MIT
 Future License](./LICENSE). By sending a pull request you agree that your
 contribution is released under the same licence.

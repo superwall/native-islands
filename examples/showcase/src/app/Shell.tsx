@@ -1,6 +1,6 @@
 import * as React from "react";
-import { ISLAND_PHASE_ATTRIBUTE } from "@superwall/native-islands";
-import { useNativeIslandsReady } from "@superwall/native-islands/react";
+import { ISLAND_PHASE_ATTRIBUTE } from "native-islands";
+import { useNativeIslandsReady } from "native-islands/react";
 import { NativeNavigationBar } from "../islands/definitions";
 import { WebSymbol } from "../ui/icons";
 import { WebMenu } from "../ui/inputs";
