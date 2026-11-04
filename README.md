@@ -21,37 +21,16 @@ Islands, the same page shows its web version.
 > between page and app, and the APIs on both sides, will change between
 > versions. Read [Where it stands](#where-it-stands) before you build on it.
 
-## Web or native
-
-An app with a web product behind it usually has to choose how to build each
-screen.
-
-It can show the web page in a web view. The app reuses all of the React code,
-the components and the release process, but the screen looks like a web page.
-The buttons don't have the system's glass, the switches don't respond like
-switches, and users notice.
-
-Or it can build the screen natively, in Swift or React Native. The screen looks
-right, but now there is a second codebase. Every screen is built twice, and
-someone has to keep both versions in sync. React Native narrows the gap but
-doesn't close it: you give up the DOM and CSS, and with them most of the web
-packages you already depend on.
-
-Native Islands removes the choice. The page stays a web page and only the
-elements that matter are native. It can use any React code, any CSS and any
-library, and it deploys the way it does today. That holds for one screen, such
-as a sign-up flow or a checkout, or for a whole app. The elements you mark are
-drawn by UIKit and SwiftUI, not imitated in CSS, and a Liquid Glass button
-samples the actual page content behind it.
-
 ```tsx
 <GlassButton title="Continue" prominence="prominent" onPress={purchase}>
   <button className="cta">Continue</button>
 </GlassButton>
 ```
 
-On iOS, this is a SwiftUI button with Liquid Glass. Everywhere else, it is the
-`<button>` inside it. The page has no platform checks.
+On iOS, this is a SwiftUI button with Liquid Glass, drawn by UIKit and sampling
+the page content behind it. Everywhere else, it is the `<button>` inside it.
+The page has no platform checks, keeps its DOM, CSS and npm packages, and
+deploys the way it does today.
 
 ## A web view is made of scroll views
 
