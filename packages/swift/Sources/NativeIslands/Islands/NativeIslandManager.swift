@@ -19,6 +19,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   var parked: [String: ParkedMount] = [:]
   var retired: [String: RetiredIsland] = [:]
   var retiredCount = 0
+  var trace: NativeMountTrace?
   let expire: @MainActor (@escaping @MainActor () -> Void) -> Void
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
   static let parkingAttempts = 20
@@ -64,6 +65,7 @@ final class NativeIslandManager: NativeIslandMessaging {
 
   func apply(_ batch: NativeComponentBatch) {
     applyingBatch = true
+    trace?.begin()
     var replies: [NativeReply] = []
     var acknowledged: [String] = []
     var waiting: [String] = []
@@ -73,18 +75,8 @@ final class NativeIslandManager: NativeIslandMessaging {
       case .unmount(let id):
         retire(id)
       case .mount(let mount):
-        if takeOver(mount, sequence: batch.sequence) {
-          islands[mount.id]?.context.acknowledge()
-          acknowledged.append(mount.id)
-        } else if shouldPark(mount) {
-          park(mount, sequence: batch.sequence)
-        } else if let error = mountIsland(mount, sequence: batch.sequence) {
+        if let error = apply(mount, sequence: batch.sequence, acknowledged: &acknowledged, waiting: &waiting) {
           replies.append(error)
-        } else if registry.entries[mount.component]?.waitsUntilReady == true {
-          waiting.append(mount.id)
-        } else {
-          islands[mount.id]?.context.acknowledge()
-          acknowledged.append(mount.id)
         }
       case .update(let update):
         if parked[update.id] != nil {
@@ -112,6 +104,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     reportSizes(of: acknowledged + waiting)
     updateObscured()
     applyingBatch = false
+    trace?.finish(sequence: batch.sequence)
     replies.append(contentsOf: outbox)
     outbox.removeAll()
     if !replies.isEmpty {
@@ -370,5 +363,38 @@ struct NativeIslandFrame: Equatable {
       "visible": visible,
       "acknowledged": acknowledged
     ]
+  }
+}
+
+// MARK: - Mounts
+
+extension NativeIslandManager {
+  private func apply(
+    _ mount: NativeMount,
+    sequence: Int,
+    acknowledged: inout [String],
+    waiting: inout [String]
+  ) -> NativeReply? {
+    let mountStart = trace?.timestamp()
+    if takeOver(mount, sequence: sequence) {
+      trace?.record(.tookOver, id: mount.id, since: mountStart)
+      islands[mount.id]?.context.acknowledge()
+      acknowledged.append(mount.id)
+    } else if shouldPark(mount) {
+      park(mount, sequence: sequence)
+      trace?.record(.parked, id: mount.id)
+    } else if let error = mountIsland(mount, sequence: sequence) {
+      trace?.record(.failed, id: mount.id, since: mountStart)
+      return error
+    } else {
+      trace?.record(.mounted, id: mount.id, since: mountStart)
+      if registry.entries[mount.component]?.waitsUntilReady == true {
+        waiting.append(mount.id)
+      } else {
+        islands[mount.id]?.context.acknowledge()
+        acknowledged.append(mount.id)
+      }
+    }
+    return nil
   }
 }

@@ -64,6 +64,85 @@ extension NativeBridgeTests {
 
   @Suite
   @MainActor
+  struct MountTraceTests {
+    @Test
+    func readsTheLaunchArgument() {
+      #expect(NativeMountTrace.isRequested(["app", "-NativeIslandsMountTrace", "YES"]))
+      #expect(NativeMountTrace.isRequested(["app", "-NativeIslandsMountTrace"]))
+      #expect(!NativeMountTrace.isRequested(["app", "-NativeIslandsMountTrace", "NO"]))
+      #expect(!NativeMountTrace.isRequested(["app"]))
+    }
+
+    @Test("Logs how each batch's mounts went and when the batch reached Core Animation")
+    func logsEachBatchAtItsCommit() {
+      let harness = NativeTestHarness()
+      var clock: CFTimeInterval = 0
+      var lines: [String] = []
+      var commits: [() -> Void] = []
+      harness.manager.trace = NativeMountTrace(
+        now: {
+          clock += 0.001
+          return clock
+        },
+        write: { lines.append($0) },
+        onCommit: { commits.append($0) }
+      )
+      let pushed = scroller(
+        "pushed",
+        frame: NativeFrame(x: 400, y: 0, width: 400, height: 800),
+        contentSize: NativeSize(width: 400, height: 801)
+      )
+      harness.manager.apply(
+        batch(
+          1,
+          mountOp("old"),
+          mountOp("badge", component: "silentBadge"),
+          mountOp("lost", component: "missing"),
+          mountOp("waiting", anchor: pushed)
+        )
+      )
+      harness.manager.apply(batch(2, .unmount(id: "old"), mountOp("new", reuse: "old")))
+      harness.manager.apply(batch(3, .unmount(id: "new")))
+      #expect(lines.isEmpty)
+      commits.forEach { $0() }
+      #expect(lines.count == 2)
+      #expect(lines.first?.hasPrefix("batch 1: 1 parked, 2 mounted, 1 failed; building ") == true)
+      #expect(lines.first?.contains(", committed ") == true)
+      #expect(lines.last?.hasPrefix("batch 2: 1 took over; ") == true)
+
+      harness.surface.addScroller(
+        frame: CGRect(x: 400, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      harness.runRetries()
+      #expect(lines.last?.hasPrefix("parked waiting: found its scroll view after 1 checks, ") == true)
+    }
+
+    @Test
+    func logsAMountThatGaveUpWaiting() {
+      let harness = NativeTestHarness()
+      var lines: [String] = []
+      harness.manager.trace = NativeMountTrace(write: { lines.append($0) }, onCommit: { _ in })
+      let pushed = scroller(
+        "pushed",
+        frame: NativeFrame(x: 400, y: 0, width: 400, height: 800),
+        contentSize: NativeSize(width: 400, height: 801)
+      )
+      harness.manager.apply(batch(1, mountOp("waiting", anchor: pushed)))
+      for _ in 0..<NativeIslandManager.parkingAttempts {
+        harness.runRetries()
+      }
+      #expect(lines.last?.hasPrefix("parked waiting: gave up waiting after 20 checks, ") == true)
+    }
+
+    @Test
+    func formatsMilliseconds() {
+      #expect(NativeMountTrace.ms(0.01666) == "16.7 ms")
+    }
+  }
+
+  @Suite
+  @MainActor
   struct AlignmentProbeTests {
     @Test
     func readsTheLaunchArgument() {

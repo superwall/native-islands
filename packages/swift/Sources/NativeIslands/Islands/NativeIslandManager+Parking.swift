@@ -52,6 +52,7 @@ extension NativeIslandManager {
       return
     }
     parked[id] = nil
+    trace?.unparked(id, attempts: entry.attempts, found: found)
     var replies: [NativeReply] = []
     if let error = mountIsland(entry.mount, sequence: sequence) {
       replies.append(error)
