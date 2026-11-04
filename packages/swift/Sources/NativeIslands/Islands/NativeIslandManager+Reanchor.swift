@@ -13,12 +13,17 @@ extension NativeIslandManager {
   // geometry when an island mounts, and it can land in the wrong one; once
   // their content sizes differ, it moves to its own.
   // The page measures before WebKit gives the scroll view its new content
-  // size, so an island found in the wrong one looks again a few times.
+  // size, so an island found in the wrong one looks again a few times. While
+  // its scroll view is still on screen, only one near the scroller's spot
+  // counts: when content shrinks, a parked screen far off to the side can
+  // already have the new content size before the shown one does.
   func reanchor(_ island: NativeIsland, to anchor: NativeAnchor, attempt: Int = 0) {
     guard case .scroller(let scroller) = anchor, let surface else { return }
     let misplaced = !hasShape(island.container, of: scroller)
-    guard misplaced || !isOnScreen(island.container, in: surface.viewport) else { return }
-    guard let container = container(for: anchor, in: surface) else {
+    let onScreen = isOnScreen(island.container, in: surface.viewport)
+    guard misplaced || !onScreen else { return }
+    let within = onScreen ? NativeScrollerMatcher.reach(of: scroller) : .greatestFiniteMagnitude
+    guard let container = container(for: anchor, in: surface, within: within) else {
       if misplaced, attempt < Self.parkingAttempts {
         retry { [weak self, weak island] in
           guard let self, let island, self.islands.values.contains(where: { $0 === island }) else { return }
@@ -93,7 +98,11 @@ extension NativeIslandManager {
     }
   }
 
-  func container(for anchor: NativeAnchor, in surface: NativeHostSurface) -> UIView? {
+  func container(
+    for anchor: NativeAnchor,
+    in surface: NativeHostSurface,
+    within: CGFloat = .greatestFiniteMagnitude
+  ) -> UIView? {
     switch anchor {
     case .page:
       return surface.pageScrollView
@@ -103,7 +112,8 @@ extension NativeIslandManager {
       return NativeScrollerMatcher.match(
         scroller,
         among: NativeScrollerMatcher.candidates(in: surface.pageScrollView),
-        in: surface.viewport
+        in: surface.viewport,
+        within: within
       ) { self.holdsIslands(of: $0, otherThan: scroller.id) }
     }
   }
