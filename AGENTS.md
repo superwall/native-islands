@@ -75,9 +75,9 @@ hands touches to views in its scroll views, so `IslandWebView` routes them.
 not showing off to the side, each at its own spot, so their islands are drawn
 before they slide in. `?native=simulate` installs the JS reference host.
 
-The showcase's `src/app/Shell.tsx` does the same for every screen of every
-tab, so a demo that holds a device (camera, video) checks `useScreenShowing()`
-and lets go while hidden. A new island needs its name in both
+The showcase's `src/app/Shell.tsx` mounts a screen the first time it is pushed
+or opened, then keeps it parked the same way, so a demo that holds a device
+(camera, video) checks `useScreenShowing()` and lets go while hidden. A new island needs its name in both
 `src/islands/definitions.ts` and `ShowcaseComponents.swift`, a web version that
 behaves the same, and an entry in `main.tsx`'s simulator list. A new demo is a
 row in its section's `demoScreens(...)` with `keywords` for Search, and its

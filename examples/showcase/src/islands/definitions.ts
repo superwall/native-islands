@@ -280,10 +280,11 @@ export type PermissionKind = "camera" | "microphone" | "location" | "photos" | "
 
 export type PermissionStatus = "notDetermined" | "granted" | "limited" | "denied" | "restricted";
 
+/** Sized by its native view: Allow, Settings and Allowed differ in width. */
 export const NativePermission = defineNativeComponent<{
   props: { kind: PermissionKind; tint?: string };
   state: { status: PermissionStatus };
-}>("permission", { colorProps: ["tint"] });
+}>("permission", { sizing: "native", colorProps: ["tint"] });
 
 export type HapticFeedback =
   | "light"

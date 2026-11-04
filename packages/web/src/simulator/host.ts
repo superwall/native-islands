@@ -45,6 +45,7 @@ export type SimulatedIsland = {
   element: HTMLElement;
   sequence: number;
   scroller?: HTMLElement;
+  scrollerId?: string;
   frame: TNativeFrame;
   sticky?: TNativeSticky;
   clip?: TNativeFrame;
@@ -224,9 +225,12 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     setTimeout(deliver, options.latencyMs ?? 0);
   };
 
+  // The nearest scroller that matches. Two can match at one spot with the
+  // same content, such as a screen opened straight onto with its tab's root
+  // parked under it: of those, one that already holds another scroller's
+  // islands is taken last.
   const scrollerFor = (scroller: TNativeScroller): HTMLElement | undefined => {
-    let best: HTMLElement | undefined;
-    let bestDistance = Number.POSITIVE_INFINITY;
+    const matches: Array<{ element: HTMLElement; distance: number }> = [];
     for (const candidate of document.querySelectorAll<HTMLElement>("*")) {
       if (candidate.hasAttribute(SIMULATOR_LAYER_ATTRIBUTE) || !isScroller(candidate)) continue;
       const box = contentBoxOf(candidate);
@@ -242,22 +246,29 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         );
       if (!same) continue;
       const distance = Math.hypot(box.x - scroller.frame.x, box.y - scroller.frame.y);
-      if (distance < bestDistance) {
-        best = candidate;
-        bestDistance = distance;
-      }
+      matches.push({ element: candidate, distance });
     }
-    return best;
+    const nearest = Math.min(...matches.map((match) => match.distance));
+    const tied = matches
+      .filter((match) => match.distance <= nearest + 1)
+      .map((match) => match.element);
+    const claimed = (element: HTMLElement) =>
+      [...islands.values()].some(
+        (island) => island.scroller === element && island.scrollerId !== scroller.id,
+      );
+    return tied.find((element) => !claimed(element)) ?? tied[0];
   };
 
   const attach = (island: SimulatedIsland, anchor: TNativeAnchor): boolean => {
     if (anchor.type === "page") {
       island.scroller = undefined;
+      island.scrollerId = undefined;
       pageLayer.appendChild(island.element);
       return true;
     }
     if (anchor.type === "screen") {
       island.scroller = undefined;
+      island.scrollerId = undefined;
       screenLayer.appendChild(island.element);
       return true;
     }
@@ -268,6 +279,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
       scroller.style.position = "relative";
     }
     island.scroller = scroller;
+    island.scrollerId = anchor.scroller.id;
     scroller.appendChild(island.element);
     return true;
   };

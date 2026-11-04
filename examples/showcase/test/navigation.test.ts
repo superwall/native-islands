@@ -3,6 +3,7 @@ import {
   canGoBack,
   initialState,
   isLive,
+  mountedScreens,
   navigate,
   placeOf,
   renderedScreens,
@@ -228,5 +229,39 @@ describe("isLive", () => {
     expect(isLive(state, "components", "buttons")).toBe(true);
     expect(isLive(state, "components", "components")).toBe(false);
     expect(isLive(state, "settings", "settings")).toBe(false);
+  });
+});
+
+describe("mountedScreens", () => {
+  it("mounts only each tab's root at launch", () => {
+    expect([...mountedScreens(start(), new Set())]).toEqual([
+      "components",
+      "capabilities",
+      "settings",
+      "search",
+    ]);
+  });
+
+  it("mounts a directly opened screen with its tab's root", () => {
+    expect(mountedScreens(start("?screen=appearance"), new Set()).has("appearance")).toBe(true);
+  });
+
+  it("mounts a screen when its push starts, while it waits off to the side", () => {
+    const before = mountedScreens(start(), new Set());
+    const mounting = navigate(start(), { type: "push", screen: "buttons" });
+    expect(before.has("buttons")).toBe(false);
+    expect(mountedScreens(mounting, before).has("buttons")).toBe(true);
+  });
+
+  it("keeps a screen mounted after it is popped", () => {
+    const state = pushed(start(), "buttons");
+    const mounted = mountedScreens(state, new Set());
+    const popped = navigate(state, { type: "pop", animated: false });
+    expect(mountedScreens(popped, mounted).has("buttons")).toBe(true);
+  });
+
+  it("returns the same set when nothing new mounts", () => {
+    const mounted = mountedScreens(start(), new Set());
+    expect(mountedScreens(start(), mounted)).toBe(mounted);
   });
 });

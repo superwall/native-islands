@@ -15,6 +15,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   var requestCount = 0
   var pendingRequests: [String: PendingRequest] = [:]
   var scrollObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
+  var contentSizeObservations: [ObjectIdentifier: ContentSizeObservation] = [:]
   var parked: [String: ParkedMount] = [:]
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
   static let parkingAttempts = 20
@@ -217,32 +218,6 @@ final class NativeIslandManager: NativeIslandMessaging {
     }
   }
 
-  private func needsMove(_ island: NativeIsland, to anchor: NativeAnchor) -> Bool {
-    switch (island.anchor, anchor) {
-    case (.page, .page), (.screen, .screen):
-      return false
-    case let (.scroller(current), .scroller(next)):
-      return current.id != next.id
-    default:
-      return true
-    }
-  }
-
-  func container(for anchor: NativeAnchor, in surface: NativeHostSurface) -> UIView? {
-    switch anchor {
-    case .page:
-      return surface.pageScrollView
-    case .screen:
-      return surface.screenLayer
-    case .scroller(let scroller):
-      return NativeScrollerMatcher.match(
-        scroller,
-        among: NativeScrollerMatcher.candidates(in: surface.pageScrollView),
-        in: surface.viewport
-      )
-    }
-  }
-
   // MARK: - Removal
 
   func remove(_ id: String) {
@@ -362,28 +337,5 @@ struct NativeIslandFrame: Equatable {
       "visible": visible,
       "acknowledged": acknowledged
     ]
-  }
-}
-
-extension NativeIslandManager {
-  // WebKit can give a scroller a new scroll view without the page noticing,
-  // such as a screen parked off to the side that slides in: the old one stays
-  // at the parked spot. Once the island's scroll view has left the viewport
-  // and another one matches the scroller, the island follows it. One still on
-  // screen is kept: while it scrolls, the page's anchor lags its offset and a
-  // parked twin could match better.
-  private func reanchor(_ island: NativeIsland, to anchor: NativeAnchor) {
-    guard case .scroller = anchor, let surface,
-      !isOnScreen(island.container, in: surface.viewport),
-      let container = container(for: anchor, in: surface), container !== island.container
-    else { return }
-    let previous = island.container
-    attach(island, to: container)
-    pruneGroups(in: previous)
-  }
-
-  private func isOnScreen(_ container: UIView?, in viewport: UIView) -> Bool {
-    guard let container, container.isDescendant(of: viewport) else { return false }
-    return container.convert(container.bounds, to: viewport).intersects(viewport.bounds)
   }
 }

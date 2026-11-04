@@ -324,8 +324,10 @@ result bundle in `build/ui-tests/results.xcresult`.
   can sit about 0.52 pt above their web elements until the next layout pass.
   The alignment test marks this one case as an expected failure.
 - WebKit builds an inner scrolling area's scroll view a few frames after the
-  page lays it out. The host holds a mount for such a scroller for up to a
-  second (20 tries) before answering `anchor_not_found`.
+  page lays it out. The host holds a mount for such a scroller until a scroll
+  view of its shape sits at its own spot, for up to a second (20 tries),
+  before answering `anchor_not_found`. A parked screen's look-alike scroll
+  view a screen away never counts.
 
 ## Develop
 

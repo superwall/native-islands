@@ -150,7 +150,6 @@ struct PermissionView: View {
     }
     .tint(component.props.color("tint"))
     .fixedSize()
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
     .task(id: permission) { update(await permission.status()) }
     .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
       Task { update(await permission.status()) }

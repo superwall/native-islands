@@ -333,6 +333,40 @@ describe("installNativeSimulator", () => {
     expect(drawn().parentElement).toBe(active);
   });
 
+  it("gives two scrollers at one spot with the same content one element each", () => {
+    const elements = [0, 1].map(() => {
+      const element = document.createElement("div");
+      element.dataset.rect = rectAttribute(0, 0, 400, 800);
+      document.body.appendChild(element);
+      overrideStyle(element, { overflowY: "auto", position: "absolute" });
+      setScrollGeometry(element, {
+        scrollHeight: 801,
+        scrollWidth: 400,
+        clientHeight: 800,
+        clientWidth: 400,
+      });
+      return element;
+    });
+    simulator = installNativeSimulator();
+    const anchor = (id: string) => ({
+      type: "scroller" as const,
+      scroller: {
+        id,
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        content_size: { width: 400, height: 801 },
+        scroll_offset: { x: 0, y: 0 },
+      },
+    });
+    post([
+      mount({ id: "root", anchor: anchor("root") }),
+      mount({ id: "pushed", anchor: anchor("pushed") }),
+      mount({ id: "more", anchor: anchor("pushed") }),
+    ]);
+    expect(drawn("root").parentElement).toBe(elements[0]);
+    expect(drawn("pushed").parentElement).toBe(elements[1]);
+    expect(drawn("more").parentElement).toBe(elements[1]);
+  });
+
   it("picks the nearest of identical scrollers, and tolerates a scroller that moved since it was measured", () => {
     const lists = [0, 300].map((y) => {
       const list = document.createElement("div");

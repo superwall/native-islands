@@ -147,6 +147,22 @@ export const renderedScreens = (state: NavState, tab: TabId): readonly string[] 
     : stack;
 };
 
+/**
+ * The screens to keep mounted: every screen in a tab's stack, and every one
+ * mounted before. A screen mounts the first time it is pushed or opened, and
+ * stays mounted after it leaves, so going back to it is as quick as the first
+ * time. Returns `mounted` itself when nothing new mounts.
+ */
+export const mountedScreens = (
+  state: NavState,
+  mounted: ReadonlySet<string>,
+): ReadonlySet<string> => {
+  const added = TABS.flatMap((tab) => renderedScreens(state, tab)).filter(
+    (screen) => !mounted.has(screen),
+  );
+  return added.length === 0 ? mounted : new Set([...mounted, ...added]);
+};
+
 export type ScreenPlace = "top" | "below" | "away";
 
 /**

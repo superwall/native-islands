@@ -73,6 +73,89 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func givesTwoScrollersAtOneSpotWithTheSameContentAScrollViewEach() {
+      let harness = NativeTestHarness()
+      let views = (0..<2).map { _ in
+        harness.surface.addScroller(
+          frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+          contentSize: CGSize(width: 400, height: 801)
+        )
+      }
+      let anchor = { (id: String) in
+        scroller(
+          id,
+          frame: NativeFrame(x: 0, y: 0, width: 400, height: 800),
+          contentSize: NativeSize(width: 400, height: 801)
+        )
+      }
+      harness.manager.apply(batch(
+        1,
+        mountOp("root", anchor: anchor("root")),
+        mountOp("pushed", anchor: anchor("pushed")),
+        mountOp("more", anchor: anchor("pushed"))
+      ))
+      #expect(harness.island("root")?.view.superview === views[0])
+      #expect(harness.island("pushed")?.view.superview === views[1])
+      #expect(harness.island("more")?.view.superview === views[1])
+    }
+
+    @Test
+    func forgetsTheContentSizeWatchOfAScrollViewWebKitReleased() {
+      let harness = NativeTestHarness()
+      autoreleasepool {
+        harness.manager.watchContentSize(of: UIScrollView())
+      }
+      let kept = UIScrollView()
+      harness.manager.watchContentSize(of: kept)
+      #expect(harness.manager.contentSizeObservations.count == 1)
+      #expect(harness.manager.contentSizeObservations[ObjectIdentifier(kept)]?.scrollView === kept)
+    }
+
+    @Test
+    func waitsForItsOwnScrollViewInsteadOfAnotherScreensFarAway() {
+      let harness = NativeTestHarness()
+      let other = harness.surface.addScroller(
+        frame: CGRect(x: 800, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let anchor = scroller(
+        "pushed",
+        frame: NativeFrame(x: 400, y: 0, width: 400, height: 800),
+        contentSize: NativeSize(width: 400, height: 801)
+      )
+      harness.manager.apply(batch(1, mountOp(anchor: anchor)))
+      #expect(harness.island("cta") == nil)
+      #expect(harness.manager.parked["cta"] != nil)
+
+      let own = harness.surface.addScroller(
+        frame: CGRect(x: 400, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === own)
+      #expect(harness.island("cta")?.view.superview !== other)
+    }
+
+    @Test
+    func takesTheNearestFarScrollViewOnceItStopsWaiting() {
+      let harness = NativeTestHarness()
+      let other = harness.surface.addScroller(
+        frame: CGRect(x: 800, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let anchor = scroller(
+        "pushed",
+        frame: NativeFrame(x: 400, y: 0, width: 400, height: 800),
+        contentSize: NativeSize(width: 400, height: 801)
+      )
+      harness.manager.apply(batch(1, mountOp(anchor: anchor)))
+      for _ in 0..<NativeIslandManager.parkingAttempts {
+        harness.runRetries()
+      }
+      #expect(harness.island("cta")?.view.superview === other)
+    }
+
+    @Test
     func toleratesAPointOfDifference() {
       let harness = NativeTestHarness()
       let list = harness.surface.addScroller(
@@ -290,6 +373,136 @@ extension NativeBridgeTests {
       )
       harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: anchor))))
       #expect(harness.island("cta")?.view.superview === rebuilt)
+    }
+
+    @Test
+    func leavesTheScreenBelowForItsOwnScrollerOnceTheirContentDiffers() {
+      let harness = NativeTestHarness()
+      let below = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let top = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      harness.manager.apply(
+        batch(1, mountOp(anchor: scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 801))))
+      )
+      #expect(harness.island("cta")?.view.superview === below)
+
+      below.contentSize = CGSize(width: 400, height: 915)
+      top.contentSize = CGSize(width: 400, height: 930)
+      let grown = scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 930))
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: grown))))
+      #expect(harness.island("cta")?.view.superview === top)
+      #expect(harness.island("cta")?.container === top)
+    }
+
+    @Test
+    func looksAgainUntilWebKitGivesTheScrollViewItsNewContentSize() {
+      let harness = NativeTestHarness()
+      let below = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let top = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      harness.manager.apply(
+        batch(1, mountOp(anchor: scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 801))))
+      )
+      #expect(harness.island("cta")?.view.superview === below)
+
+      let grown = scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 930))
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: grown))))
+      #expect(harness.island("cta")?.view.superview === below)
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === below)
+
+      below.contentSize = CGSize(width: 400, height: 915)
+      top.contentSize = CGSize(width: 400, height: 930)
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === top)
+      #expect(harness.retries.isEmpty)
+    }
+
+    @Test
+    func leavesTheScreenBelowWhenOnlyItsContentGrows() {
+      let harness = NativeTestHarness()
+      let below = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let top = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      harness.manager.apply(
+        batch(1, mountOp(anchor: scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 801))))
+      )
+      #expect(harness.island("cta")?.view.superview === below)
+
+      below.contentSize = CGSize(width: 400, height: 801)
+      #expect(harness.retries.isEmpty)
+      below.contentSize = CGSize(width: 400, height: 915)
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === top)
+
+      top.contentSize = CGSize(width: 400, height: 801.5)
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === top)
+    }
+
+    @Test
+    func stopsLookingAfterTheParkingAttempts() {
+      let harness = NativeTestHarness()
+      let only = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      harness.manager.apply(
+        batch(1, mountOp(anchor: scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 801))))
+      )
+      let grown = scroller("top", frame: frame, contentSize: NativeSize(width: 400, height: 930))
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: grown))))
+      for _ in 0...NativeIslandManager.parkingAttempts {
+        harness.runRetries()
+      }
+      #expect(harness.retries.isEmpty)
+      #expect(harness.island("cta")?.view.superview === only)
+
+      harness.manager.apply(batch(3, .update(NativeUpdate(id: "cta", anchor: grown))))
+      harness.manager.apply(batch(4, .unmount(id: "cta")))
+      harness.runRetries()
+      #expect(harness.retries.isEmpty)
+    }
+
+    @Test
+    func keepsAnOnScreenScrollerWhoseOffsetLagsTheAnchor() {
+      let harness = NativeTestHarness()
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      let size = NativeSize(width: 400, height: 1600)
+      let shown = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 1600)
+      )
+      harness.manager.apply(batch(1, mountOp(anchor: scroller("screen", frame: frame, contentSize: size))))
+      let twin = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 1600),
+        offset: CGPoint(x: 0, y: 120)
+      )
+      shown.contentOffset = CGPoint(x: 0, y: 140)
+      let lagging = scroller("screen", frame: frame, contentSize: size, offset: NativePoint(x: 0, y: 120))
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: lagging))))
+      #expect(harness.island("cta")?.view.superview === shown)
+      #expect(harness.island("cta")?.view.superview !== twin)
     }
 
     @Test

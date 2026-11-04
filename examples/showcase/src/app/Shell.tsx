@@ -11,6 +11,7 @@ import {
   initialState,
   topOf,
   isLive,
+  mountedScreens,
   navigate,
   placeOf,
   type NavState,
@@ -152,12 +153,11 @@ const NavigationBar = ({
 };
 
 /**
- * The app: a tab bar over one navigation stack per tab. Every screen of the
- * app is rendered from the start and only ever moves: screens not showing
- * wait off to the side, each at its own spot, so the host can tell their
- * scrolling areas apart, and their islands are drawn before they slide in.
- * On iOS 26 a screen first mounted while parked never showed its islands
- * once it slid in, so none is.
+ * The app: a tab bar over one navigation stack per tab. A screen mounts the
+ * first time it is pushed and then only ever moves: screens not showing wait
+ * off to the side, each at its own spot, so the host can tell their
+ * scrolling areas apart, and a pushed screen's islands are drawn before it
+ * slides in.
  */
 export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
   const specs = React.useMemo(() => new Map(screens.map((spec) => [spec.id, spec])), [screens]);
@@ -220,23 +220,28 @@ export const Shell = ({ screens }: { screens: readonly ScreenSpec[] }) => {
       ),
     [],
   );
+  const mounted = React.useRef<ReadonlySet<string>>(new Set());
+  mounted.current = mountedScreens(state, mounted.current);
   const top = specs.get(topOf(state));
   useSwipeBack(root, canGoBack(state) && !transition, swipeBack);
 
   return (
     <NavProvider value={nav}>
       <div className="screens" ref={root}>
-        {screens.map((spec, index) => (
-          <Screen
-            key={spec.id}
-            spec={spec}
-            place={placeOf(state, spec.tab, spec.id)}
-            live={isLive(state, spec.tab, spec.id)}
-            parkedAt={index}
-            motion={motionOf(state, placeOf(state, spec.tab, spec.id))}
-            onScrolled={onScrolled}
-          />
-        ))}
+        {screens.map(
+          (spec, index) =>
+            mounted.current.has(spec.id) && (
+              <Screen
+                key={spec.id}
+                spec={spec}
+                place={placeOf(state, spec.tab, spec.id)}
+                live={isLive(state, spec.tab, spec.id)}
+                parkedAt={index}
+                motion={motionOf(state, placeOf(state, spec.tab, spec.id))}
+                onScrolled={onScrolled}
+              />
+            ),
+        )}
       </div>
       <NavigationBar
         title={top?.title ?? ""}

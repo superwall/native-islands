@@ -126,6 +126,7 @@ extension NativeIslandManager {
     }
     if let scrollView = container as? UIScrollView {
       scrollViews.append(scrollView)
+      watchContentSize(of: scrollView)
     }
     for scrollView in scrollViews where scrollObservations[ObjectIdentifier(scrollView)] == nil {
       scrollObservations[ObjectIdentifier(scrollView)] = scrollView.observe(

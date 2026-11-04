@@ -26,9 +26,7 @@ export type VideoHandle = { play: () => void; pause: () => void; pictureInPictur
 
 /**
  * A video played by AVFoundation, with Picture in Picture. Its web version is
- * a `<video>` element, which reports the same status. While the native player
- * shows, the page holds a plain box instead: WebKit gives every `<video>` its
- * own layer, and boxes after it on the page would then cover the islands.
+ * a `<video>` element, which reports the same status.
  */
 export const Video = ({
   url,
@@ -81,7 +79,7 @@ export const Video = ({
   }, [showing, native]);
   const reportElement = () => {
     const element = video.current;
-    if (!element) return;
+    if (native || !element) return;
     report({
       playing: !element.paused,
       time: Math.floor(element.currentTime),
@@ -97,25 +95,21 @@ export const Video = ({
       accessibility={{ label: "Video" }}
       onStatus={report}
     >
-      {native ? (
-        <div className="web-video" />
-      ) : (
-        <video
-          ref={video}
-          className="web-video"
-          poster={poster}
-          controls
-          playsInline
-          preload="metadata"
-          onPlay={reportElement}
-          onPause={reportElement}
-          onTimeUpdate={reportElement}
-          onLoadedMetadata={reportElement}
-        >
-          <source src={url} type="application/vnd.apple.mpegurl" />
-          {webUrl && <source src={webUrl} type="video/webm" />}
-        </video>
-      )}
+      <video
+        ref={video}
+        className="web-video"
+        poster={poster}
+        controls
+        playsInline
+        preload="metadata"
+        onPlay={reportElement}
+        onPause={reportElement}
+        onTimeUpdate={reportElement}
+        onLoadedMetadata={reportElement}
+      >
+        <source src={url} type="application/vnd.apple.mpegurl" />
+        {webUrl && <source src={webUrl} type="video/webm" />}
+      </video>
     </NativeVideo>
   );
 };
