@@ -131,6 +131,39 @@ describe("hand-off to the web version", () => {
     ).toEqual([]);
   });
 
+  it("measures a moved island once per layout pass", async () => {
+    Object.assign(document, {
+      elementsFromPoint: () => [document.querySelector("[data-island] > *")],
+    });
+    const view = renderNative(<Card />);
+    await view.nextFrame();
+    view.ackAll();
+    const island = islandOf(view.container);
+    const probe = vi.spyOn(island, "setAttribute");
+    const probes = () => probe.mock.calls.filter(([name]) => name === "data-island-probe").length;
+    const scroll = async () => {
+      act(() => {
+        document.dispatchEvent(new Event("scroll"));
+      });
+      await view.nextFrame();
+    };
+
+    await scroll();
+    const still = probes();
+    expect(still).toBeGreaterThan(0);
+    (view.container.querySelector("button") as HTMLElement).dataset.rect = rectAttribute(
+      10,
+      160,
+      100,
+      40,
+    );
+    await scroll();
+    expect(probes() - still).toBe(still);
+    expect(view.operations().findLast((operation) => "frame" in operation)).toMatchObject({
+      frame: { x: 10, y: 160 },
+    });
+  });
+
   it("skips a layout pass when the children are gone", async () => {
     const view = renderNative(<Card />);
     await view.nextFrame();

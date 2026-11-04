@@ -495,8 +495,8 @@ export const useNativeIsland = (
       // islands itself; following them there would only stream frames. The
       // page coming on stage is a layout change, which measures them again.
       if (element.closest(offstage)) return;
-      follow();
       if (pass === "layout" || motion.current.revealing) relayout();
+      else follow();
     };
     const unsubscribe = layoutWatcherFor(element.ownerDocument).subscribe(onPass);
     const observer =
