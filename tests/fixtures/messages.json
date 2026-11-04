@@ -17,7 +17,8 @@
       "sticky",
       "clip",
       "transform",
-      "motion"
+      "motion",
+      "reuse"
     ]
   },
   "toHost": [
@@ -89,7 +90,8 @@
           },
           "visible": true,
           "order": 1,
-          "sizing": "native"
+          "sizing": "native",
+          "reuse": "plans-monthly"
         },
         {
           "op": "mount",

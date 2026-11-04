@@ -17,6 +17,8 @@ export {
   NATIVE_ACK_TIMEOUT_MS,
   NATIVE_COMMAND_TIMEOUT_MS,
   NATIVE_FLUSH_FALLBACK_MS,
+  NATIVE_REUSE_LIMIT,
+  NATIVE_REUSE_WINDOW_MS,
   NativeCommandError,
   toNativeProps,
   type NativeFallbackReason,

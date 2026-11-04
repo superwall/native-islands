@@ -36,13 +36,13 @@ protocol NativeIslandMessaging: AnyObject {
 
 @MainActor
 public final class NativeComponentContext: ObservableObject {
-  public let id: String
+  public private(set) var id: String
   public let component: String
   @Published public private(set) var props: NativeComponentProps
   @Published public private(set) var accessibility: NativeComponentAccessibility?
   @Published public private(set) var isVisible: Bool
 
-  let sequence: Int
+  private(set) var sequence: Int
   private(set) var isAcknowledged = false
   private(set) var revision = 0
   private(set) var localState: [String: NativeValue] = [:]
@@ -132,6 +132,23 @@ public final class NativeComponentContext: ObservableObject {
   public func ready() {
     guard waitsUntilReady, !isAcknowledged else { return }
     host?.ready(id)
+  }
+
+  /// Hands this context to a new island that takes over its view, as if
+  /// it had just been mounted.
+  func takeOver(_ mount: NativeMount, sequence: Int) {
+    id = mount.id
+    self.sequence = sequence
+    isAcknowledged = false
+    revision = 0
+    localState = [:]
+    pageProps = mount.props
+    pageRevision = mount.stateRevision ?? 0
+    refreshProps()
+    accessibility = mount.accessibility.map(NativeComponentAccessibility.init)
+    if isVisible != mount.visible {
+      isVisible = mount.visible
+    }
   }
 
   func acknowledge() {

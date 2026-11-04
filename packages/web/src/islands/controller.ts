@@ -39,6 +39,11 @@ export const NATIVE_FLUSH_FALLBACK_MS = 50;
 
 export const NATIVE_COMMAND_TIMEOUT_MS = 5000;
 
+/** How long an unmounted island's view stays up for a new one to take over. */
+export const NATIVE_REUSE_WINDOW_MS = 60_000;
+
+export const NATIVE_REUSE_LIMIT = 128;
+
 export type NativeCommandFailure =
   | "unsupported"
   | "not_ready"
@@ -120,7 +125,14 @@ export type NativeMountRefusal =
   | "limit_exceeded"
   | "invalid_spec";
 
-export type NativeMountResult = { ok: true } | { ok: false; reason: NativeMountRefusal };
+export type NativeMountResult =
+  | { ok: true; reusing?: boolean }
+  | { ok: false; reason: NativeMountRefusal };
+
+export type NativeReuseCandidate = Pick<
+  NativeIslandSpec,
+  "component" | "version" | "sizing" | "props" | "anchor"
+>;
 
 export type NativeIslandStatus = "pending" | "ready" | "stalled";
 
@@ -137,7 +149,18 @@ export type NativeIslandsOptions = {
 export interface NativeIslands {
   readonly capability: NativeCapabilityResult;
   supports: (component: string, version: number) => NativeSupport;
-  mount: (id: string, spec: NativeIslandSpec, listener?: NativeIslandListener) => NativeMountResult;
+  /**
+   * With `reuse`, the island may take over the view of one the page
+   * unmounted that the host still holds; its mount then goes out at once.
+   */
+  mount: (
+    id: string,
+    spec: NativeIslandSpec,
+    listener?: NativeIslandListener,
+    options?: { reuse?: boolean },
+  ) => NativeMountResult;
+  mayReuse: (component: string) => boolean;
+  reusable: (candidate: NativeReuseCandidate) => boolean;
   update: (id: string, patch: NativeIslandPatch) => void;
   unmount: (id: string) => void;
   status: (id: string) => NativeIslandStatus | undefined;
@@ -166,7 +189,10 @@ type Island = {
   timer?: ReturnType<typeof setTimeout>;
   state: Record<string, unknown>;
   revision: number;
+  reuse?: { id: string; entry: Retired };
 };
+
+type Retired = { component: string; key: string; at: number };
 
 type PendingCommand = {
   id: string;
@@ -238,6 +264,18 @@ const layerOf = (spec: NativeIslandSpec) =>
     motion: spec.motion,
   });
 
+const anchorKey = (anchor: TNativeAnchor) =>
+  anchor.type === "scroller" ? `scroller:${anchor.scroller.id}` : anchor.type;
+
+const reuseKey = (candidate: Omit<NativeReuseCandidate, "props">, props: TNativeProps) =>
+  JSON.stringify([
+    candidate.component,
+    candidate.version,
+    candidate.sizing,
+    anchorKey(candidate.anchor),
+    props,
+  ]);
+
 const defaultScheduler: NativeScheduler = (flush) => {
   let done = false;
   const run = () => {
@@ -283,10 +321,24 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   const report = options.report ?? defaultReport;
   const islands = new Map<string, Island>();
   const unmounts = new Set<string>();
+  const retired = new Map<string, Retired>();
+  const reuses = supportsFeature(capability, "reuse");
   const commands = new Map<string, PendingCommand>();
   let sequence = 0;
   let commandCount = 0;
   let scheduled = false;
+
+  let soon = false;
+  // A view the host takes over can show in the frame its row first paints,
+  // so its mount goes out before that paint instead of on the next frame.
+  const flushSoon = () => {
+    if (soon) return;
+    soon = true;
+    queueMicrotask(() => {
+      soon = false;
+      flush();
+    });
+  };
 
   const requestFlush = () => {
     if (scheduled) return;
@@ -357,7 +409,9 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
           id,
           ...spec,
           ...revision,
+          reuse: island.reuse?.id,
         });
+        island.reuse = undefined;
         if (!validOperation(operation)) {
           fail(id, island, "invalid_spec");
           continue;
@@ -428,7 +482,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   const supports = (component: string, version: number) =>
     nativeSupport(capability, component, version);
 
-  const mount: NativeIslands["mount"] = (id, spec, listener = {}) => {
+  const mount: NativeIslands["mount"] = (id, spec, listener = {}, how = {}) => {
     const support = supports(spec.component, spec.version);
     if (support !== "supported") return { ok: false, reason: support };
     if (!validId(id)) return { ok: false, reason: "invalid_spec" };
@@ -441,15 +495,54 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     }
     const props = toNativeProps(spec.props);
     if (!props) return { ok: false, reason: "invalid_spec" };
+    const reuse = how.reuse ? takeRetired(reuseKey(spec, props)) : undefined;
     islands.set(id, {
       spec: { ...spec, props },
       listener,
       status: "pending",
       state: {},
       revision: 0,
+      reuse,
     });
-    requestFlush();
-    return { ok: true };
+    if (reuse === undefined) {
+      requestFlush();
+      return { ok: true };
+    }
+    flushSoon();
+    return { ok: true, reusing: true };
+  };
+
+  const pruneRetired = () => {
+    const oldest = Date.now() - NATIVE_REUSE_WINDOW_MS;
+    for (const [id, entry] of retired) {
+      if (entry.at > oldest && retired.size <= NATIVE_REUSE_LIMIT) break;
+      retired.delete(id);
+    }
+  };
+
+  const findRetired = (key: string) => {
+    pruneRetired();
+    let found: { id: string; entry: Retired } | undefined;
+    for (const [id, entry] of retired) if (entry.key === key) found = { id, entry };
+    return found;
+  };
+
+  const takeRetired = (key: string) => {
+    const found = findRetired(key);
+    if (found) retired.delete(found.id);
+    return found;
+  };
+
+  const mayReuse: NativeIslands["mayReuse"] = (component) => {
+    if (retired.size === 0) return false;
+    pruneRetired();
+    for (const entry of retired.values()) if (entry.component === component) return true;
+    return false;
+  };
+
+  const reusable: NativeIslands["reusable"] = (candidate) => {
+    const props = toNativeProps(candidate.props);
+    return props !== undefined && findRetired(reuseKey(candidate, props)) !== undefined;
   };
 
   const apply = (id: string, island: Island, patch: NativeIslandPatch) => {
@@ -491,7 +584,19 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     clearTimer(island);
     settleCommands(id, `Native component ${JSON.stringify(id)} unmounted.`);
     islands.delete(id);
+    // An island unmounted before its mount went out, as React's StrictMode
+    // does, leaves the view it would have taken over for the next one.
+    if (island.reuse) retired.set(island.reuse.id, island.reuse.entry);
     if (island.mountSequence === undefined) return;
+    if (reuses && island.status === "ready" && island.sent) {
+      retired.delete(id);
+      retired.set(id, {
+        component: island.sent.component,
+        key: reuseKey(island.sent, island.sent.props),
+        at: Date.now(),
+      });
+      pruneRetired();
+    }
     unmounts.add(id);
     requestFlush();
   };
@@ -506,6 +611,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     if (hostMayHaveIt && island.mountSequence !== undefined) unmounts.add(id);
     settleCommands(id, `Native component ${JSON.stringify(id)} is mounting again.`);
     island.revision = 0;
+    island.reuse = undefined;
     island.sent = undefined;
     island.mountSequence = undefined;
     island.status = "pending";
@@ -527,6 +633,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
 
   const resync = () => {
     unmounts.clear();
+    retired.clear();
     for (const [id, island] of islands) remount(id, island, false);
     if (islands.size > 0) requestFlush();
   };
@@ -745,6 +852,8 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     capability,
     supports,
     mount,
+    mayReuse,
+    reusable,
     update,
     unmount,
     status: (id) => islands.get(id)?.status,
