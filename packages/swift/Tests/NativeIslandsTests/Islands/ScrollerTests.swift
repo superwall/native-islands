@@ -506,6 +506,34 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func keepsItsOnScreenScrollViewWhenItsContentShrinksToAParkedScreensSize() {
+      let harness = NativeTestHarness()
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      let shown = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 1600)
+      )
+      let parked = harness.surface.addScroller(
+        frame: CGRect(x: 8800, y: 0, width: 400, height: 800),
+        contentSize: CGSize(width: 400, height: 801)
+      )
+      harness.manager.apply(
+        batch(1, mountOp(anchor: scroller("search", frame: frame, contentSize: NativeSize(width: 400, height: 1600))))
+      )
+      #expect(harness.island("cta")?.view.superview === shown)
+
+      // The page sends the shrunk content before WebKit resizes the scroll view.
+      let shrunk = scroller("search", frame: frame, contentSize: NativeSize(width: 400, height: 801))
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: shrunk))))
+      #expect(harness.island("cta")?.view.superview === shown)
+
+      shown.contentSize = CGSize(width: 400, height: 801)
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === shown)
+      #expect(harness.island("cta")?.view.superview !== parked)
+    }
+
+    @Test
     func dropsAnIslandWhoseNewScrollerCannotBeFound() {
       let harness = NativeTestHarness()
       harness.manager.apply(batch(1, mountOp()))
