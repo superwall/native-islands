@@ -162,6 +162,29 @@ extension NativeBridgeTests {
       #expect(harness.island("back")?.view.frame == CGRect(x: 10, y: 1200, width: 40, height: 40))
     }
 
+    @Test("Mounts into its scroller's scroll view, not a far one that already has the new size")
+    func prefersTheKnownScrollViewOverAFarTwin() {
+      let harness = NativeTestHarness()
+      let list = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      let twin = harness.surface.addScroller(
+        frame: CGRect(x: 1600, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 2000)
+      )
+      let frame = NativeFrame(x: 0, y: 100, width: 400, height: 600)
+      harness.manager.apply(
+        batch(1, mountOp("first", anchor: scroller(frame: frame, contentSize: NativeSize(width: 400, height: 900))))
+      )
+      #expect(harness.island("first")?.view.superview === list)
+
+      let grown = scroller(frame: frame, contentSize: NativeSize(width: 400, height: 2000))
+      harness.manager.apply(batch(2, mountOp("back", anchor: grown)))
+      #expect(harness.island("back")?.view.superview === list)
+      #expect(harness.island("back")?.view.superview !== twin)
+    }
+
     @Test("Still waits for the scroll view of a scroller none of its islands lives in yet")
     func waitsForAScrollerWithNoIslandsYet() {
       let harness = NativeTestHarness()

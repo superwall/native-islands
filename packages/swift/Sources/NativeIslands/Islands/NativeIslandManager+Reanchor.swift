@@ -122,12 +122,14 @@ extension NativeIslandManager {
   /// once. Rows that come back grow the scroller before WebKit grows its
   /// scroll view, so for a frame or more no scroll view matches the page's
   /// content size, yet the scroller's other islands show which one it is.
+  /// They come first: another screen's scroll view may already have that
+  /// content size and would match from afar.
   func mountContainer(
     for anchor: NativeAnchor,
     in surface: NativeHostSurface,
     besides extra: NativeIsland? = nil
   ) -> UIView? {
-    container(for: anchor, in: surface) ?? knownContainer(for: anchor, in: surface, besides: extra)
+    knownContainer(for: anchor, in: surface, besides: extra) ?? container(for: anchor, in: surface)
   }
 
   func knownContainer(

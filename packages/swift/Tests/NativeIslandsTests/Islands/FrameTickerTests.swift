@@ -1,4 +1,6 @@
+import SwiftUI
 import Testing
+import UIKit
 
 @testable import NativeIslands
 
@@ -37,10 +39,39 @@ struct FrameTickerTests {
     #expect(!ticker.isRunning)
   }
 
-  @Test("Looks for a parked mount's scroll view every frame for one second")
-  func parksForOneSecondOfFrames() {
-    let seconds = Double(NativeIslandManager.parkingAttempts) / Double(NativeFrameTicker.framesPerSecond)
-    #expect(seconds == 1)
-    #expect(NativeIslandManager.parkingAttempts == 60)
+  @Test("Looks for a parked mount's scroll view on each frame, for one second of frames")
+  func looksForAParkedMountEveryFrame() {
+    let ticker = NativeFrameTicker()
+    let registry = NativeComponentRegistry()
+    registry.register("glassButton") { _ in Color.clear }
+    let surface = FakeSurface()
+    let manager = NativeIslandManager(
+      registry: registry,
+      surface: surface,
+      send: { _ in },
+      schedule: { _ in },
+      retry: { ticker.next($0) }
+    )
+    let far = surface.addScroller(
+      frame: CGRect(x: 800, y: 0, width: 400, height: 800),
+      contentSize: CGSize(width: 400, height: 801)
+    )
+    let anchor = scroller(
+      "pushed",
+      frame: NativeFrame(x: 400, y: 0, width: 400, height: 800),
+      contentSize: NativeSize(width: 400, height: 801)
+    )
+    manager.apply(batch(1, mountOp(anchor: anchor)))
+    #expect(manager.parked["cta"] != nil)
+    for frame in 1..<NativeIslandManager.parkingAttempts {
+      ticker.tick()
+      #expect(manager.parked["cta"]?.attempts == frame)
+      #expect(ticker.isRunning)
+    }
+    ticker.tick()
+    #expect(manager.parked["cta"] == nil)
+    #expect(manager.islands["cta"]?.view.superview === far)
+    #expect(!ticker.isRunning)
+    #expect(Double(NativeIslandManager.parkingAttempts) / Double(NativeFrameTicker.framesPerSecond) == 1)
   }
 }
