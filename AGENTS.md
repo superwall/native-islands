@@ -70,7 +70,8 @@ performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers, parallel UI test runs and the
                         iOS runtime matrix with its WebKit view-tree diff
 docs/                   compatibility.md, what each iOS was proven on;
-                        assets/ the images the README shows
+                        performance.md, device numbers and how to measure
+                        them; assets/ the images the README shows
 LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
@@ -103,7 +104,7 @@ Run only what your change touches; never a whole suite by hand.
 - Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`, on every iOS major with `--runtimes 17.5,18.6,26.5,27.2`; record screenshots with `--record` only after a deliberate visual change (baselines are per iOS major)
 - Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`. What each iOS was proven on, and how versions differ, is in `docs/compatibility.md`
-- Performance: `performance/run.sh`; its comparison: `bun test performance`
+- Performance: `performance/run.sh`; its comparison: `bun test performance`. Numbers for people come from a device, as `docs/performance.md` describes, never a simulator
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
 ## Conventions
