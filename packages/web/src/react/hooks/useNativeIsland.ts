@@ -57,9 +57,12 @@ export type NativeIslandState = {
   size?: TNativeSize;
   handoff?: NativeHandoff;
   anchorType?: TNativeAnchor["type"];
+  arriving?: boolean;
   command: (name: string, args?: unknown, options?: { timeoutMs?: number }) => Promise<unknown>;
   state: () => Readonly<Record<string, unknown>> | undefined;
 };
+
+export const ARRIVAL_GRACE_MS = 150;
 
 type Reason = NativeMountRefusal | NativeFallbackReason | "timeout" | "no_elements";
 
@@ -285,6 +288,11 @@ export const useNativeIsland = (
     let live = false;
     let warned = false;
     let stopWaiting: (() => void) | undefined;
+    let arrival: ReturnType<typeof setTimeout> | undefined;
+    const arrived = () => {
+      clearTimeout(arrival);
+      arrival = undefined;
+    };
     const tryMount = (): boolean => {
       sentAnchor.current = undefined;
       const spec = specOf(element);
@@ -335,19 +343,23 @@ export const useNativeIsland = (
         },
         {
           onReady: () => {
+            arrived();
             readiness.end(id);
-            setState((previous) => ({ ...previous, mode: "native" }));
+            setState((previous) => ({ ...previous, mode: "native", arriving: false }));
           },
           onPending: () => {
+            arrived();
             readiness.begin(id);
-            setState((previous) => ({ ...previous, mode: "pending" }));
+            setState((previous) => ({ ...previous, mode: "pending", arriving: false }));
           },
           onStall: () => {
+            arrived();
             readiness.end(id);
             report(component, "timeout");
-            setState((previous) => ({ ...previous, mode: "pending" }));
+            setState((previous) => ({ ...previous, mode: "pending", arriving: false }));
           },
           onFallback: (reason, message) => {
+            arrived();
             mounted.current = false;
             readiness.end(id);
             report(component, reason, message);
@@ -398,7 +410,21 @@ export const useNativeIsland = (
       }
       live = true;
       mounted.current = true;
-      setState({ mode: "pending", handoff: spec.handoff, anchorType: spec.anchor.type });
+      setState({
+        mode: "pending",
+        handoff: spec.handoff,
+        anchorType: spec.anchor.type,
+        arriving: waits,
+      });
+      // The web version stays hidden while the host is expected to answer
+      // within a frame or two; past that, the page can no longer tell whether
+      // the island will show, so it shows the web version again.
+      if (waits) {
+        arrival = setTimeout(() => {
+          arrival = undefined;
+          setState((previous) => ({ ...previous, arriving: false }));
+        }, ARRIVAL_GRACE_MS);
+      }
       return true;
     };
     if (!tryMount()) {
@@ -412,6 +438,7 @@ export const useNativeIsland = (
     }
     return () => {
       stopWaiting?.();
+      arrived();
       readiness.end(id);
       if (!live) return;
       mounted.current = false;
