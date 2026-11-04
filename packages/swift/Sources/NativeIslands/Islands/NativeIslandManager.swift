@@ -21,7 +21,9 @@ final class NativeIslandManager: NativeIslandMessaging {
   static let parkingAttempts = 20
   var requestTimeoutNanoseconds: UInt64 = 10_000_000_000
   let lifecycle: NativeLifecycleObservers
-  var wentToBackground = false
+  /// The glass views put back in place since the app last went to the
+  /// background, or nil while it has not been there.
+  var reseatedGlass: Set<ObjectIdentifier>?
 
   struct PendingRequest {
     let islandId: String

@@ -149,25 +149,44 @@ extension NativeBridgeTests {
     }
 
     @Test
-    func glassIsPutBackInPlaceWhenTheAppIsActiveAgainAfterTheBackground() throws {
+    func glassIsPutBackInPlaceAsTheAppComesBackFromTheBackground() throws {
       let (harness, scroller, window) = seatedHarness()
       let glassA = try #require(harness.island("a")?.glassView)
       let glassB = try #require(harness.island("b")?.glassView)
       let order = scroller.subviews
       harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
-      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      harness.notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+      #expect(scroller.removed.isEmpty)
+      harness.runScheduled()
       #expect(scroller.removed.count == 2)
       #expect(scroller.removed.contains { $0 === glassA })
       #expect(scroller.removed.contains { $0 === glassB })
       #expect(scroller.subviews == order)
       #expect(glassA.window === window)
       #expect(harness.island("plain")?.view.superview === scroller)
+
+      // Becoming active does not take the same glass out again.
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.count == 2)
+    }
+
+    @Test
+    func glassIsPutBackOnceActiveWhenTheForegroundPassDidNotRun() {
+      let (harness, scroller, _) = seatedHarness()
+      harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.count == 2)
+      harness.runScheduled()
+      #expect(scroller.removed.count == 2)
     }
 
     @Test
     func becomingActiveWithoutTheBackgroundLeavesGlassAlone() {
       let (harness, scroller, _) = seatedHarness()
+      harness.notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
       harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      harness.runScheduled()
       #expect(scroller.removed.isEmpty)
       harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
       harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -176,7 +195,7 @@ extension NativeBridgeTests {
     }
 
     @Test
-    func slidingGlassAndGlassOutOfAWindowAreLeftAlone() throws {
+    func glassSlidingOnTheWayBackIsPutBackOnceActive() throws {
       let (harness, scroller, window) = seatedHarness()
       let motion = NativeMotion(
         keyframes: [.init(offset: 0, x: 402, y: 0), .init(offset: 1, x: 0, y: 0)],
@@ -187,15 +206,24 @@ extension NativeBridgeTests {
       )
       scroller.removed = []
       harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
-      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      harness.notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+      harness.runScheduled()
+      let glassA = try #require(harness.island("a")?.glassView)
       let glassB = try #require(harness.island("b")?.glassView)
       #expect(scroller.removed.count == 1)
       #expect(scroller.removed.first === glassB)
+
+      harness.island("a")?.stopMotion()
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.count == 2)
+      #expect(scroller.removed.last === glassA)
 
       window.isHidden = true
       harness.surface.viewport.removeFromSuperview()
       scroller.removed = []
       harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+      harness.runScheduled()
       harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
       #expect(scroller.removed.isEmpty)
     }
