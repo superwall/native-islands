@@ -91,6 +91,7 @@ describe("installNativeSimulator", () => {
         "clip",
         "transform",
         "motion",
+        "reuse",
       ],
     });
     expect(() => installNativeSimulator()).toThrow(/already present/);
@@ -581,7 +582,9 @@ describe("installNativeSimulator", () => {
     simulator = installNativeSimulator();
     post([mount()]);
     post([{ op: "unmount", id: "cta" }]);
-    expect(drawn()).toBeNull();
+    post([{ op: "unmount", id: "ghost" }]);
+    expect(simulator.islands()).toEqual([]);
+    expect(drawn().style.display).toBe("none");
     global.webkit?.messageHandlers?.nativeIslands?.postMessage({ not: "a message" });
     expect(warn).toHaveBeenCalledWith("The native simulator ignored a message it cannot read.", {
       not: "a message",
@@ -595,6 +598,72 @@ describe("installNativeSimulator", () => {
       }),
     );
     expect(simulator.islands()).toHaveLength(1);
+  });
+
+  it("lets a new island take over an unmounted one's view, as the Swift host does", () => {
+    simulator = installNativeSimulator();
+    post([mount()]);
+    const kept = drawn();
+    post([{ op: "unmount", id: "cta" }]);
+    received.length = 0;
+    const taken = post([mount({ id: "next", reuse: "cta" })]);
+    expect(drawn("next")).toBe(kept);
+    expect(kept.style.display).toBe("");
+    expect(simulator.islands().map((island) => island.id)).toEqual(["next"]);
+    expect(received).toEqual([
+      { event_name: "native_component_ack", sequence: taken, ids: ["next"] },
+    ]);
+    post([mount({ id: "again", reuse: "cta" })]);
+    expect(drawn("again")).not.toBe(kept);
+  });
+
+  it("builds a new view when the kept one is another component, too old, or past the limit", () => {
+    simulator = installNativeSimulator();
+    post([mount()]);
+    const kept = drawn();
+    post([{ op: "unmount", id: "cta" }]);
+    post([mount({ id: "toggle", component: "toggle", reuse: "cta" })]);
+    expect(kept.isConnected).toBe(false);
+
+    post([mount({ id: "old" })]);
+    const old = drawn("old");
+    post([{ op: "unmount", id: "old" }]);
+    vi.advanceTimersByTime(65_001);
+    post([mount({ id: "late", reuse: "old" })]);
+    expect(drawn("late")).not.toBe(old);
+    expect(old.isConnected).toBe(false);
+
+    const rows = Array.from({ length: 129 }, (_, index) => `row-${index}`);
+    post(rows.map((id) => mount({ id })));
+    const first = drawn("row-0");
+    post(rows.map((id) => ({ op: "unmount", id }) as TNativeOperation));
+    expect(first.isConnected).toBe(false);
+    expect(drawn("row-1").isConnected).toBe(true);
+    simulator.uninstall();
+    expect(drawn("row-1")).toBeNull();
+  });
+
+  it("drops a kept view whose new island has nowhere to go", () => {
+    simulator = installNativeSimulator();
+    post([mount()]);
+    const kept = drawn();
+    post([{ op: "unmount", id: "cta" }]);
+    post([
+      mount({
+        id: "lost",
+        reuse: "cta",
+        anchor: {
+          type: "scroller",
+          scroller: {
+            id: "s",
+            frame: { x: 0, y: 0, width: 10, height: 10 },
+            content_size: { width: 10, height: 20 },
+            scroll_offset: { x: 0, y: 0 },
+          },
+        },
+      }),
+    ]);
+    expect(kept.isConnected).toBe(false);
   });
 
   it("presses an island, with or without a payload, after the configured latency", () => {
@@ -654,6 +723,7 @@ describe("simulated state, requests and commands", () => {
         "clip",
         "transform",
         "motion",
+        "reuse",
       ],
     });
   });

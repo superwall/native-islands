@@ -114,6 +114,21 @@ island on its first frame is drawn (`native_islands_ready`), with a timeout so
 a page without islands still shows. Pages that are rendered but not on screen
 yet get their islands up front, so a page that slides in already has them.
 
+An island that comes back, such as a search result showing again, reuses the
+native view it had (the `reuse` feature). When the page unmounts an island the
+host has shown, a host that offers `reuse` may keep its view hidden instead of
+destroying it. The page remembers it for 60 seconds and at most 128 at once. A
+new island with the same component, version, sizing, props and scrolling area
+that mounts while its row first renders names the old id in its mount's
+`reuse` field, and goes out in that commit. The host shows the kept view in
+its place, with no fade, and acknowledges it, even when WebKit has not given
+the scrolling area its new content size yet. The page hides the web version
+from the first frame, and shows it again if the host has not answered within
+150 ms. A host that no longer has the view, or cannot use it, mounts the
+island as usual. Hosts should keep views a little
+longer than the page asks (the Swift host keeps them 65 seconds), and drop
+them when the page reloads.
+
 ### Only public API
 
 Everything uses public UIKit and WebKit: `UIScrollView`, `hitTest`,
@@ -207,8 +222,10 @@ override func didMoveToWindow() {
 The host keeps each new document covered, with the colour behind the web view,
 until the page says its islands are drawn, so a native element never shows its web copy first. The provider sends
 that signal once every island of the first frame is drawn (or settled on its
-web version); a page without React calls `islands.announceReady()` itself. A
-page that never announces is shown after the timeout, two seconds by default:
+web version); a page without React calls `islands.announceReady()` itself.
+The Swift host then waits two of the page's frames, so WebKit has laid the page
+out with the safe area before it shows. A page that never announces is shown
+after the timeout, two seconds by default:
 
 ```swift
 let host = NativeIslandsHost(webView: webView, reveal: .whenIslandsReady(timeout: 2))

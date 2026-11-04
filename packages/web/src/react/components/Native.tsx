@@ -5,6 +5,7 @@ import {
   ISLAND_HANDOFF_ATTRIBUTE,
   ISLAND_ID_ATTRIBUTE,
   ISLAND_MODE_ATTRIBUTE,
+  ISLAND_REUSING_ATTRIBUTE,
   ISLAND_SHOWN_ATTRIBUTE,
 } from "../../layout/attributes";
 import type { TNativeAccessibility } from "../../protocol/schemas";
@@ -114,19 +115,22 @@ export const Native = ({
     (name: string, payload: unknown) => onEvent?.(name, payload),
     [onEvent],
   );
-  const { id, mode, size, handoff, anchorType, command, state } = useNativeIsland(wrapper, {
-    component,
-    version,
-    props,
-    sizing,
-    colorProps,
-    islandId,
-    enabled: native,
-    accessibility,
-    onEvent: handleEvent,
-    onState: onStateChange,
-    onRequest,
-  });
+  const { id, mode, size, handoff, anchorType, reusing, command, state } = useNativeIsland(
+    wrapper,
+    {
+      component,
+      version,
+      props,
+      sizing,
+      colorProps,
+      islandId,
+      enabled: native,
+      accessibility,
+      onEvent: handleEvent,
+      onState: onStateChange,
+      onRequest,
+    },
+  );
   React.useImperativeHandle(ref, () => ({ command, state }), [command, state]);
   const nativeSize = sizing === "native" && mode !== "web" ? size : undefined;
   const shown = mode === "native" && handoff === undefined;
@@ -141,6 +145,8 @@ export const Native = ({
         [ISLAND_MODE_ATTRIBUTE]: mode,
         [ISLAND_HANDOFF_ATTRIBUTE]: mode === "web" ? undefined : handoff,
         [ISLAND_SHOWN_ATTRIBUTE]: shown ? "" : undefined,
+        [ISLAND_REUSING_ATTRIBUTE]:
+          mode !== "web" && reusing && handoff === undefined ? "" : undefined,
         [ISLAND_CONCEALED_ATTRIBUTE]: concealed ? "" : undefined,
       }}
       aria-hidden={hidden ? true : undefined}

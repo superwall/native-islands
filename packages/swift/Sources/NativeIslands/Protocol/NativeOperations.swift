@@ -19,6 +19,9 @@ struct NativeMount: Equatable, Sendable {
   var transform: NativeTransform?
   var opacity: Double?
   var motion: NativeMotion?
+  /// The island the page unmounted that this one may take over, when the
+  /// host still holds its view.
+  var reuse: String?
 }
 
 struct NativeUpdate: Equatable, Sendable {
@@ -71,6 +74,7 @@ enum NativeOperation: Decodable, Equatable, Sendable {
     case transform
     case opacity
     case motion
+    case reuse
   }
 
   var id: String? {
@@ -140,7 +144,8 @@ enum NativeOperation: Decodable, Equatable, Sendable {
           shades: try geometry(in: container).shades,
           transform: try geometry(in: container).transform,
           opacity: try geometry(in: container).opacity,
-          motion: try geometry(in: container).motion
+          motion: try geometry(in: container).motion,
+          reuse: try container.decodeIfPresent(String.self, forKey: .reuse).flatMap(validId)
         )
       )
     case .update:

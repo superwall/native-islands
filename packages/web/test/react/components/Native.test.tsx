@@ -2,8 +2,10 @@ import { act, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Native } from "../../../src/react";
+import { REUSE_GRACE_MS } from "../../../src/react/hooks/useNativeIsland";
 import { GlassButton, Toggle } from "../../support/components";
 import {
+  CAPABILITY,
   installCapability,
   islandOf,
   mockLayout,
@@ -504,5 +506,99 @@ describe("React.StrictMode", () => {
     expect(mounts).toHaveLength(1);
     view.ackAll();
     expect(islandOf(view.container).dataset.islandMode).toBe("native");
+  });
+});
+
+describe("<Native> coming back where the host kept its view", () => {
+  beforeEach(() =>
+    installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "reuse"] }),
+  );
+
+  const leaveAndReturn = async (returning: React.ReactElement) => {
+    const view = renderNative(<Cta />);
+    await view.nextFrame();
+    view.ackAll();
+    view.rerender(<></>);
+    await view.nextFrame();
+    const before = view.operations().length;
+    view.rerender(returning);
+    return { view, before };
+  };
+
+  it("keeps the web version up, asks the host for the kept view at once, then swaps without a fade", async () => {
+    const { view, before } = await leaveAndReturn(<Cta />);
+    const island = islandOf(view.container);
+    expect(island.dataset.islandMode).toBe("pending");
+    expect(island.hasAttribute("data-island-reusing")).toBe(true);
+    expect(island.hasAttribute("data-island-shown")).toBe(false);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(view.operations().slice(before)).toEqual([
+      expect.objectContaining({ op: "mount", reuse: expect.any(String) }),
+    ]);
+    view.ackAll();
+    expect(island.hasAttribute("data-island-reusing")).toBe(true);
+    expect(island.hasAttribute("data-island-shown")).toBe(true);
+  });
+
+  it("fades as usual when the host takes longer than the grace period", async () => {
+    const { view } = await leaveAndReturn(<Cta />);
+    const island = islandOf(view.container);
+    await waitFor(() => expect(island.hasAttribute("data-island-reusing")).toBe(false), {
+      timeout: REUSE_GRACE_MS * 3,
+    });
+    expect(island.dataset.islandMode).toBe("pending");
+    expect(island.hasAttribute("data-island-shown")).toBe(false);
+  });
+
+  it("shows the web version at once when the host fails the island", async () => {
+    const { view } = await leaveAndReturn(<Cta />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const mount = view.operations().at(-1);
+    const sequence = view.batches().at(-1)?.sequence ?? 0;
+    view.send({
+      event_name: "native_component_error",
+      id: mount?.id ?? "",
+      reason: "render_failed",
+      sequence,
+    });
+    const island = islandOf(view.container);
+    expect(island.dataset.islandMode).toBe("web");
+    expect(island.hasAttribute("data-island-reusing")).toBe(false);
+  });
+
+  it("takes over nothing for an island that mounts once its page has come on stage", async () => {
+    const Entering = ({ phase }: { phase?: string }) => (
+      <div id="panel" data-island-phase={phase}>
+        <Cta />
+      </div>
+    );
+    const { view, before } = await leaveAndReturn(<Entering phase="enter" />);
+    await view.nextFrame();
+    expect(view.operations().slice(before)).toEqual([]);
+    view.rerender(<Entering />);
+    await view.nextFrame();
+    const island = islandOf(view.container);
+    expect(island.hasAttribute("data-island-reusing")).toBe(false);
+    expect(view.operations().slice(before)).toEqual([expect.objectContaining({ op: "mount" })]);
+    expect(view.operations().at(-1)).not.toHaveProperty("reuse");
+  });
+
+  it("waits for the next layout pass, as before, when the host kept nothing like it", async () => {
+    const { view, before } = await leaveAndReturn(<Cta title="Other" />);
+    const island = islandOf(view.container);
+    expect(island.hasAttribute("data-island-reusing")).toBe(false);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(view.operations().slice(before)).toEqual([]);
+    await view.nextFrame();
+    expect(view.operations().slice(before)).toEqual([
+      expect.objectContaining({ op: "mount", props: expect.objectContaining({ title: "Other" }) }),
+    ]);
+    expect(view.operations().at(-1)).not.toHaveProperty("reuse");
   });
 });
