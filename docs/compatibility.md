@@ -198,7 +198,11 @@ Below iOS 18 SwiftUI hit-tests its content where the hosting view sat when it
 last entered the window. WebKit slides a pushed page in by animating a layer far
 above the island, so a SwiftUI button on that page took no taps on iOS 17. The
 host attaches an island's hosting view again when a touch lands on it after it
-moved; `AlignmentUITests.testPagesPushAndPopWithTheirIslandsAligned` taps
+moved. Scrolling does not count as a move, and an island holding the first
+responder (a focused field) is left alone, since leaving the window would end
+its editing. Detaching runs SwiftUI's `onDisappear` and `onAppear`, so a view
+that starts a device there (a player, a camera) restarts on that first touch.
+`AlignmentUITests.testPagesPushAndPopWithTheirIslandsAligned` taps
 through a push on every runtime.
 
 TestHost's alignment tests pass on 17.5, 18.6, 26.1, 26.4.1, 26.5, 27.0, 27.1
@@ -209,8 +213,9 @@ time out. The same pages pass on 26.1 and 26.4.1, and the crash is inside the
 runtime's own JavaScriptCore, so 26.3.1 is left out of the UI runs.
 
 macOS 27 does not boot iOS 16 simulators, so iOS 16 runs only in CI. The
-`iOS compatibility` workflow (`.github/workflows/compat.yml`) runs the probe on
-every iOS simulator runtime from 16.0, one `macos-26` job each, then compares
+`iOS compatibility` workflow (`.github/workflows/compat.yml`) runs the probe
+and the whole Swift suite on every iOS simulator runtime from 16.0, one
+`macos-26` job each, then compares
 all the trees in a last job whose summary shows the comparison. It runs every
 Monday and by hand:
 

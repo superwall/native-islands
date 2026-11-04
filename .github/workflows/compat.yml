@@ -1,8 +1,9 @@
 name: iOS compatibility
 
-# Runs the WebKit view-tree probe (WebKitLayoutTests) on one simulator of every
-# iOS patch release from 16.0, one job per runtime, then compares the trees.
-# A job fails when WebKit stops building the scroll views the host draws in;
+# Runs the WebKit view-tree probe (WebKitLayoutTests) and the whole Swift suite
+# on one simulator of every iOS patch release from 16.0, one job per runtime,
+# then compares the trees. A job fails when WebKit stops building the scroll
+# views the host draws in, or when the host fails a test on that iOS;
 # the last job fails when a probed element loses its view or the view changes
 # type against the newest runtime.
 #
@@ -85,8 +86,8 @@ jobs:
             xcodebuild -downloadPlatform iOS -buildVersion "$RUNTIME"
           fi
           xcrun simctl list runtimes available
-      - name: WebKit probe
-        run: scripts/compat-matrix.sh --runtimes "${{ matrix.runtime }}" --steps probe
+      - name: WebKit probe and Swift suite
+        run: scripts/compat-matrix.sh --runtimes "${{ matrix.runtime }}" --steps probe,swift
       - uses: actions/upload-artifact@v4
         if: always()
         with:

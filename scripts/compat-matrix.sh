@@ -40,12 +40,15 @@ wanted = [v for v in sys.argv[1].split(",") if v]
 data = json.load(sys.stdin)
 phones = [t for t in data["devicetypes"] if t.get("productFamily") == "iPhone"]
 seen = set()
+installed = {r["version"] for r in data["runtimes"] if r.get("platform") == "iOS" and r.get("isAvailable")}
 for runtime in sorted(data["runtimes"], key=lambda r: [int(p) for p in r["version"].split(".")]):
     if runtime.get("platform") != "iOS" or not runtime.get("isAvailable"):
         continue
     version = runtime["version"]
     key = runtime["identifier"].rsplit(".", 1)[-1]
-    if wanted and not any(version == w or version.startswith(w + ".") for w in wanted):
+    # "26.4" takes 26.4 itself when it is installed and 26.4.x only when not,
+    # so a job asking for one patch release never probes a second.
+    if wanted and not any(version == w or (w not in installed and version.startswith(w + ".")) for w in wanted):
         continue
     if runtime["identifier"] in seen:
         continue

@@ -100,6 +100,46 @@ extension NativeBridgeTests {
       #expect(hit?.isDescendant(of: island.view) == true)
       #expect(!island.reattachHostIfMoved())
     }
+
+    @Test
+    func scrollingOrAFocusedFieldDoesNotReattachTheHostingView() throws {
+      let harness = NativeTestHarness()
+      let list = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 300, height: 200),
+        contentSize: CGSize(width: 300, height: 600)
+      )
+      harness.manager.apply(
+        batch(
+          1,
+          mountOp(
+            "card",
+            frame: NativeFrame(x: 0, y: 0, width: 300, height: 100),
+            anchor: scroller(
+              frame: NativeFrame(x: 0, y: 100, width: 300, height: 200),
+              contentSize: NativeSize(width: 300, height: 600)
+            )
+          )
+        )
+      )
+      let window = UIWindow(frame: harness.surface.viewport.frame)
+      window.addSubview(harness.surface.viewport)
+      window.makeKeyAndVisible()
+      let island = try #require(harness.island("card"))
+      _ = island.reattachHostIfMoved()
+
+      list.contentOffset = CGPoint(x: 0, y: 120)
+      #expect(!island.reattachHostIfMoved())
+
+      let field = UITextField(frame: CGRect(x: 0, y: 0, width: 100, height: 30))
+      island.host.view.addSubview(field)
+      #expect(field.becomeFirstResponder())
+      harness.surface.viewport.layer.sublayerTransform = CATransform3DMakeTranslation(-40, 0, 0)
+      #expect(!island.reattachHostIfMoved())
+      #expect(field.isFirstResponder)
+      #expect(NativeIsland.holdsFirstResponder(island.host.view))
+      field.resignFirstResponder()
+      #expect(!NativeIsland.holdsFirstResponder(island.host.view))
+    }
   }
 
   @Suite
