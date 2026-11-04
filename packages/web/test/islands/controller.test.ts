@@ -772,6 +772,17 @@ describe("default scheduler", () => {
     expect(post.mock.calls[2]?.[0]).toMatchObject({ operations: [{ op: "mount", id: "b" }] });
   });
 
+  it("posts a held island when the page asks for a flush", async () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const islands = reachedPage(post, frames);
+    islands.mount("b", spec({ anchor: scroller("s1") }));
+    await Promise.resolve();
+    islands.flush();
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1]?.[0]).toMatchObject({ operations: [{ op: "mount", id: "b" }] });
+  });
+
   it("gives the first island in a container one more try when the host cannot find it", () => {
     const frames = stubFrames();
     const post = vi.fn();

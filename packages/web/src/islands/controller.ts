@@ -802,7 +802,11 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
     unmount,
     status: (id) => islands.get(id)?.status,
     handle,
-    flush,
+    // Asked for by the page, a flush posts held islands too.
+    flush: () => {
+      for (const island of islands.values()) island.held = undefined;
+      flush();
+    },
     announceReady,
     resync,
     retry,
