@@ -66,7 +66,8 @@ examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
                         island, registered in ShowcaseComponents.swift, and
                         Components/Defaults/ the glass views TestHost shares
 performance/            run.sh, check.ts, compare.ts and baseline.json
-scripts/                simulator helpers and parallel UI test runs
+scripts/                simulator helpers, parallel UI test runs and the
+                        iOS runtime matrix with its WebKit view-tree diff
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never
@@ -97,6 +98,7 @@ Run only what your change touches; never a whole suite by hand.
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test test`; in a browser `bun run --cwd examples/showcase dev`
 - Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`; record screenshots with `--record` only after a deliberate visual change
+- Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`
 - Performance: `performance/run.sh`; its comparison: `bun test performance`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
