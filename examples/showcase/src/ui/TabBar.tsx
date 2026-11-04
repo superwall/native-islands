@@ -1,6 +1,6 @@
 import { useAccent, useNativeEnabled } from "../app/preferences";
 import { BAR_TABS, type TabId } from "../app/navigation";
-import { NativeGlassButton, NativeTabBar } from "../islands/definitions";
+import { NativeSearchTab, NativeTabBar } from "../islands/definitions";
 import { WebSymbol } from "./icons";
 
 type BarTab = (typeof BAR_TABS)[number];
@@ -65,10 +65,10 @@ export const TabBar = ({
           </div>
         </NativeTabBar>
       </div>
-      <NativeGlassButton
+      <NativeSearchTab
         islandId="tab-bar-search"
-        systemImage="magnifyingglass"
-        tint={searching ? accent : undefined}
+        selected={searching}
+        tint={accent}
         native={native}
         accessibility={{ label: "Search", traits: searching ? ["selected"] : undefined }}
         onPress={() => onSelect("search")}
@@ -83,7 +83,7 @@ export const TabBar = ({
         >
           <WebSymbol name="magnifyingglass" />
         </button>
-      </NativeGlassButton>
+      </NativeSearchTab>
     </nav>
   );
 };
