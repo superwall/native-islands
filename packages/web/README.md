@@ -52,8 +52,10 @@ reply. A request with no handler fails, so native never waits on it.
 Use state for a value the user owns (a switch, a slider, typed text) and an
 event for a moment (a press, a submit). State carries a revision, so the app
 ignores a stale echo of an older value. Keep the names of events, state keys
-and requests apart: an event `valueChange` and a state key `value` would both
-be `onValueChange`.
+and requests apart: they share one set of `on…` props, so an event
+`valueChange` and a state key `value` would both be `onValueChange`, and a
+request `submit` would run the `onSubmit` handler of an event `submit` and
+send back what it returns.
 
 Colours in `colorProps` can be any CSS colour or `var(--token)`; they are
 resolved before they reach native. Islands that share a `glassGroup` prop blend

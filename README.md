@@ -116,9 +116,9 @@ and has one purpose:
 | **commands** | page → native, with a result | The page tells the native view to act and waits for the result.  | `focus`, `reset`       |
 
 A value the user owns is state, and a moment is an event. A switch's on/off,
-a slider's position and the text in a field are state: the app keeps the
-latest value, and a stale echo from the page can't move the control back.
-A press, a submit or a selection is an event.
+a slider's position, the chosen segment and the text in a field are state:
+the app keeps the latest value, and a stale echo from the page can't move the
+control back. A press, a submit or picking an item from a menu is an event.
 
 A component declares only the kinds it uses, and the page handles every
 message from native with an `on…` prop:
@@ -237,18 +237,17 @@ Pro with iOS 27.2, taking the median of three runs:
 
 | Islands | Page shown, every island drawn | Memory per island | Dropped frames while scrolling | One full relayout (JS) |
 | ------: | -----------------------------: | ----------------: | -----------------------------: | ---------------------: |
-|      10 |                         220 ms |            962 KB |                              0 |                18.8 ms |
-|      50 |                         318 ms |            431 KB |                              0 |                46.4 ms |
-|     100 |                         414 ms |            360 KB |                              0 |                80.3 ms |
+|      10 |                         165 ms |            971 KB |                              0 |                 8.8 ms |
+|      50 |                         247 ms |            421 KB |                              0 |                19.3 ms |
+|     100 |                         483 ms |            357 KB |                              0 |                37.9 ms |
 
 "Page shown" is the time from creating the web view to revealing the page with
 every island drawn. Scrolling, sticky elements and page transitions don't get
 slower as islands are added, because UIKit moves the views. Each island after
-the tenth adds about 300 KB of app memory. The cost that does grow is a full
-relayout of the page, at about 0.8 ms of main-thread JavaScript per island.
-That fits within one frame for a few dozen islands and takes about five frames
-for 100. We're currently reworking how islands mount, so the first number will
-change. [`docs/performance.md`](docs/performance.md) defines each measurement
+the tenth adds about 290 KB of app memory. The cost that does grow is a full
+relayout of the page, at about 0.32 ms of main-thread JavaScript per island.
+That fits within one frame for up to about 30 islands and takes a bit over two
+frames for 100. [`docs/performance.md`](docs/performance.md) defines each measurement
 and explains how to repeat it on your own phone.
 
 ## Where it stands
@@ -264,7 +263,7 @@ These are the limits we know of today. None of them blocks a typical page:
   width animated, gets a new message on each frame, so its native view can be
   one frame behind while it moves. Scrolling, sticky elements and page slides
   aren't affected.
-- A full relayout costs about 0.8 ms per island on an iPhone 18 Pro (see
+- A full relayout costs about 0.32 ms per island on an iPhone 18 Pro (see
   [Performance](#performance)). On pages with many islands, avoid animating
   layout.
 - An island inside a 3D transform, a filter or a clip path shows its web
@@ -437,6 +436,18 @@ bun run --cwd examples/showcase dev
 
 Then open `http://localhost:5173/?native=simulate`, or
 `http://localhost:5173/?native=simulate&screen=buttons` for a single screen.
+
+The host draws the same outline, with the component's name, over the real
+native views in any app. It is off by default. Turn it on from code, in any
+build:
+
+```swift
+webView.islands?.showsOutlines = true
+```
+
+or launch a Debug build with `-NativeIslandsOutlines YES`. Release builds
+ignore the argument, so outlines show there only when the app turns them on.
+In Islands, View Mode › Outlines switches them.
 
 `tests/pages/` holds the scenario gallery the tests run against: regression
 pages for each scenario, and a three-page flow where islands slide in with

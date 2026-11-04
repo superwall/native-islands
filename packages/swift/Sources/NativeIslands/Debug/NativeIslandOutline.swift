@@ -1,21 +1,26 @@
-import NativeIslands
 import SwiftUI
 
-/// Whether the app outlines its native views, as the browser simulator marks
-/// where they sit. The page's View Mode menu turns it on with Outlines.
+/// Whether a host outlines its islands, shared by every island it mounts so a
+/// change reaches the ones already on screen.
 @MainActor
-final class IslandOutlines: ObservableObject {
-  static let shared = IslandOutlines()
+final class NativeIslandOutlines: ObservableObject {
+  static let argument = "NativeIslandsOutlines"
 
   @Published var isShown = false
+
+  static func isRequested(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+    guard let index = arguments.firstIndex(of: "-\(argument)") else { return false }
+    let value = arguments.indices.contains(index + 1) ? arguments[index + 1] : "YES"
+    return ["YES", "1", "true"].contains(value)
+  }
 }
 
-/// Draws the simulator's outline and the component's name over a native view.
-struct IslandOutline: ViewModifier {
+/// Draws the browser simulator's outline and the component's name over an island.
+struct NativeIslandOutline: ViewModifier {
   static let color = Color(red: 214 / 255, green: 58 / 255, blue: 249 / 255)
 
   let name: String
-  @ObservedObject var outlines = IslandOutlines.shared
+  @ObservedObject var outlines: NativeIslandOutlines
 
   func body(content: Content) -> some View {
     content.overlay(alignment: .topLeading) {

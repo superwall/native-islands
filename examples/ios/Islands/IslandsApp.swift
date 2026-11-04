@@ -8,6 +8,7 @@ import SwiftUI
 /// Launch arguments:
 /// - `-screen <id>` opens one screen directly, such as `-screen accent`; `-tab <id>` opens a tab.
 /// - `-pagesURL http://<mac>:<port>/` loads `bun run --cwd examples/showcase dev` instead.
+/// - `-NativeIslandsOutlines YES` starts with every native island outlined.
 @main
 struct IslandsApp: App {
   init() {
