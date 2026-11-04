@@ -1,10 +1,11 @@
 # Native Islands
 
-**Real UIKit and SwiftUI views inside a `WKWebView` page.** Write the page once
-in React, mark the few elements that should be native, and on iOS the app draws
-them as real native views (Liquid Glass buttons, switches, maps, charts, your
-own components) exactly where the web element sits. In a browser, and in any
-app without Native Islands, the same page shows its web version.
+Native Islands lets a web page running in a `WKWebView` use real UIKit and
+SwiftUI views. You write the page once in React and mark the elements that
+should be native. On iOS, the app draws those elements as native views, such as
+Liquid Glass buttons, switches, maps, charts or your own components, at the
+exact position of the web element. In a browser, or in an app without Native
+Islands, the same page shows its web version.
 
 <p align="center">
   <img src="docs/assets/showcase-components-light.png" width="260" alt="The Islands example app's Components tab in light mode: a large title, an inset grouped list and a floating Liquid Glass tab bar, all one web page">
@@ -13,36 +14,34 @@ app without Native Islands, the same page shows its web version.
   &nbsp;
   <img src="docs/assets/showcase-maps-light.png" width="260" alt="A native MapKit map inside the web page, with web content scrolling around it">
 </p>
-<p align="center"><sub>Every screen above is one web page in a <code>WKWebView</code>. The glass, the map and the tab bar are native.</sub></p>
+<p align="center"><sub>Each screen above is a single web page in a <code>WKWebView</code>. The glass buttons, the map and the tab bar are native views.</sub></p>
 
 > [!WARNING]
-> **Native Islands is experimental.** It is early, it has rough edges, and the
-> contract between page and app, and the APIs on both sides, will change
-> between versions. Read [Status](#status) before you build on it.
+> Native Islands is experimental. Expect bugs and missing pieces. The contract
+> between page and app, and the APIs on both sides, will change between
+> versions. Read [Where it stands](#where-it-stands) before you build on it.
 
----
+## Why we built this
 
-## One page, two worlds
+Most teams that have a web product and an iOS app make the same trade-off at
+some point.
 
-Most teams that ship a web product and an iOS app end up choosing between two
-bad options.
+One option is to ship the web product inside a web view. The app reuses all of
+the React code, the components and the release process. The downside is that
+it looks like a web view. The buttons don't have the system's glass, the
+switches don't respond like switches, and users notice.
 
-A **web view** reuses everything: the same React code, the same components,
-the same release train. But it looks like a web view. Buttons don't have the
-system's glass, switches don't feel like switches, and users can tell.
+The other option is to build the screens natively, in Swift or React Native.
+They look right, but now there is a second codebase. Every screen is built
+twice, and someone has to keep both versions in sync. React Native narrows the
+gap but doesn't close it: you give up the DOM and CSS, and with them most of
+the web packages you already depend on.
 
-A **native rewrite**, in Swift or React Native, looks right. But it is a second
-codebase with its own components, its own layout system and its own bugs, and
-every screen has to be built twice and kept in step forever. React Native gives
-you native views at the price of leaving the web: no DOM, no CSS, no npm
-package that touches either.
-
-Native Islands is a third option. The page stays a web page, with all of the
-web: any React code, any CSS, any library, deployed the way it is today. Only
-the elements you choose become native, and they are not imitations drawn in
-CSS. They are the real UIKit and SwiftUI views, with real Liquid Glass sampling
-the page behind them, placed in the page so precisely that the seam does not
-show.
+We wanted a third option: keep the page a web page and make only the important
+elements native. With Native Islands, the page can use any React code, any CSS
+and any library, and it deploys the way it does today. The elements you mark
+are drawn by UIKit and SwiftUI, not imitated in CSS, and a Liquid Glass button
+samples the actual page content behind it.
 
 ```tsx
 <GlassButton title="Continue" prominence="prominent" onPress={purchase}>
@@ -50,25 +49,24 @@ show.
 </GlassButton>
 ```
 
-On iOS that is a SwiftUI button with Liquid Glass. Everywhere else it is the
-`<button>` inside it. The page does not branch.
+On iOS, this is a SwiftUI button with Liquid Glass. Everywhere else, it is the
+`<button>` inside it. The page has no platform checks.
 
-## The insight: a web view is made of scroll views
+## A web view is made of scroll views
 
-The obvious way to put a native view on a web page is to float it above the
-web view and move it on every scroll event. That approach is always a frame
-late, it slides over sheets and footers it should sit under, and it falls
-apart the moment the page animates.
+The usual way to put a native view on a web page is to float it above the web
+view and move it on every scroll event. We tried that first. The view is always
+a frame behind, it covers sheets and footers it should sit under, and it breaks
+when the page animates.
 
-Native Islands relies on a detail of how WebKit works on iOS. A `WKWebView` is
-not one flat picture: WebKit builds the page out of real UIKit views. The page
-scrolls in a `UIScrollView`, and every `overflow: auto` area on the page gets
-its own native scroll view, a `WKChildScrollView`. So Native Islands does not
-float views above the page. It puts each native view **inside the scroll view
-that holds its element**, at the element's exact spot, as a sibling of the
-layers WebKit draws the page with.
+What made Native Islands possible is a detail of how WebKit works on iOS. A
+`WKWebView` isn't a single flat surface. WebKit builds the page out of UIKit
+views: the page scrolls inside a `UIScrollView`, and each `overflow: auto` area
+gets its own native scroll view, a `WKChildScrollView`. Native Islands adds
+each native view inside the scroll view that contains its element, at the
+element's position, next to the layers WebKit draws the page with.
 
-This is the real hierarchy of a running page, as Xcode's view debugger shows
+This is the view hierarchy of a running page, as Xcode's view debugger shows
 it:
 
 ```text
@@ -82,35 +80,31 @@ IslandWebView                         the WKWebView
 NativeIslands screen layer            ← only for position: fixed elements
 ```
 
-Once the native view is a child of the right scroll view, UIKit does most of
-the work:
-
-- **Scrolling is free.** The view scrolls with the page frame for frame,
-  momentum and rubber-banding included, with no JavaScript following it.
-- **Transitions are free.** When a route slides, fades or scales, WebKit
-  animates its scroll view with Core Animation, and the native view rides
-  along.
-- **Stacking is right.** Web content WebKit draws above that scroll view (a
-  footer, a sheet, the next page) covers the native view the way it would
-  cover the web element.
-- **Glass is real.** Liquid Glass samples what is behind it, and behind it is
-  the actual page, so a glass button bends the page's own gradients, images
-  and video.
+Because each native view sits in the right scroll view, UIKit handles most of
+the hard parts. The view scrolls with the page on every frame, including
+momentum and rubber-banding, with no JavaScript involved. When a route slides,
+fades or scales, WebKit animates its scroll view with Core Animation and the
+native view moves with it. Web content that WebKit draws above that scroll
+view, such as a footer, a sheet or the next page, covers the native view the
+same way it would cover the web element. And because the content behind a
+glass button is the page itself, the glass bends the page's own gradients,
+images and video.
 
 <p align="center">
   <img src="docs/assets/showcase-buttons-web-light.png" width="260" alt="The Buttons screen with islands switched off: every button is its web version">
   &nbsp;
   <img src="docs/assets/showcase-buttons-light.png" width="260" alt="The same screen with islands on: the buttons are native Liquid Glass, everything else is unchanged">
 </p>
-<p align="center"><sub>The same page with islands off (left) and on (right). Only the buttons and the tab bar change; the layout does not move.</sub></p>
+<p align="center"><sub>The same page with islands off (left) and on (right). Only the buttons and the tab bar change, and nothing else on the page moves.</sub></p>
 
 ## How it works
 
-### The page leads, the app draws
+### The page owns layout
 
-The page stays in charge of layout. It measures each island's web element,
-picks the scroll view it belongs to, and tells the app. The app adds the
-native view there and answers, and only then does the web version fade out.
+Layout stays with the page. For each island, the page measures the web
+element, finds the scroll view it belongs to and sends the app a mount
+message. The app adds the native view there and replies. Only after the reply
+does the page fade out the web version.
 
 ```text
 page (React)                               app (Swift)
@@ -118,30 +112,30 @@ page (React)                               app (Swift)
 <GlassButton> renders its web children
 measures them, picks the anchor ─ mount ─► NativeIslandsHost
   (page, scroller or screen)               finds the matching scroll view,
-                                           adds the native view, answers
-web copy fades out ◄──────────── ack ─────
+                                           adds the native view, replies
+web version fades out ◄───────── ack ─────
 onPress runs      ◄──────────── event ──── user taps the native button
 state, requests, commands both ways ◄────► typed text, "validate this", focus
 ```
 
-When an element moves or changes size, the page measures it again and the app
-moves the native view with it. Web content that covers an island is cut out of
-the native view, and see-through covers, such as a sheet's dimmed backdrop,
-are laid over it in their colour, so the island stays native under them too.
+When an element moves or resizes, the page measures it again and the app moves
+the native view to match. If web content covers part of an island, that part
+is cut out of the native view. Translucent covers, such as a sheet's dimmed
+backdrop, are drawn over the island in their own colour, so the island can
+stay native underneath them.
 
-Values travel both ways, in five kinds of message. Each has one direction and
-one job:
+Page and app exchange five kinds of message. Each kind goes in one direction
+and has one purpose:
 
-| Kind         | Direction                     | What it is for                                                        | Example                |
-| ------------ | ----------------------------- | --------------------------------------------------------------------- | ---------------------- |
-| **props**    | page → native                 | What to draw. Sent again whenever React re-renders with new values.   | `title`, `prominence`  |
-| **events**   | native → page                 | Something happened. Fire and forget, like a DOM event.                | `press`, `submit`      |
-| **state**    | native → page, kept           | A value the native view owns, which the page can read at any time.    | the text typed so far  |
-| **requests** | native → page, with an answer | The native view asks the page and awaits its reply.                   | "is this email valid?" |
-| **commands** | page → native, with an answer | The page tells the native view to do something and awaits the result. | `focus`, `reset`       |
+| Kind         | Direction                    | What it's for                                                    | Example                |
+| ------------ | ---------------------------- | ---------------------------------------------------------------- | ---------------------- |
+| **props**    | page → native                | What to draw. Sent again when React re-renders with new values.  | `title`, `prominence`  |
+| **events**   | native → page                | Something happened. No reply, like a DOM event.                  | `press`, `submit`      |
+| **state**    | native → page, kept          | A value the native view owns that the page can read at any time. | the text typed so far  |
+| **requests** | native → page, with a reply  | The native view asks the page something and waits for the reply. | "is this email valid?" |
+| **commands** | page → native, with a result | The page tells the native view to act and waits for the result.  | `focus`, `reset`       |
 
-Props and commands go down, the other three come up. A component declares
-only the kinds it uses:
+A component declares only the kinds it uses:
 
 ```tsx
 const SignupForm = defineNativeComponent<{
@@ -153,59 +147,61 @@ const SignupForm = defineNativeComponent<{
 }>("signupForm");
 ```
 
-### Motion without messages
+### Motion without a message per frame
 
-Sending a message on every frame would bring back the lag of an overlay, so
-the common kinds of motion are described once and run by the app itself:
+If the page sent a message on every frame of an animation, the native view
+would lag the same way a floating overlay does. Instead, the page describes
+the common kinds of motion once and the app runs them itself.
 
-- **Sticky boxes.** A `position: sticky` element is sent with its sticky box,
-  inset and travel. The app runs the same sticky rule on every scroll, so the
-  native view sticks and comes unstuck in the same frame as the content.
-- **Clipping boxes**, such as an accordion opening. The app cuts the native
-  view to the part the box shows, so the island is revealed as the box opens.
-- **Turned and faded boxes.** An element inside a rotated, scaled or
-  see-through box is drawn turned and faded the same way.
-- **Sliding pages.** An island outside any scrolling area, such as a nav bar
-  button, gets its page's CSS slide (translate keyframes, Bézier easing,
-  progress), and the app runs the same slide in Core Animation.
+For a `position: sticky` element, the page sends its sticky box, inset and
+travel, and the app applies the same sticky rule on each scroll, so the native
+view sticks and unsticks in the same frame as the web content. When a box
+clips its content, as an accordion does while it opens, the app clips the
+native view to the visible part. Elements inside a rotated, scaled or
+translucent box are drawn with the same rotation, scale and opacity. Islands
+outside any scrolling area, such as a navigation bar button, receive their
+page's CSS slide (translate keyframes, Bézier easing and progress), and the
+app runs the same slide in Core Animation.
 
-What cannot be described this way, a 3D transform, a filter or a clip path,
-shows the web version instead.
+The page can't describe 3D transforms, filters or clip paths this way, so an
+island inside one of those shows its web version.
 
-### Never a flash of web
+### No flash of the web version
 
-A user should never see the web version of a button before the native one.
-The app keeps each new page covered until the page reports that every island
-of its first frame is drawn, with a timeout so a page without islands still
-shows. Pages that are rendered but not yet on screen, such as the next step
-of a flow, get their islands up front, so they slide in already native. An
-island that comes back, such as a search result showing again, reuses the
-native view it had instead of building a new one.
+Users should never see the web version of a button and then the native one.
+The app keeps a new page covered until the page reports that every island in
+its first frame is drawn. A timeout makes sure a page without islands still
+appears. Pages that are rendered but not yet visible, such as the next step of
+a flow, mount their islands ahead of time, so they slide in already native. An
+island that comes back, such as a search result that reappears, reuses its
+existing native view instead of creating a new one.
 
-### Built on public API, and safe when it is not there
+### Public API only, with a web fallback
 
-Everything uses public UIKit and WebKit API: `UIScrollView`, `hitTest`,
-`WKUserScript`, `WKScriptMessageHandler`, `UIGlassEffect`. The one thing
-WebKit does not promise is how it arranges those views, so the host finds an
-area's `WKChildScrollView` by its size and scroll offset, never by its place
-among the subviews.
+Native Islands uses only public UIKit and WebKit API, including
+`UIScrollView`, `hitTest`, `WKUserScript`, `WKScriptMessageHandler` and
+`UIGlassEffect`. What WebKit doesn't guarantee is how it arranges those views,
+so the host identifies a `WKChildScrollView` by its size and scroll offset
+rather than by its position in the view hierarchy.
 
-Every failure falls back to the web. If a future iOS changes that layout, no
-scroll view matches and the element stays web. A host that cannot draw a
-component, an iOS it was not built for, a browser, or a page that cannot tell,
-all show the web version. The page never breaks; at worst it is a little less native.
+When something doesn't match, the page falls back to the web version. If a
+future iOS changes WebKit's view layout, no scroll view matches and the element
+stays web. The same happens in a browser, in an app that hasn't registered the
+component, or when the page can't tell whether the app can draw it. The page
+keeps working in each of these cases, with fewer native elements.
 
-## Proof
+## What we measured
 
-Each claim above is checked by a test that runs on every change, and the
-results are written down.
+Every claim above is backed by a test that runs on each change, and the results
+are recorded in this repository.
 
 ### Compatibility
 
-Islands are tested and draw natively on **every iOS from 16 to 27**, the
-releases we can run in CI and on simulators today. Below iOS 26 they keep the
-look Apple's own controls have there, a system material in the same shape,
-never the web version.
+We test on every iOS release from 16 to 27, which are the releases CI and our
+simulators can run today. Islands are native on all of them. Before iOS 26,
+glass views use a system material in the same shape, matching how Apple's own
+controls look on those releases. The package also builds for and offers
+islands on iOS 15, but we haven't run it there.
 
 | iOS       | Islands | Glass looks like | WebKit probe | Swift suite | Alignment (0.5 pt)  | Screenshots |
 | --------- | ------- | ---------------- | ------------ | ----------- | ------------------- | ----------- |
@@ -215,20 +211,21 @@ never the web version.
 | 26.1–26.5 | native  | Liquid Glass     | pass         | pass        | pass, except 26.3.1 | `iOS-26`    |
 | 27.0–27.2 | native  | Liquid Glass     | pass         | pass        | pass                | `iOS-27`    |
 
-Three layers catch three kinds of breakage. A **WebKit probe** loads a fixture
-page into a real `WKWebView` on each runtime, records its view tree, and diffs
-the trees across iOS versions, so a change in WebKit's layout fails before it
-reaches an app. The **Swift suite** runs the host on each runtime.
-**TestHost's UI tests** open every scenario page and fail when a native view is
-more than 0.5 pt from its web element, and compare each page with screenshot
-baselines kept per iOS major. Measured on 2026-11-04; the full matrix, what
-WebKit changed between versions, and how to add a new iOS are in
-[`docs/compatibility.md`](docs/compatibility.md).
+Each column is a different kind of test. The WebKit probe loads a fixture page
+into a real `WKWebView` on each iOS runtime, records the view tree and compares
+the trees across versions, so a change in WebKit's layout fails here before it
+reaches an app. The Swift suite runs the host's tests on each runtime.
+TestHost's UI tests open every scenario page and fail if a native view is more
+than 0.5 pt from its web element; they also compare each page with screenshot
+baselines kept for each iOS major version. These results are from 2026-11-04.
+[`docs/compatibility.md`](docs/compatibility.md) has the full matrix, what
+WebKit changed between versions, why 26.3.1 skips the UI tests, and how to add
+a new iOS release.
 
 ### Performance
 
-Measured on an iPhone 18 Pro with iOS 27.2, a page holding a column of
-SwiftUI glass buttons, median of three runs:
+We measured a page holding a column of SwiftUI glass buttons on an iPhone 18
+Pro with iOS 27.2, taking the median of three runs:
 
 | Islands | Page shown, every island drawn | Memory per island | Dropped frames while scrolling | One full relayout (JS) |
 | ------: | -----------------------------: | ----------------: | -----------------------------: | ---------------------: |
@@ -236,71 +233,74 @@ SwiftUI glass buttons, median of three runs:
 |      50 |                         318 ms |            431 KB |                              0 |                46.4 ms |
 |     100 |                         414 ms |            360 KB |                              0 |                80.3 ms |
 
-Scrolling, sticky boxes and page transitions cost nothing per island, because
-UIKit moves the views. Each island after the tenth adds about 300 KB of app
-memory. The cost that grows is a full relayout of the page: about 0.8 ms of
-main-thread JavaScript per island, which fits in a frame for a few dozen
-islands and takes about five frames for 100. Mounting is being reworked, so
-the first-frame time will change. Exactly what each number measures, and how
-to measure it on your own phone, is in
-[`docs/performance.md`](docs/performance.md).
+"Page shown" is the time from creating the web view to revealing the page with
+every island drawn. Scrolling, sticky elements and page transitions don't get
+slower as islands are added, because UIKit moves the views. Each island after
+the tenth adds about 300 KB of app memory. The cost that does grow is a full
+relayout of the page, at about 0.8 ms of main-thread JavaScript per island.
+That fits within one frame for a few dozen islands and takes about five frames
+for 100. We're currently reworking how islands mount, so the first number will
+change. [`docs/performance.md`](docs/performance.md) defines each measurement
+and explains how to repeat it on your own phone.
 
-## Status
+## Where it stands
 
-Native Islands is experimental and early. It runs a full example app and a
-gallery of regression pages on every iOS from 16 to 27, and you should expect
-bugs, missing pieces and breaking changes. Every young cross-platform layer goes through this
-stage; the goal of publishing now is to go through it in the open.
+Native Islands is early. The example app and a gallery of regression pages run
+on every iOS release from 16 to 27, but you should expect bugs, missing pieces
+and breaking changes. Most cross-platform frameworks go through this stage,
+and we decided to go through it in public.
 
-Known limits today. Each is small, specific and written down, so you know
-exactly where the edges are:
+These are the limits we know of today. None of them blocks a typical page:
 
-- **Layout-driven motion trails by a frame.** An element that moves by layout
-  (a resize, a width animation) is followed by a message each frame, so its
-  native view can trail it by one frame while it moves. Scrolling, sticky
-  boxes and page slides are not affected.
-- **Relayout grows with the island count**, about 0.8 ms per island on an
-  iPhone 18 Pro (see [Performance](#performance)). Keep layout animations to
-  pages with few islands.
-- **Some CSS stays web.** An island inside a 3D transform, a filter or a clip
-  path shows its web version.
-- **Inner scroll views arrive late.** WebKit builds a scrolling area's scroll
-  view a few frames after it lays the area out, so the host waits up to a
-  second for it before the island stays web.
-- **One known misalignment.** After a fast fling, the buttons in a carousel
-  nested inside a list can sit about 0.5 pt off until the next layout pass.
-  The alignment test marks this one case as an expected failure.
-- **iOS only.** There is no Android host yet.
+- An element that moves by layout, such as one being resized or having its
+  width animated, gets a new message on each frame, so its native view can be
+  one frame behind while it moves. Scrolling, sticky elements and page slides
+  aren't affected.
+- A full relayout costs about 0.8 ms per island on an iPhone 18 Pro (see
+  [Performance](#performance)). On pages with many islands, avoid animating
+  layout.
+- An island inside a 3D transform, a filter or a clip path shows its web
+  version.
+- WebKit creates the scroll view for a scrolling area a few frames after it
+  lays the area out. The host waits up to a second for it, and if it doesn't
+  appear, the island stays web.
+- After a fast fling, buttons in a carousel nested in a list can be about
+  0.5 pt off until the next layout pass. The alignment tests mark this case as
+  an expected failure.
+- Only iOS has a host. There is no Android host yet.
 
-### Has this been done before?
+### Prior work
 
-Parts of it. Map plugins for Cordova and Capacitor draw one native map behind
-a transparent web view. Hotwire Native lets a page drive native navigation
-bars and toolbars. One Expo app placed a fixed set of native controls in a web
-view's main scroll view. As far as we know, nothing else puts any view the app
-registers inside WebKit's own scroll views, carries it through page
-transitions, and passes values both ways. If you know of prior work, please
-open an issue; we would like to credit it.
+Some of this has been done before. Map plugins for Cordova and Capacitor draw
+a native map behind a transparent web view. Hotwire Native lets a page drive
+native navigation bars and toolbars. An Expo app placed a fixed set of native
+controls in a web view's main scroll view. We haven't found anything that
+places arbitrary app-registered views inside WebKit's own scroll views, keeps
+them in place through page transitions and passes values in both directions.
+If you know of prior work, please open an issue so we can credit it.
 
 ---
 
 ## Getting started
 
-There are two packages, one per side, and they speak one contract.
-`tests/fixtures/messages.json` holds an example of every message, and the
-tests of both packages decode it, so neither side can drift from the other.
+Native Islands has two packages, one for each side. They share a contract:
+`tests/fixtures/messages.json` contains an example of every message, and both
+packages' tests decode it, so a change on one side that the other can't read
+fails a test.
 
 | Side       | Package                   | Where                                  |
 | ---------- | ------------------------- | -------------------------------------- |
 | App (iOS)  | `NativeIslands` (SwiftPM) | `packages/swift/Sources/NativeIslands` |
 | Page (web) | `native-islands` (npm)    | [`packages/web/`](packages/web/)       |
 
-Add the page side from npm, and the app side with Swift Package Manager from
-`https://github.com/superwall/native-islands`:
+Install the page side from npm:
 
 ```bash
 npm install native-islands
 ```
+
+Add the app side with Swift Package Manager, from
+`https://github.com/superwall/native-islands`.
 
 ### On the page
 
@@ -319,13 +319,12 @@ const GlassButton = defineNativeComponent<{
 </NativeIslandsProvider>;
 ```
 
-The children are the web version. The app draws the native button in their
-place when it registered `glassButton`, and the children show everywhere else.
-The full page API, including state, requests, commands and use without React,
-is in [`packages/web/README.md`](packages/web/README.md). The packages don't
-ship ready-made native components yet, and a components package is in the
-works. Until then, the example app has a set of glass buttons and controls to
-copy from.
+The children are the web version. If the app registered `glassButton`, it
+draws the native button in their place; otherwise the children show. The full
+page API, including state, requests, commands and use without React, is in
+[`packages/web/README.md`](packages/web/README.md). A package of ready-made
+native components is in progress. Until it ships, the example app has glass
+buttons and controls you can copy.
 
 ### In the app
 
@@ -342,18 +341,18 @@ let webView = IslandWebView(frame: .zero)
 webView.load(URLRequest(url: pageURL))
 ```
 
-`IslandWebView` is a `WKWebView` with a `NativeIslandsHost` attached. It offers
-the page what you registered on `NativeComponentRegistry.shared` before it
-loads.
+`IslandWebView` is a `WKWebView` with a `NativeIslandsHost` attached. Before
+the page loads, it tells the page which components are registered on
+`NativeComponentRegistry.shared`.
 
-With a web view of your own, attach `NativeIslandsHost(webView:)` before the
-first load and forward two calls to it, as `IslandWebView` does:
+To use your own web view, attach `NativeIslandsHost(webView:)` before the first
+load and forward two calls to it, as `IslandWebView` does:
 
-- its `hitTest(_:with:webHit:)` from your `hitTest(_:with:)`, so islands in
-  inner scrolling areas take their taps;
-- its `webViewDidMoveToWindow()` from your `didMoveToWindow()`, so each
-  island's hosting controller becomes a child of the view controller that
-  shows the web view, and presents sheets, menus and pickers from there.
+- `hitTest(_:with:webHit:)` from your `hitTest(_:with:)`, so islands in inner
+  scrolling areas receive their taps;
+- `webViewDidMoveToWindow()` from your `didMoveToWindow()`, so each island's
+  hosting controller becomes a child of the view controller that shows the web
+  view and can present sheets, menus and pickers.
 
 ```swift
 override func didMoveToWindow() {
@@ -364,43 +363,43 @@ override func didMoveToWindow() {
 
 ### Revealing the page
 
-The host keeps each new document covered, in the colour behind the web view,
-until the page says its islands are drawn. The React provider sends that
-signal once every island of the first frame is drawn or settled on its web
-version; a page without React calls `islands.announceReady()` itself. The host
-then waits two frames, so WebKit has laid the page out with the safe area, and
-shows it. A page that never announces is shown after the timeout:
+The host covers each new document with the web view's background colour until
+the page reports that its islands are drawn. The React provider sends that
+report once every island in the first frame is either drawn or settled on its
+web version. Without React, call `islands.announceReady()` yourself. The host
+then waits two frames, so WebKit has laid out the page with the safe area, and
+reveals it. If the page never reports, the host reveals it after a timeout:
 
 ```swift
 let host = NativeIslandsHost(webView: webView, reveal: .whenIslandsReady(timeout: 2))
 host.onReady = { reason in present() } // .ready or .timedOut
 ```
 
-Pass `.immediately` for web views that load pages without the library.
+For web views that load pages without the library, pass `.immediately`.
 
-A page that is rendered but not showing yet, such as the next screen of a
-flow, keeps its islands placed when the host offers the `layered` feature.
-Mark it with `data-island-phase` or `inert` and lay it out off screen or
-underneath, rather than `display: none`: its islands mount right away and ride
-along when it slides in.
+When the host offers the `layered` feature, a page that is rendered but not
+yet visible, such as the next screen of a flow, keeps its islands in place.
+Mark it with `data-island-phase` or `inert` and position it off screen or
+underneath instead of using `display: none`. Its islands then mount right away
+and move with it when it slides in.
 
-## Try it
+## Try the example app
 
-**Islands** (`examples/`) is a component catalogue in the style of an iOS 26
-app, and every screen of it is one web page in a `WKWebView`: large titles,
-inset grouped lists, push and swipe back, a native navigation bar that stays
-put while screens slide under it, and a floating Liquid Glass tab bar.
+Islands, in `examples/`, is a component catalogue styled like an iOS 26 app.
+Every screen in it is one web page in a `WKWebView`, with large titles, inset
+grouped lists, push and swipe-back navigation, a native navigation bar that
+stays in place while screens slide under it, and a floating Liquid Glass tab
+bar.
 
-- **Components:** glass buttons, menus, toggles, segmented controls, sliders,
+- Components: glass buttons, menus, toggles, segmented controls, sliders,
   steppers, pickers, date and colour pickers, text fields, gauges, SF Symbol
   effects and Swift Charts.
-- **Capabilities:** a MapKit map, video with Picture in Picture, the live
-  camera, the photo picker handing photos back to the page, permission
-  prompts, haptics and the share sheet.
-- **Search:** a native search field that filters every demo as you type.
-- **Settings:** appearance and accent colour, which the native views follow,
-  and a **Native Islands** switch that shows the web version of every island
-  in place.
+- Capabilities: a MapKit map, video with Picture in Picture, the live camera,
+  the photo picker passing photos back to the page, permission prompts,
+  haptics and the share sheet.
+- Search: a native search field that filters every demo as you type.
+- Settings: appearance and accent colour, which the native views follow, and a
+  Native Islands switch that replaces every island with its web version.
 
 <p align="center">
   <img src="docs/assets/showcase-charts-light.png" width="260" alt="Swift Charts inside the web page in light mode">
@@ -408,38 +407,38 @@ put while screens slide under it, and a floating Liquid Glass tab bar.
   <img src="docs/assets/showcase-charts-dark.png" width="260" alt="The same charts in dark mode">
 </p>
 
-You need macOS with Xcode 26 or later, [Bun](https://bun.sh) 1.4.4 or later and
-[XcodeGen](https://github.com/yonaskolb/XcodeGen).
+You need macOS with Xcode 26 or later, [Bun](https://bun.sh) 1.4.4 or later,
+and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash run
 bun install
 cd examples/ios && xcodegen && open Islands.xcodeproj
 ```
 
-Run it on a simulator or an iPhone. The app bundles the page and needs
-no network, except for the sample video. Launch it with `-screen <id>` (such
-as `-screen maps`) or `-tab <id>` to open one screen. Camera and Picture in
-Picture need a real iPhone.
+Run it on a simulator or an iPhone. The page is bundled with the app, so it
+needs no network except for the sample video. To open a single screen, launch
+it with `-screen <id>` (for example `-screen maps`) or `-tab <id>`. The camera
+and Picture in Picture need a real iPhone.
 
-The same page runs in a browser, where `?native=simulate` draws a magenta
-outline wherever a native view would sit:
+The same page also runs in a browser. With `?native=simulate`, it draws a
+magenta outline where each native view would be:
 
 ```bash run
 bun run --cwd examples/showcase dev
 ```
 
 Then open `http://localhost:5173/?native=simulate`, or
-`http://localhost:5173/?native=simulate&screen=buttons` for one screen.
+`http://localhost:5173/?native=simulate&screen=buttons` for a single screen.
 
-`tests/pages/` is the scenario gallery behind the tests: regression pages for
-every scenario, and a three-page flow that shows islands sliding in with their
-page. `tests/ios/` is TestHost, the app that bundles them. In a
+`tests/pages/` holds the scenario gallery the tests run against: regression
+pages for each scenario, and a three-page flow where islands slide in with
+their page. `tests/ios/` is TestHost, the app that bundles those pages. In a
 browser, `?route=<name>` opens one page (`buttons`, `controls`, `scrolling`,
-`motion`, `overlays`, `stress`, `state`, `flow-plans`); in TestHost it is
-`-route <name>`, and `-NativeIslandsAlignmentLog YES` logs each native frame
-beside its DOM rect.
+`motion`, `overlays`, `stress`, `state` or `flow-plans`). In TestHost, the
+launch argument is `-route <name>`, and `-NativeIslandsAlignmentLog YES` logs
+each native frame next to its DOM rect.
 
-## Develop
+## Developing
 
 ```bash
 bun install
@@ -450,18 +449,19 @@ scripts/ui-tests.sh          # alignment and screenshots on several simulators
 scripts/compat-matrix.sh     # the WebKit probe on every installed iOS runtime
 ```
 
-Every check, the contract rules and the code style are in
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+[`CONTRIBUTING.md`](CONTRIBUTING.md) lists every check, the rules for changing
+the contract, and the code style.
 
 ## License
 
 Native Islands is released under the
 [Functional Source License 1.1, MIT Future License](LICENSE) (FSL-1.1-MIT).
-You can use, change and ship it in your own apps and products for any purpose
+You can use, modify and ship it in your own apps and products for any purpose
 except a competing use: a commercial product or service that substitutes for
 Native Islands, or for a Superwall product built on it, or that offers
-substantially the same functionality. Each release becomes plain MIT two years
-after it is published. The FSL is a
-[Fair Source](https://fair.io) licence, not an OSI-approved open source one.
+substantially the same functionality. Each release becomes available under the
+MIT license two years after it is published. FSL is a
+[Fair Source](https://fair.io) license, not an OSI-approved open source
+license.
 
 Copyright 2026 Superwall, Inc.

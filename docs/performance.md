@@ -3,7 +3,7 @@
 What an island costs, measured on a real iPhone. This page records the numbers,
 exactly what each one measures, and how to measure them again.
 
-**In short:** on an iPhone 18 Pro, a page with 100 native glass buttons is shown
+On an iPhone 18 Pro, a page with 100 native glass buttons is shown
 with every button drawn about 0.4 s after its web view is created, scrolls
 without dropping a frame, and adds about 300 KB of app memory per island. The
 cost that grows with the island count is a full relayout of the page: about

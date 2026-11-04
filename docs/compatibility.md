@@ -5,14 +5,15 @@ use a private API, but it does rely on how WebKit lays those views out. This
 page records what that layout is on each iOS version, how it was measured, and
 how to measure it again.
 
-**In short:** islands draw natively on every iOS from 16 to 27. Below iOS 26
+Islands draw natively on every iOS from 16 to 27. Below iOS 26
 they stay native and take the look Apple's own controls have there (system
 materials, bordered buttons), never the web version. Every iOS simulator runtime from
 17.5 to 27.2 that we ran passes the WebKit probe, the Swift suite and TestHost's
 alignment tests (26.3.1 skips the UI tests, see below), and the screenshot
 baselines of 17, 18, 26 and 27 pass on their newest runtime. iOS 16
 is covered only by the `iOS compatibility` workflow, as macOS 27 cannot boot
-it; run it once after merging.
+it; run it once after merging. The package also builds for iOS 15 and offers
+islands there, but no test runs on it yet.
 
 ## How it is tested
 
@@ -55,19 +56,20 @@ Three layers, each catching what the one before cannot:
   newer than iOS 16, gate it with `if #available` and draw the closest thing
   Apple shipped before it: `examples/ios/Islands/Components/Defaults/Compat.swift`
   has the glass, glass button and symbol-effect fallbacks the showcase uses.
-- Never fall back to the web version on older iOS. A registered component is
-  offered on every iOS from 16, so the page draws it natively there; the web
-  version is only for pages outside the app and iOS 15.
+- Never fall back to the web version on older iOS. The host offers every
+  registered component on every iOS it builds for, so the page draws it
+  natively there; the web version is only for pages outside the app.
 - Check a new island on the oldest and newest runtime you have before merging.
 
 ## Support matrix
 
-The host draws islands from iOS 16; below that it offers nothing and the page
-shows its web versions. Measured on 2026-11-04:
+The host has no iOS version cap: it offers every registered component on every
+iOS the package builds for (iOS 15 and later). The rows below are the releases
+we have run. Measured on 2026-11-04:
 
 | iOS            | Islands drawn | Glass looks like               | WebKit probe | Swift suite | TestHost alignment  | Screenshot baselines |
 | -------------- | ------------- | ------------------------------ | ------------ | ----------- | ------------------- | -------------------- |
-| 15 and earlier | no, web only  | (web version)                  | –            | –           | –                   | –                    |
+| 15             | yes, untested | system material, hairline edge | –            | –           | –                   | –                    |
 | 16.0–16.4      | yes           | system material, hairline edge | CI only      | CI only     | –                   | –                    |
 | 17.5           | yes           | system material, hairline edge | pass         | pass        | pass                | `iOS-17`             |
 | 18.6           | yes           | system material, hairline edge | pass         | pass        | pass                | `iOS-18`             |
@@ -87,6 +89,10 @@ What differs by version, for anyone building islands:
   glass groups stay separate shapes, as Apple's own pre-26 bars do.
 - **Controls.** Buttons fall back to Apple's bordered and bordered-prominent
   styles, and every other SwiftUI control draws as that iOS draws it.
+- **iOS 15.** Untested. SwiftUI has no `sizingOptions` there, so a natively
+  sized island that changes size on its own (its state, an async load) is not
+  measured again until the page lays it out again. The example app and TestHost
+  target iOS 16.
 - **Before iOS 17.** SwiftUI maps have no markers, selection or camera, so the
   showcase uses `MKMapView` there; symbol effects don't animate; charts read the
   drag directly. On iOS 17 symbol effects fall back to the nearest one it has.

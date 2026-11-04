@@ -11,8 +11,8 @@ the web content around it. Anything the host cannot draw stays web.
 
 It has two sides that speak one contract:
 
-- **Host (Swift):** the `NativeIslands` package, iOS 15+ to build, iOS 16+ to
-  draw. Before iOS 26 glass falls back to a material (or its tint) in the same
+- **Host (Swift):** the `NativeIslands` package, iOS 15+, with no version cap on
+  drawing: every registered component is offered on every iOS it builds for. Before iOS 26 glass falls back to a material (or its tint) in the same
   shape, the way UIKit's own controls do. It works with any `WKWebView`; nothing in it knows about an app or a
   service.
 - **Page (JS):** `native-islands` in `packages/web/`, with `/react` bindings.

@@ -1,13 +1,13 @@
 # native-islands
 
-The page side of [Native Islands](../../README.md). Wrap a web element, and in an
-iOS app that hosts islands it is replaced by a real UIKit or SwiftUI view,
-placed exactly where the element is. In a browser, and in any app without
-Native Islands, the web element stays. The page does not branch.
+The page side of [Native Islands](../../README.md). When you wrap a web element
+in a native component, an iOS app that hosts islands draws a UIKit or SwiftUI
+view at the element's position. In a browser, or in an app without Native
+Islands, the web element stays. The page has no platform checks.
 
 > [!WARNING]
 > **Experimental.** The API and the contract with the app will change between
-> versions. See [Status](../../README.md#status).
+> versions. See [Where it stands](../../README.md#where-it-stands).
 
 ## Install
 
