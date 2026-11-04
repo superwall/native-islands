@@ -122,28 +122,37 @@ extension NativeIslandManager {
   /// once. Rows that come back grow the scroller before WebKit grows its
   /// scroll view, so for a frame or more no scroll view matches the page's
   /// content size, yet the scroller's other islands show which one it is.
-  /// They come first: another screen's scroll view may already have that
-  /// content size and would match from afar.
+  /// A scroll view that matches at the scroller's own spot still comes first,
+  /// as WebKit may have rebuilt the scroller there; another screen's scroll
+  /// view with the new content size comes last, as it matches from afar.
   func mountContainer(
     for anchor: NativeAnchor,
     in surface: NativeHostSurface,
     besides extra: NativeIsland? = nil
   ) -> UIView? {
-    knownContainer(for: anchor, in: surface, besides: extra) ?? container(for: anchor, in: surface)
+    guard case .scroller(let scroller) = anchor else { return container(for: anchor, in: surface) }
+    return container(for: anchor, in: surface, within: NativeScrollerMatcher.reach(of: scroller))
+      ?? knownContainer(for: anchor, in: surface, besides: extra)
+      ?? container(for: anchor, in: surface)
   }
 
+  /// The scroll view the scroller's islands live in, while it still sits at
+  /// the scroller's spot.
   func knownContainer(
     for anchor: NativeAnchor,
     in surface: NativeHostSurface,
     besides extra: NativeIsland? = nil
   ) -> UIView? {
     guard case .scroller(let scroller) = anchor else { return nil }
+    let reach = NativeScrollerMatcher.reach(of: scroller)
     let candidates = [extra].compactMap { $0 } + Array(islands.values) + retired.values.map(\.island)
     for island in candidates {
       guard case .scroller(let other) = island.anchor, other.id == scroller.id,
         let container = island.container as? UIScrollView,
         container !== surface.pageScrollView, container.isDescendant(of: surface.pageScrollView)
       else { continue }
+      let origin = container.convert(container.bounds, to: surface.viewport).origin
+      guard hypot(origin.x - scroller.frame.x, origin.y - scroller.frame.y) <= reach else { continue }
       return container
     }
     return nil

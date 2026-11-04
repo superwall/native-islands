@@ -185,6 +185,32 @@ extension NativeBridgeTests {
       #expect(harness.island("back")?.view.superview !== twin)
     }
 
+    @Test("Mounts into the scroll view WebKit rebuilt in place, not the old one it moved aside")
+    func prefersTheRebuiltScrollViewInPlace() throws {
+      let harness = NativeTestHarness()
+      let old = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      let anchor = scroller(
+        frame: NativeFrame(x: 0, y: 100, width: 400, height: 600),
+        contentSize: NativeSize(width: 400, height: 900)
+      )
+      harness.manager.apply(batch(1, mountOp("kept", anchor: anchor), mountOp("first", anchor: anchor)))
+      harness.manager.apply(batch(2, .unmount(id: "kept")))
+      old.frame.origin.x = 800
+      let rebuilt = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      harness.manager.apply(
+        batch(3, mountOp("fresh", anchor: anchor), mountOp("back", anchor: anchor, reuse: "kept"))
+      )
+      #expect(harness.island("fresh")?.view.superview === rebuilt)
+      let back = try #require(harness.island("back"))
+      #expect(back.container === rebuilt)
+    }
+
     @Test("Still waits for the scroll view of a scroller none of its islands lives in yet")
     func waitsForAScrollerWithNoIslandsYet() {
       let harness = NativeTestHarness()
