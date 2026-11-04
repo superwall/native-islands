@@ -294,6 +294,42 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func glassIsLiquidGlassFromIOS26AndAMaterialBefore() {
+      let view = NativeGlassView(glass: NativeGlass(style: .clear), content: UIView())
+      if #available(iOS 26.0, *) {
+        #expect(view.effect is UIGlassEffect)
+      } else {
+        #expect(view.effect is UIBlurEffect)
+      }
+      #expect(NativeGlassView.material(for: .regular) == .systemMaterial)
+      #expect(NativeGlassView.material(for: .clear) == .systemUltraThinMaterial)
+    }
+
+    @Test
+    func beforeIOS26GlassIsClippedToItsShapeAndFilledWithItsTint() {
+      if #available(iOS 26.0, *) { return }
+      let view = NativeGlassView(glass: NativeGlass(shape: .capsule, tint: .red), content: UIView())
+      view.frame = CGRect(x: 0, y: 0, width: 120, height: 44)
+      view.layoutIfNeeded()
+      #expect(view.clipsToBounds)
+      #expect(view.layer.cornerRadius == 22)
+      #expect(view.contentView.layer.cornerRadius == 22)
+      #expect(view.layer.cornerCurve == .continuous)
+      #expect(view.contentView.backgroundColor == .red)
+      #expect(view.layer.borderWidth == 0)
+
+      view.apply(NativeGlass(shape: .rounded(8)))
+      view.layoutIfNeeded()
+      #expect(view.layer.cornerRadius == 8)
+      #expect(view.contentView.backgroundColor == nil)
+      #expect(view.layer.borderWidth > 0)
+      #expect(view.layer.borderColor == UIColor.separator.resolvedColor(with: view.traitCollection).cgColor)
+
+      view.isSliding = true
+      #expect(view.effect is UIBlurEffect)
+    }
+
+    @Test
     func colourPropsBecomeUIColors() {
       let props = NativeComponentProps(["tint": .string("rgba(0, 255, 0, 0.5)"), "bad": .string("teal")])
       #expect(props.uiColor("tint") == UIColor(red: 0, green: 1, blue: 0, alpha: 0.5))

@@ -4,7 +4,6 @@ import SwiftUI
 enum DefaultComponents {
   @MainActor
   static func register(in registry: NativeComponentRegistry = .shared) {
-    guard #available(iOS 26.0, macCatalyst 26.0, *) else { return }
     registry.register("glassButton", glass: glassButtonGlass) { component in
       GlassButtonView(component: component)
     }

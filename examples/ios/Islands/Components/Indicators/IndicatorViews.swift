@@ -4,7 +4,6 @@ import SwiftUI
 
 /// A gauge or a progress view. `style` is `circular`, `capacity`, `linear`,
 /// `bar` (a determinate progress bar) or `spinner`.
-@available(iOS 26.0, *)
 struct GaugeView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -58,7 +57,6 @@ struct GaugeView: View {
 
 /// An SF Symbol playing one of its effects. Discrete effects play each time
 /// `trigger` changes; `active` runs the indefinite ones.
-@available(iOS 26.0, *)
 struct SymbolEffectView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -69,16 +67,28 @@ struct SymbolEffectView: View {
     let image = Image(systemName: props.string("name") ?? "questionmark")
       .font(.system(size: props.double("pointSize") ?? 56, weight: .medium))
       .foregroundStyle(props.color("tint") ?? .accentColor)
-      .contentTransition(.symbolEffect(.replace))
+      .symbolReplaceTransition()
     Group {
-      switch props.string("effect") {
-      case "pulse": image.symbolEffect(.pulse, isActive: active)
-      case "variableColor": image.symbolEffect(.variableColor.iterative, isActive: active)
-      case "breathe": image.symbolEffect(.breathe, isActive: active)
-      case "rotate": image.symbolEffect(.rotate, isActive: active)
-      case "wiggle": image.symbolEffect(.wiggle, value: trigger)
-      case "replace": image
-      default: image.symbolEffect(.bounce, value: trigger)
+      if #available(iOS 18.0, *) {
+        switch props.string("effect") {
+        case "pulse": image.symbolEffect(.pulse, isActive: active)
+        case "variableColor": image.symbolEffect(.variableColor.iterative, isActive: active)
+        case "breathe": image.symbolEffect(.breathe, isActive: active)
+        case "rotate": image.symbolEffect(.rotate, isActive: active)
+        case "wiggle": image.symbolEffect(.wiggle, value: trigger)
+        case "replace": image
+        default: image.symbolEffect(.bounce, value: trigger)
+        }
+      } else if #available(iOS 17.0, *) {
+        // Breathe, Rotate and Wiggle came in iOS 18; iOS 17 plays the nearest effect it has.
+        switch props.string("effect") {
+        case "pulse", "breathe": image.symbolEffect(.pulse, isActive: active)
+        case "variableColor", "rotate": image.symbolEffect(.variableColor.iterative, isActive: active)
+        case "replace": image
+        default: image.symbolEffect(.bounce, value: trigger)
+        }
+      } else {
+        image
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -87,7 +97,6 @@ struct SymbolEffectView: View {
 
 /// A Swift Charts chart of the page's points. Dragging across it scrubs and
 /// sends `select` with the label under the finger, and `null` on release.
-@available(iOS 26.0, *)
 struct ChartView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var scrubbed: String?
@@ -132,12 +141,39 @@ struct ChartView: View {
           .foregroundStyle(Color.secondary.opacity(0.4))
       }
     }
-    .chartXSelection(value: $scrubbed)
-    .onChange(of: scrubbed) { _, label in
+    .scrubbing($scrubbed)
+    .onChangeOf(scrubbed) { label in
       component.emit("select", payload: ["label": label.map { $0 as Any } ?? NSNull()])
     }
-    .animation(.smooth, value: kind)
+    .animation(.smoothly(), value: kind)
     .padding(.vertical, 4)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}
+
+private extension View {
+  /// Scrubs the chart's x axis into `label`: Swift Charts' own selection on
+  /// iOS 17, a drag read through the chart's proxy before.
+  @ViewBuilder
+  func scrubbing(_ label: Binding<String?>) -> some View {
+    if #available(iOS 17.0, *) {
+      chartXSelection(value: label)
+    } else {
+      chartOverlay { proxy in
+        GeometryReader { geometry in
+          Rectangle()
+            .fill(.clear)
+            .contentShape(Rectangle())
+            .gesture(
+              DragGesture(minimumDistance: 0)
+                .onChanged { drag in
+                  let origin = geometry[proxy.plotAreaFrame].origin
+                  label.wrappedValue = proxy.value(atX: drag.location.x - origin.x, as: String.self)
+                }
+                .onEnded { _ in label.wrappedValue = nil }
+            )
+        }
+      }
+    }
   }
 }

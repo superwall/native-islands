@@ -109,7 +109,6 @@ final class LocationAuthorization: NSObject, CLLocationManagerDelegate {
 /// The button a permission row ends in: Allow while iOS has not asked yet,
 /// the answer once it has, and a way to Settings when it was denied. The
 /// status lives as state, so the page reads what the system says.
-@available(iOS 26.0, *)
 struct PermissionView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var status: String?
@@ -129,7 +128,7 @@ struct PermissionView: View {
             asking = false
           }
         }
-        .buttonStyle(.glassProminent)
+        .glassProminentButtonStyle()
         .disabled(asking)
       case "denied":
         Button("Settings") {
@@ -137,7 +136,7 @@ struct PermissionView: View {
             UIApplication.shared.open(url)
           }
         }
-        .buttonStyle(.glass)
+        .glassButtonStyle()
       default:
         Label(
           status == "limited" ? "Limited" : status == "restricted" ? "Restricted" : "Allowed",

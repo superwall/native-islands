@@ -98,7 +98,6 @@ struct CameraPreview: UIViewRepresentable {
 /// The live camera, `back` or `front` by `position`, while `running`. It sends `status` with
 /// the camera's state, and the `capture` command answers with a photo as a
 /// JPEG data URL, scaled down for the page.
-@available(iOS 26.0, *)
 struct CameraView: View {
   @ObservedObject var component: NativeComponentContext
   @StateObject private var camera = CameraSession()
@@ -130,7 +129,7 @@ struct CameraView: View {
       }
     }
     .onDisappear { camera.stop() }
-    .onChange(of: camera.state) { _, state in
+    .onChangeOf(camera.state) { state in
       component.emit("status", payload: ["state": state])
     }
     .onAppear {

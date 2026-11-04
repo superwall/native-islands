@@ -45,7 +45,6 @@ final class PhotoPickerPresenter: NSObject, PHPickerViewControllerDelegate {
 
 /// A glass button that opens the system photo picker and sends `pick` with
 /// the photos chosen, as JPEG data URLs scaled to fit the page.
-@available(iOS 26.0, *)
 struct PhotoPickerView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var presenter = PhotoPickerPresenter()

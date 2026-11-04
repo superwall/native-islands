@@ -55,7 +55,8 @@ moves it for free:
   above them while something in it animates.
 - **Real glass:** Liquid Glass samples what is drawn behind it. Here that is
   the actual web content, so a glass button bends the page's own gradients,
-  images and video.
+  images and video. Islands draw from iOS 16; before iOS 26 glass is a
+  material of the same shape, as UIKit's own controls are there.
 
 An overlay can do none of this. It sits on top of everything, has to be moved
 by script on every scroll frame (always a frame late), and covers sheets and
@@ -266,7 +267,7 @@ text selection, tap highlight, callouts, scrollbars or focus rings.
 
 ```bash run
 bun install
-cd examples/ios && xcodegen && open Islands.xcodeproj   # run on an iOS 26 simulator or device
+cd examples/ios && xcodegen && open Islands.xcodeproj   # run on an iOS 16+ simulator or device
 ```
 
 ```bash
@@ -280,7 +281,7 @@ and Picture in Picture need a real iPhone.
 
 `tests/pages/` is the scenario gallery: regression pages covering every scenario, plus a
 three-page flow that shows islands sliding in with their page.
-`tests/ios/` is TestHost, an iOS 26+ app that bundles them; it needs no account or network.
+`tests/ios/` is TestHost, an iOS 16+ app that bundles them; it needs no account or network.
 
 ```bash
 bun install
@@ -315,7 +316,7 @@ performance/run.sh --device "iPhone Air" --record
   when an island has no web element, or when a scenario that expects native
   still shows its web version. It also scrolls, and pushes and pops the flow.
 - **Screenshots** (`ScreenshotUITests.swift`) compare each still page with
-  `tests/ios/Baselines/<model>-<width>x<height>/`. A pixel counts as different
+  `tests/ios/Baselines/iOS-<major>/<model>-<width>x<height>/`. A pixel counts as different
   when a channel moves by more than 24 of 255; a page fails above 0.2%.
 - **Performance** (`PerformanceUITests.swift`) records, for 10, 50 and 100
   islands: the time until the page is shown with its islands drawn, the memory
@@ -325,6 +326,10 @@ performance/run.sh --device "iPhone Air" --record
   (`performance/compare.ts`), and when one could not be measured. On a
   shared simulator dropped frames and layout cost swing a lot between
   identical runs, so those gates only catch large rises; measure scrolling on a device for anything finer.
+
+Every iOS version from 16 is covered by its own matrix and CI workflow; what
+was proven where, and how to add a new iOS, is in
+[`docs/compatibility.md`](docs/compatibility.md).
 
 Simulators are slimmed with `simslim` when it is installed, booted in light
 mode and given a fixed status bar. Failing screenshots are attached to the

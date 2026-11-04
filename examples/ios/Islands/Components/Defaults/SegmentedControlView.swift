@@ -1,7 +1,6 @@
 import NativeIslands
 import SwiftUI
 
-@available(iOS 26.0, macCatalyst 26.0, *)
 struct SegmentedControlView: View {
   @ObservedObject var component: NativeComponentContext
   @State private var selected: Int?
@@ -28,7 +27,7 @@ struct SegmentedControlView: View {
     .labelsHidden()
     .disabled(props.bool("disabled") == true)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .onChange(of: value) { _, next in
+    .onChangeOf(value) { next in
       selected = next
     }
   }

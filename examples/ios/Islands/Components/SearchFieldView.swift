@@ -3,7 +3,6 @@ import SwiftUI
 
 /// The search field of an iOS 26 search tab, on a glass capsule: what the
 /// user types flows to the page as state, so the page filters as they type.
-@available(iOS 26.0, *)
 struct SearchFieldView: View {
   @ObservedObject var component: NativeComponentContext
   @FocusState private var focused: Bool
