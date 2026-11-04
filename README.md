@@ -55,7 +55,8 @@ moves it for free:
   above them while something in it animates.
 - **Real glass:** Liquid Glass samples what is drawn behind it. Here that is
   the actual web content, so a glass button bends the page's own gradients,
-  images and video.
+  images and video. Islands draw from iOS 16; before iOS 26 glass is a
+  material of the same shape, as UIKit's own controls are there.
 
 An overlay can do none of this. It sits on top of everything, has to be moved
 by script on every scroll frame (always a frame late), and covers sheets and

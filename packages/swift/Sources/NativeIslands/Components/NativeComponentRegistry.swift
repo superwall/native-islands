@@ -52,7 +52,7 @@ public final class NativeComponentRegistry {
   }
 
   var capability: NativeCapability? {
-    guard #available(iOS 26.0, *), !entries.isEmpty else { return nil }
+    guard #available(iOS 16.0, *), !entries.isEmpty else { return nil }
     return NativeCapability(components: registeredComponents)
   }
 }
