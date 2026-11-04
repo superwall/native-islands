@@ -36,12 +36,12 @@ export const NativeSearchTab = defineNativeComponent<{
 
 export const NativeToggle = defineNativeComponent<{
   props: { isOn: boolean; tint?: string; disabled?: boolean };
-  events: { change: { isOn: boolean } };
+  state: { isOn: boolean };
 }>("toggle", { sizing: "native", colorProps: ["tint"] });
 
 export const NativeSegmentedControl = defineNativeComponent<{
   props: GlassGroup & { segments: readonly string[]; selectedIndex: number; disabled?: boolean };
-  events: { change: { selectedIndex: number } };
+  state: { selectedIndex: number };
 }>("segmentedControl");
 
 export const NativeSymbol = defineNativeComponent<{

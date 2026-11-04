@@ -28,7 +28,7 @@ export const Toggle = defineNativeComponent<{
     tint?: string;
     disabled?: boolean;
   };
-  events: { change: { isOn: boolean } };
+  state: { isOn: boolean };
 }>("toggle", { sizing: "native", colorProps: ["tint"] });
 
 export const SegmentedControl = defineNativeComponent<{
@@ -37,7 +37,7 @@ export const SegmentedControl = defineNativeComponent<{
     selectedIndex: number;
     disabled?: boolean;
   };
-  events: { change: { selectedIndex: number } };
+  state: { selectedIndex: number };
 }>("segmentedControl");
 
 export const SystemSymbol = defineNativeComponent<{

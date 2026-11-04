@@ -58,7 +58,7 @@ export const Switch = ({
   onChange: (isOn: boolean) => void;
 }) => {
   return (
-    <Toggle isOn={isOn} tint="var(--accent)" onChange={({ isOn: next }) => onChange(next)}>
+    <Toggle isOn={isOn} tint="var(--accent)" onIsOnChange={onChange}>
       <button
         type="button"
         role="switch"
@@ -84,7 +84,7 @@ export const Segments = ({
     <SegmentedControl
       segments={segments}
       selectedIndex={selectedIndex}
-      onChange={({ selectedIndex: index }) => onChange(index)}
+      onSelectedIndexChange={onChange}
     >
       <div className="segments" role="group">
         {segments.map((segment, index) => (
