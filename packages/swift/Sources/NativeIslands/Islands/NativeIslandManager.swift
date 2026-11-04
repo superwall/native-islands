@@ -20,6 +20,10 @@ final class NativeIslandManager: NativeIslandMessaging {
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
   static let parkingAttempts = 20
   var requestTimeoutNanoseconds: UInt64 = 10_000_000_000
+  let lifecycle: NativeLifecycleObservers
+  /// The glass views put back in place since the app last went to the
+  /// background, or nil while it has not been there.
+  var reseatedGlass: Set<ObjectIdentifier>?
 
   struct PendingRequest {
     let islandId: String
@@ -35,13 +39,16 @@ final class NativeIslandManager: NativeIslandMessaging {
     },
     retry: @escaping @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
-    }
+    },
+    notifications: NotificationCenter = .default
   ) {
     self.registry = registry
     self.surface = surface
     self.send = send
     self.schedule = schedule
     self.retry = retry
+    lifecycle = NativeLifecycleObservers(center: notifications)
+    watchLifecycle()
   }
 
   // MARK: - Batches
