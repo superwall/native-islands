@@ -51,7 +51,7 @@ extension NativeIslandManager {
       island.sizing == mount.sizing,
       let registered = registry.entries[mount.component], registered.version >= mount.version,
       islands.count < NativeComponentLimits.maxIslands,
-      let surface, let container = container(for: mount.anchor, in: surface)
+      let surface, let container = reuseContainer(of: island, for: mount.anchor, in: surface)
     else {
       discard(island)
       return false
@@ -86,6 +86,24 @@ extension NativeIslandManager {
       }
     }
     return true
+  }
+
+  /// A row that comes back mounts while WebKit still lays its scroller out
+  /// at the old content size, so no scroll view matches it yet. The view it
+  /// takes over is still in that scroller's scroll view, which is the one
+  /// it belongs in.
+  private func reuseContainer(
+    of island: NativeIsland,
+    for anchor: NativeAnchor,
+    in surface: NativeHostSurface
+  ) -> UIView? {
+    if let container = container(for: anchor, in: surface) { return container }
+    guard
+      case .scroller(let scroller) = anchor,
+      case .scroller(let previous) = island.anchor, previous.id == scroller.id,
+      let container = island.container, container.isDescendant(of: surface.pageScrollView)
+    else { return nil }
+    return container
   }
 
   func discardRetired(_ id: String) {

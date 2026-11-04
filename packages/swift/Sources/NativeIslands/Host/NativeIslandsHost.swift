@@ -18,6 +18,7 @@ public final class NativeIslandsHost {
   let manager: NativeIslandManager?
   private let surface: WebViewSurface?
   private let schedule: NativeIslandsScheduler
+  private let settle: NativeIslandsSettle
   private var hold = 0
   private var held: (cover: NativeIslandsCover, interactive: Bool)?
   private var router: NativeIslandsRouter?
@@ -30,20 +31,28 @@ public final class NativeIslandsHost {
     registry: NativeComponentRegistry? = nil,
     reveal: NativeIslandsReveal = .whenIslandsReady(timeout: 2)
   ) {
-    self.init(webView: webView, registry: registry, reveal: reveal, schedule: Self.mainQueue)
+    self.init(
+      webView: webView,
+      registry: registry,
+      reveal: reveal,
+      schedule: Self.mainQueue,
+      settle: Self.afterTwoFrames
+    )
   }
 
   init(
     webView: WKWebView,
     registry: NativeComponentRegistry?,
     reveal: NativeIslandsReveal,
-    schedule: @escaping NativeIslandsScheduler
+    schedule: @escaping NativeIslandsScheduler,
+    settle: @escaping NativeIslandsSettle = { _, done in done() }
   ) {
     let registry = registry ?? .shared
     self.registry = registry
     self.webView = webView
     self.reveal = reveal
     self.schedule = schedule
+    self.settle = settle
     guard let capability = registry.capability, let preload = capability.preloadScript else {
       manager = nil
       surface = nil
@@ -138,7 +147,7 @@ public final class NativeIslandsHost {
     case .response(let response):
       manager.receive(response)
     case .ready:
-      show(.ready)
+      showOnceSettled()
     }
   }
 
@@ -162,6 +171,19 @@ public final class NativeIslandsHost {
     }
   }
 
+  // The page can be ready before WebKit has given it the safe area it lays
+  // out in, and its first frame then sits too high. Once a script has run
+  // two frames after the page's message, WebKit has laid the page out with
+  // what it had sent before it.
+  private func showOnceSettled() {
+    guard !isReady, let webView else { return }
+    let current = hold
+    settle(webView) { [weak self] in
+      guard let self, self.hold == current else { return }
+      self.show(.ready)
+    }
+  }
+
   private func show(_ readiness: NativeIslandsReadiness) {
     guard !isReady else { return }
     release()
@@ -176,6 +198,17 @@ public final class NativeIslandsHost {
     held.cover.removeFromSuperview()
     surface?.cover = nil
     webView?.isUserInteractionEnabled = held.interactive
+  }
+
+  static let afterTwoFrames: NativeIslandsSettle = { webView, done in
+    webView.callAsyncJavaScript(
+      "await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))",
+      arguments: [:],
+      in: nil,
+      in: .defaultClient
+    ) { _ in
+      MainActor.assumeIsolated(done)
+    }
   }
 
   static let mainQueue: NativeIslandsScheduler = { delay, work in
@@ -212,6 +245,7 @@ public enum NativeIslandsReadiness: Equatable, Sendable {
 }
 
 typealias NativeIslandsScheduler = @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> Void
+typealias NativeIslandsSettle = @MainActor (WKWebView, @escaping @MainActor () -> Void) -> Void
 
 @MainActor
 final class WebViewSurface: NativeHostSurface {

@@ -120,9 +120,11 @@ destroying it. The page remembers it for 60 seconds and at most 128 at once. A
 new island with the same component, version, sizing, props and scrolling area
 that mounts while its row first renders names the old id in its mount's
 `reuse` field, and goes out in that commit. The host shows the kept view in
-its place, with no fade, and acknowledges it; the page keeps the web version
-up until then and removes it at once. A host that no longer has the view, or
-cannot use it, mounts the island as usual. Hosts should keep views a little
+its place, with no fade, and acknowledges it, even when WebKit has not given
+the scrolling area its new content size yet. The page hides the web version
+from the first frame, and shows it again if the host has not answered within
+150 ms. A host that no longer has the view, or cannot use it, mounts the
+island as usual. Hosts should keep views a little
 longer than the page asks (the Swift host keeps them 65 seconds), and drop
 them when the page reloads.
 
@@ -219,8 +221,10 @@ override func didMoveToWindow() {
 The host keeps each new document covered, with the colour behind the web view,
 until the page says its islands are drawn, so a native element never shows its web copy first. The provider sends
 that signal once every island of the first frame is drawn (or settled on its
-web version); a page without React calls `islands.announceReady()` itself. A
-page that never announces is shown after the timeout, two seconds by default:
+web version); a page without React calls `islands.announceReady()` itself.
+The Swift host then waits two of the page's frames, so WebKit has laid the page
+out with the safe area before it shows. A page that never announces is shown
+after the timeout, two seconds by default:
 
 ```swift
 let host = NativeIslandsHost(webView: webView, reveal: .whenIslandsReady(timeout: 2))

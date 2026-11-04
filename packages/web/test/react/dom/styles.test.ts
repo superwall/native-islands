@@ -50,12 +50,12 @@ describe("ISLAND_STYLES", () => {
 });
 
 describe("the web version of an island the host takes over", () => {
-  it("stays up until the native view shows, then goes without the fade", () => {
+  it("is hidden from the first frame, with no fade", () => {
     ensureIslandStyles(document);
     const rule = rulesOf().find((candidate) =>
       candidate.selectorText.includes("data-island-reusing"),
     );
-    expect(rule?.style.getPropertyValue("opacity")).toBe("");
+    expect(rule?.style.getPropertyValue("opacity")).toBe("0");
     expect(rule?.style.getPropertyValue("transition")).toContain("none");
     const wrapper = document.createElement("span");
     wrapper.setAttribute("data-island", "symbol");

@@ -57,7 +57,7 @@ export type NativeIslandState = {
   size?: TNativeSize;
   handoff?: NativeHandoff;
   anchorType?: TNativeAnchor["type"];
-  /** The host is taking over a view it kept, so the web version goes without a fade. */
+  /** The host is taking over a view it kept, so the web version stays hidden. */
   reusing?: boolean;
   command: (name: string, args?: unknown, options?: { timeoutMs?: number }) => Promise<unknown>;
   state: () => Readonly<Record<string, unknown>> | undefined;
@@ -75,7 +75,7 @@ const MESSAGES: Partial<Record<Reason, string>> = {
 
 const TOLERANCE = 0.5;
 
-/** How long after a take-over the web version still goes without a fade. */
+/** How long the web version stays hidden for a take-over the host hasn't answered. */
 export const REUSE_GRACE_MS = 150;
 
 let nextOrder = 0;

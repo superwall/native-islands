@@ -62,6 +62,35 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func waitsForThePageToLayOutBeforeShowingIt() {
+      let webView = RecordingWebView()
+      let scheduler = ManualScheduler()
+      var settling: [@MainActor () -> Void] = []
+      let host = NativeIslandsHost(
+        webView: webView,
+        registry: registry(),
+        reveal: .whenIslandsReady(timeout: 1),
+        schedule: scheduler.schedule
+      ) { _, done in
+        settling.append(done)
+      }
+      var seen: [NativeIslandsReadiness] = []
+      host.onReady = { seen.append($0) }
+      host.receive(["event_name": "native_islands_ready", "sequence": 1])
+      #expect(webView.isConcealed)
+      #expect(settling.count == 1)
+      settling.removeFirst()()
+      #expect(!webView.isConcealed)
+      #expect(seen == [.ready])
+
+      host.receive(NativeIslandsHost.documentStartMarker)
+      host.receive(["event_name": "native_islands_ready", "sequence": 1])
+      scheduler.runAll()
+      settling.forEach { $0() }
+      #expect(seen == [.ready, .timedOut])
+    }
+
+    @Test
     func showsTheDocumentWhenThePageNeverAnnounces() {
       let webView = RecordingWebView()
       let (host, scheduler) = host(webView)

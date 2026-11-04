@@ -49,6 +49,28 @@ extension NativeBridgeTests {
       #expect(harness.island("old") == nil)
     }
 
+    @Test("Takes over a view in a scroller WebKit has not resized yet")
+    func takesOverBeforeTheScrollerGrows() throws {
+      let harness = NativeTestHarness()
+      let scrollView = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      let frame = NativeFrame(x: 0, y: 100, width: 400, height: 600)
+      let short = scroller(frame: frame, contentSize: NativeSize(width: 400, height: 900))
+      harness.manager.apply(batch(1, mountOp("old", anchor: short)))
+      let old = try #require(harness.island("old"))
+      #expect(old.view.superview === scrollView)
+      harness.manager.apply(batch(2, .unmount(id: "old")))
+
+      let long = scroller(frame: frame, contentSize: NativeSize(width: 400, height: 2000))
+      harness.manager.apply(batch(3, mountOp("new", anchor: long, reuse: "old")))
+      let island = try #require(harness.island("new"))
+      #expect(island === old)
+      #expect(island.view.superview === scrollView)
+      #expect(!island.view.isHidden)
+    }
+
     @Test("Builds a new view when the kept one is gone or does not fit")
     func buildsWhenNothingFits() throws {
       let harness = NativeTestHarness()
