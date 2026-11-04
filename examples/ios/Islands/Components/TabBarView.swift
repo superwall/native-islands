@@ -11,13 +11,14 @@ struct TabBarView: UIViewRepresentable {
 
   func makeCoordinator() -> Coordinator { Coordinator(component: component) }
 
-  func makeUIView(context: Context) -> UITabBar {
-    let bar = UITabBar()
-    bar.delegate = context.coordinator
-    return bar
+  func makeUIView(context: Context) -> Slot {
+    let slot = Slot()
+    slot.bar.delegate = context.coordinator
+    return slot
   }
 
-  func updateUIView(_ bar: UITabBar, context: Context) {
+  func updateUIView(_ slot: Slot, context: Context) {
+    let bar = slot.bar
     let coordinator = context.coordinator
     coordinator.component = component
     let props = component.props
@@ -41,6 +42,37 @@ struct TabBarView: UIViewRepresentable {
       coordinator.pageIndex = index
       let items = bar.items ?? []
       bar.selectedItem = items.indices.contains(index) ? items[index] : nil
+    }
+  }
+
+  /// Holds the bar so its glass platter, not the bar, fills the island. A
+  /// `UITabBar` draws its platter inset from its own edges, as it would sit
+  /// above the home indicator, so the bar is laid out that much larger.
+  final class Slot: UIView {
+    let bar = UITabBar()
+
+    override init(frame: CGRect) {
+      super.init(frame: frame)
+      addSubview(bar)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func layoutSubviews() {
+      super.layoutSubviews()
+      bar.frame = bounds
+      bar.layoutIfNeeded()
+      let platter = bar.subviews
+        .filter { $0.frame.width < bar.bounds.width }
+        .max { $0.frame.width < $1.frame.width }
+      guard let inset = platter?.frame else { return }
+      bar.frame = CGRect(
+        x: -inset.minX,
+        y: -inset.minY,
+        width: bounds.width + bar.bounds.width - inset.width,
+        height: bounds.height + bar.bounds.height - inset.height
+      )
     }
   }
 
