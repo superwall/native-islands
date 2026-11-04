@@ -17,6 +17,7 @@ enum ShowcaseComponents {
     add("segmentedControl", in: registry) { SegmentedControlView(component: $0) }
     add("symbol", in: registry) { SymbolView(component: $0) }
     add("tabBar", in: registry) { TabBarView(component: $0) }
+    add("searchTab", in: registry, glass: searchTabGlass) { SearchTabView(component: $0) }
     add("searchField", in: registry, glass: tabBarGlass) { SearchFieldView(component: $0) }
     add("menu", in: registry, glass: glassButton) { MenuView(component: $0) }
     add("navigationBar", in: registry) { NavigationBarView(component: $0) }
@@ -48,6 +49,11 @@ enum ShowcaseComponents {
     registry.register(name, glass: glass) { component in
       content(component).modifier(IslandOutline(name: name))
     }
+  }
+
+  @MainActor
+  static func searchTabGlass(_ props: NativeComponentProps) -> NativeGlass {
+    NativeGlass(shape: .circle)
   }
 
   @MainActor
