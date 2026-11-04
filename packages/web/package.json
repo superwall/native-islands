@@ -1,17 +1,55 @@
 {
   "name": "native-islands",
   "version": "0.1.0",
-  "private": true,
   "description": "Native islands for WKWebView pages: the page side of the bridge.",
+  "homepage": "https://github.com/superwall/native-islands#readme",
+  "bugs": "https://github.com/superwall/native-islands/issues",
   "license": "FSL-1.1-MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/superwall/native-islands.git",
+    "directory": "packages/web"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts",
-    "./react": "./src/react/index.ts",
-    "./simulator": "./src/simulator/index.ts"
+    ".": {
+      "types": {
+        "source": "./src/index.ts",
+        "default": "./dist/index.d.ts"
+      },
+      "source": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": {
+        "source": "./src/react/index.ts",
+        "default": "./dist/react.d.ts"
+      },
+      "source": "./src/react/index.ts",
+      "import": "./dist/react.js"
+    },
+    "./simulator": {
+      "types": {
+        "source": "./src/simulator/index.ts",
+        "default": "./dist/simulator.d.ts"
+      },
+      "source": "./src/simulator/index.ts",
+      "import": "./dist/simulator.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
+    "build": "tsup",
+    "prepack": "cp ../../LICENSE LICENSE && tsup",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest",
     "test:run": "vitest --run",
@@ -28,6 +66,7 @@
     "jsdom": "^26.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "tsup": "8.5.1",
     "typescript": "5.8.3",
     "vitest": "^3.2.0"
   },

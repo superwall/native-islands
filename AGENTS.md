@@ -97,12 +97,14 @@ Run only what your change touches; never a whole suite by hand.
 
 - JS tests: `bun run --cwd packages/web test:run test/<file>`
 - JS types: `bun run --cwd packages/web typecheck`
+- Web package build: `bun run --cwd packages/web build` (tsup, to `packages/web/dist`). Its exports point at `dist`; each also has a `source` condition that the workspace apps (Vite `resolve.conditions`, TS `customConditions`, `bun test --conditions source`) use to read `src`, so developing them needs no build. The `types` condition nests its own `source` too: TS takes the first condition that matches and oxfmt sorts `types` first, so a `source` beside it would never reach TS
+- Package checks: `bunx publint packages/web --strict`, `cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only`; the packed tarball in fresh Vite and Next.js apps: `scripts/pack-smoke.sh` (needs the npm registry)
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
-- Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test test`; in a browser `bun run --cwd examples/showcase dev`
+- Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test --conditions source test`; in a browser `bun run --cwd examples/showcase dev`
 - Islands app: `cd examples/ios && xcodegen -q && xcodebuild build -project Islands.xcodeproj -scheme Islands -destination 'generic/platform=iOS Simulator' -quiet`
 - UI tests on several simulators: `scripts/ui-tests.sh`, on every iOS major with `--runtimes 17.5,18.6,26.5,27.2`; record screenshots with `--record` only after a deliberate visual change (baselines are per iOS major)
 - Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`. What each iOS was proven on, and how versions differ, is in `docs/compatibility.md`
