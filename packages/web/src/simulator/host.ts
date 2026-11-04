@@ -180,7 +180,8 @@ const SIMULATED_REUSE_MS = 65_000;
 
 export const installNativeSimulator = (options: NativeSimulatorOptions = {}): NativeSimulator => {
   const global = hostWindow();
-  const document = window.document;
+  if (!global) throw new Error("The native simulator needs a browser window.");
+  const document = global.document;
   if (global.webkit?.messageHandlers?.[NATIVE_MESSAGE_HANDLER]) {
     throw new Error("A native host is already present; the simulator only runs in a browser.");
   }
