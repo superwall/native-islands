@@ -757,6 +757,21 @@ describe("default scheduler", () => {
     expect(post).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the first island in a container back when an update flushes on the next frame", async () => {
+    const frames = stubFrames();
+    const post = vi.fn();
+    const islands = reachedPage(post, frames);
+    islands.mount("b", spec({ anchor: scroller("s1") }));
+    islands.update("a", { props: { title: "Changed" } });
+    await Promise.resolve();
+    runFrames(frames);
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1]?.[0]).toMatchObject({ operations: [{ op: "update", id: "a" }] });
+    runFrames(frames);
+    expect(post).toHaveBeenCalledTimes(3);
+    expect(post.mock.calls[2]?.[0]).toMatchObject({ operations: [{ op: "mount", id: "b" }] });
+  });
+
   it("gives the first island in a container one more try when the host cannot find it", () => {
     const frames = stubFrames();
     const post = vi.fn();

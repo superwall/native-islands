@@ -167,6 +167,7 @@ type Island = {
   state: Record<string, unknown>;
   revision: number;
   early?: boolean;
+  held?: boolean;
 };
 
 type PendingCommand = {
@@ -309,10 +310,27 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
   // island goes when the current task ends, and the host draws it in the
   // frame it first appears. Either way, a host that still cannot find the
   // container gets one more try before the island falls back.
+  // Held islands stay out of every batch until their second frame, even one
+  // an update in the same commit schedules for the next frame.
+  let holding: Island[] = [];
+  const hold = (island: Island) => {
+    island.held = true;
+    holding.push(island);
+    if (holding.length > 1) return;
+    schedule(() => {
+      const released = holding;
+      holding = [];
+      schedule(() => {
+        for (const held of released) held.held = undefined;
+        flush();
+      });
+    });
+  };
+
   const requestMountFlush = (island: Island) => {
     if (options.schedule) return requestFlush();
     island.early = true;
-    if (!reached.has(containerOf(island.spec))) return schedule(requestFlush);
+    if (!reached.has(containerOf(island.spec))) return hold(island);
     if (mountDue) return;
     mountDue = true;
     queueMicrotask(() => {
@@ -374,6 +392,7 @@ export const createNativeIslands = (options: NativeIslandsOptions): NativeIsland
         );
         continue;
       }
+      if (!sent && island.held) continue;
       const revision = island.revision > 0 ? { state_revision: island.revision } : {};
       if (!sent) {
         const operation: TNativeOperation = withoutUndefined({
