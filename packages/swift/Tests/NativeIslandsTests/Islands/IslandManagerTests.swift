@@ -37,12 +37,14 @@ final class NativeTestHarness {
   var sent: [[NativeReply]] = []
   var scheduled: [@MainActor () -> Void] = []
   var retries: [@MainActor () -> Void] = []
+  let notifications = NotificationCenter()
   lazy var manager = NativeIslandManager(
     registry: registry,
     surface: surface,
     send: { [unowned self] replies in sent.append(replies) },
     schedule: { [unowned self] work in scheduled.append(work) },
-    retry: { [unowned self] work in retries.append(work) }
+    retry: { [unowned self] work in retries.append(work) },
+    notifications: notifications
   )
 
   var replies: [NativeReply] {

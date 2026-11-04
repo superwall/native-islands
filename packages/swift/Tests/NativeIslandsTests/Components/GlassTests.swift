@@ -15,6 +15,43 @@ private func glassHarness() -> NativeTestHarness {
   return harness
 }
 
+/// A scroller that notes each view taken out of it.
+private final class RecordingScroller: UIScrollView {
+  var removed: [UIView] = []
+
+  override func willRemoveSubview(_ subview: UIView) {
+    super.willRemoveSubview(subview)
+    removed.append(subview)
+  }
+}
+
+/// Two glass islands and a plain one in a recording scroller, shown in a window.
+@MainActor
+private func seatedHarness() -> (NativeTestHarness, RecordingScroller, UIWindow) {
+  let harness = glassHarness()
+  let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+  window.addSubview(harness.surface.viewport)
+  window.isHidden = false
+  let list = RecordingScroller(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+  list.contentSize = CGSize(width: 400, height: 1600)
+  harness.surface.pageScrollView.addSubview(list)
+  let anchor = scroller(
+    "screen",
+    frame: NativeFrame(x: 0, y: 0, width: 400, height: 800),
+    contentSize: NativeSize(width: 400, height: 1600)
+  )
+  harness.manager.apply(
+    batch(
+      1,
+      mountOp("a", props: ["title": .string("A")], anchor: anchor, order: 1),
+      mountOp("b", props: ["title": .string("B")], anchor: anchor, order: 2),
+      mountOp("plain", component: "toggle", props: [:], anchor: anchor, order: 3)
+    )
+  )
+  list.removed = []
+  return (harness, list, window)
+}
+
 extension NativeBridgeTests {
   @Suite
   @MainActor
@@ -109,6 +146,58 @@ extension NativeBridgeTests {
       group.contentView.addSubview(child)
       #expect(group.hitTest(CGPoint(x: 150, y: 150), with: nil) == nil)
       #expect(group.hitTest(CGPoint(x: 20, y: 20), with: nil) === child)
+    }
+
+    @Test
+    func glassIsPutBackInPlaceWhenTheAppIsActiveAgainAfterTheBackground() throws {
+      let (harness, scroller, window) = seatedHarness()
+      let glassA = try #require(harness.island("a")?.glassView)
+      let glassB = try #require(harness.island("b")?.glassView)
+      let order = scroller.subviews
+      harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.count == 2)
+      #expect(scroller.removed.contains { $0 === glassA })
+      #expect(scroller.removed.contains { $0 === glassB })
+      #expect(scroller.subviews == order)
+      #expect(glassA.window === window)
+      #expect(harness.island("plain")?.view.superview === scroller)
+    }
+
+    @Test
+    func becomingActiveWithoutTheBackgroundLeavesGlassAlone() {
+      let (harness, scroller, _) = seatedHarness()
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.isEmpty)
+      harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.count == 2)
+    }
+
+    @Test
+    func slidingGlassAndGlassOutOfAWindowAreLeftAlone() throws {
+      let (harness, scroller, window) = seatedHarness()
+      let motion = NativeMotion(
+        keyframes: [.init(offset: 0, x: 402, y: 0), .init(offset: 1, x: 0, y: 0)],
+        duration: 500
+      )
+      harness.manager.apply(
+        batch(2, .update(NativeUpdate(id: "a", frame: NativeFrame(x: 0, y: 0, width: 100, height: 44), motion: motion)))
+      )
+      scroller.removed = []
+      harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      let glassB = try #require(harness.island("b")?.glassView)
+      #expect(scroller.removed.count == 1)
+      #expect(scroller.removed.first === glassB)
+
+      window.isHidden = true
+      harness.surface.viewport.removeFromSuperview()
+      scroller.removed = []
+      harness.notifications.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+      harness.notifications.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+      #expect(scroller.removed.isEmpty)
     }
 
     @Test
