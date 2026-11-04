@@ -6,11 +6,19 @@ import SwiftUI
 /// `imagery`, `realistic` raises terrain and buildings, and `showsUser` asks
 /// for location to show the user. Tapping a marker sends `select`; when the
 /// page selects one, the map flies to it. Moving the map sends `regionChange`.
-@available(iOS 26.0, *)
 struct MapView: View {
   @ObservedObject var component: NativeComponentContext
-  @State private var position: MapCameraPosition = .automatic
-  @State private var selection: String?
+
+  var body: some View {
+    Group {
+      if #available(iOS 17.0, *) {
+        MapKitMap(component: component)
+      } else {
+        MapKitViewMap(component: component)
+      }
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+  }
 
   struct Place: Identifiable {
     let id: String
@@ -29,10 +37,17 @@ struct MapView: View {
       coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
   }
+}
+
+@available(iOS 17.0, *)
+private struct MapKitMap: View {
+  @ObservedObject var component: NativeComponentContext
+  @State private var position: MapCameraPosition = .automatic
+  @State private var selection: String?
 
   var body: some View {
     let props = component.props
-    let places = (props["places"] as? [Any] ?? []).compactMap(Place.init)
+    let places = (props["places"] as? [Any] ?? []).compactMap(MapView.Place.init)
     let showsUser = props.bool("showsUser") == true
     Map(position: $position, selection: $selection) {
       ForEach(places) { place in
@@ -52,20 +67,19 @@ struct MapView: View {
         MapUserLocationButton()
       }
     }
-    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     .onAppear { selection = props.string("selectedId") }
-    .onChange(of: selection) { _, next in
+    .onChangeOf(selection) { next in
       guard next != component.props.string("selectedId") else { return }
       component.emit("select", payload: ["id": next.map { $0 as Any } ?? NSNull()])
     }
-    .onChange(of: props.string("selectedId")) { _, next in
+    .onChangeOf(props.string("selectedId")) { next in
       selection = next
       guard let place = places.first(where: { $0.id == next }) else { return }
-      withAnimation(.smooth(duration: 1.2)) {
+      withAnimation(.smoothly(duration: 1.2)) {
         position = .camera(MapCamera(centerCoordinate: place.coordinate, distance: 1_800, heading: 0, pitch: 55))
       }
     }
-    .onChange(of: showsUser) { _, next in
+    .onChangeOf(showsUser) { next in
       guard next else { return }
       Task { await LocationAuthorization.shared.request() }
     }

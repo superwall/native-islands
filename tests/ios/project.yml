@@ -2,7 +2,7 @@ name: TestHost
 options:
   bundleIdPrefix: com.superwall.nativeislands
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "16.0"
 packages:
   NativeIslands:
     path: ../..

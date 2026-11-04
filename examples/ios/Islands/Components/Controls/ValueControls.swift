@@ -2,7 +2,6 @@ import NativeIslands
 import SwiftUI
 
 /// A slider whose value is state: the page follows every step.
-@available(iOS 26.0, *)
 struct SliderView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -48,7 +47,6 @@ struct SliderView: View {
 }
 
 /// The plus and minus pill; its value is state.
-@available(iOS 26.0, *)
 struct StepperView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -72,7 +70,6 @@ struct StepperView: View {
 }
 
 /// A picker in one of SwiftUI's styles; the selected index is state.
-@available(iOS 26.0, *)
 struct PickerView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -102,7 +99,6 @@ struct PickerView: View {
 }
 
 /// A date picker; the date is state, as local `yyyy-MM-dd'T'HH:mm`.
-@available(iOS 26.0, *)
 struct DatePickerView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -143,7 +139,6 @@ struct DatePickerView: View {
 }
 
 /// The system colour well; the colour is state, as `#rrggbb`.
-@available(iOS 26.0, *)
 struct ColorPickerView: View {
   @ObservedObject var component: NativeComponentContext
 

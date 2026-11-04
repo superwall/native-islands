@@ -3,7 +3,6 @@ import SwiftUI
 
 /// A glass button that opens a system menu. The page lists the items, nested
 /// to make submenus; choosing one sends `select` with its id.
-@available(iOS 26.0, *)
 struct MenuView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -93,7 +92,6 @@ struct MenuView: View {
 /// A text field whose text is state. `kind` picks the keyboard: `email`,
 /// `number` or `secure`. Return sends `submit`; the page can send `focus`
 /// and `blur`.
-@available(iOS 26.0, *)
 struct TextFieldView: View {
   @ObservedObject var component: NativeComponentContext
   @FocusState private var focused: Bool
@@ -122,7 +120,7 @@ struct TextFieldView: View {
     .font(.body)
     .tint(props.color("tint"))
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    .onChange(of: focused) { _, next in
+    .onChangeOf(focused) { next in
       component.emit("focusChange", payload: ["focused": next])
     }
     .onAppear {

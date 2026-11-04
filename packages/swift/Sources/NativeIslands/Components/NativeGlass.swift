@@ -77,9 +77,17 @@ final class NativeGlassView: UIVisualEffectView {
     }
     #endif
     // Before Liquid Glass, a tinted glass control is drawn the way UIKit
-    // draws a prominent button: filled with its tint.
+    // draws a prominent button: filled with its tint. An untinted one gets the
+    // hairline UIKit's floating bars have, or a material over the page's own
+    // grouped background could not be told from it.
     contentView.backgroundColor = glass.tint
+    layer.borderWidth = glass.tint == nil ? 1 / max(1, traitCollection.displayScale) : 0
     clipsToBounds = true
+    setNeedsLayout()
+  }
+
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
     setNeedsLayout()
   }
 
@@ -88,6 +96,7 @@ final class NativeGlassView: UIVisualEffectView {
     #if !os(visionOS)
     if #available(iOS 26.0, *) { return }
     #endif
+    layer.borderColor = UIColor.separator.resolvedColor(with: traitCollection).cgColor
     let radius = Self.cornerRadius(for: glass.shape, in: bounds.size)
     for corners in [layer, contentView.layer] {
       corners.cornerRadius = radius

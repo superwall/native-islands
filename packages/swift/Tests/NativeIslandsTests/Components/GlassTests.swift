@@ -314,11 +314,14 @@ extension NativeBridgeTests {
       #expect(view.contentView.layer.cornerRadius == 22)
       #expect(view.layer.cornerCurve == .continuous)
       #expect(view.contentView.backgroundColor == .red)
+      #expect(view.layer.borderWidth == 0)
 
       view.apply(NativeGlass(shape: .rounded(8)))
       view.layoutIfNeeded()
       #expect(view.layer.cornerRadius == 8)
       #expect(view.contentView.backgroundColor == nil)
+      #expect(view.layer.borderWidth > 0)
+      #expect(view.layer.borderColor == UIColor.separator.resolvedColor(with: view.traitCollection).cgColor)
 
       view.isSliding = true
       #expect(view.effect is UIBlurEffect)

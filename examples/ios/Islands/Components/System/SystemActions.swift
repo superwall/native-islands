@@ -20,7 +20,6 @@ enum Presenter {
 
 /// The label of a glass button whose action happens natively: a symbol and
 /// a title, drawn like `GlassButtonView`.
-@available(iOS 26.0, *)
 struct GlassActionLabel: View {
   let props: NativeComponentProps
 
@@ -45,7 +44,6 @@ struct GlassActionLabel: View {
 /// A glass button that plays haptic feedback the moment it is pressed, with no
 /// round trip to the page. `feedback` is an impact (`light`, `medium`, `heavy`,
 /// `soft`, `rigid`), a notification (`success`, `warning`, `error`) or `selection`.
-@available(iOS 26.0, *)
 struct HapticButtonView: View {
   @ObservedObject var component: NativeComponentContext
 
@@ -78,7 +76,6 @@ struct HapticButtonView: View {
 
 /// A glass button that opens the system share sheet with the page's `text` and
 /// `url`, and sends `complete` with the activity chosen, or `null` if cancelled.
-@available(iOS 26.0, *)
 struct ShareButtonView: View {
   @ObservedObject var component: NativeComponentContext
 

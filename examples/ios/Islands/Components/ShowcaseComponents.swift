@@ -9,7 +9,6 @@ enum ShowcaseComponents {
 
   @MainActor
   static func register(in registry: NativeComponentRegistry = .shared) {
-    guard #available(iOS 26.0, *) else { return }
     let glassButton = DefaultComponents.glassButtonGlass
     add("glassButton", in: registry, glass: glassButton) { GlassButtonView(component: $0) }
     add("closeButton", in: registry, glass: DefaultComponents.closeButtonGlass) { CloseButtonView(component: $0) }

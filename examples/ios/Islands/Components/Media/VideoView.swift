@@ -124,7 +124,6 @@ struct PlayerLayerRepresentable: UIViewRepresentable {
 /// A video the page names by `url`, drawn by AVFoundation with native glass
 /// controls and Picture in Picture. It sends `status` as playback changes and
 /// takes `play`, `pause` and `pictureInPicture` commands.
-@available(iOS 26.0, *)
 struct VideoView: View {
   @ObservedObject var component: NativeComponentContext
   @StateObject private var playback = VideoPlayback()
@@ -156,10 +155,10 @@ struct VideoView: View {
         return nil
       }
     }
-    .onChange(of: component.props.string("url")) { _, next in
+    .onChangeOf(component.props.string("url")) { next in
       playback.load(next.flatMap(URL.init(string:)))
     }
-    .onChange(of: status) { _, next in
+    .onChangeOf(status) { next in
       component.emit("status", payload: next)
     }
   }
@@ -179,7 +178,7 @@ struct VideoView: View {
         playback.playing ? playback.pause() : playback.play()
       } label: {
         Image(systemName: playback.playing ? "pause.fill" : "play.fill")
-          .contentTransition(.symbolEffect(.replace))
+          .symbolReplaceTransition()
           .frame(width: 22)
       }
       Text(Self.clock(playback.time))
@@ -206,7 +205,7 @@ struct VideoView: View {
     .buttonStyle(.plain)
     .padding(.horizontal, 14)
     .padding(.vertical, 8)
-    .glassEffect(.regular.tint(.black.opacity(0.2)).interactive(), in: Capsule())
+    .glassOrMaterial(in: Capsule(), tint: .black.opacity(0.2))
   }
 
   static func clock(_ seconds: Double) -> String {
