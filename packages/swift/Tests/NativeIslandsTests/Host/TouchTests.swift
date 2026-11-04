@@ -102,7 +102,7 @@ extension NativeBridgeTests {
     }
 
     @Test
-    func scrollingOrAFocusedFieldDoesNotReattachTheHostingView() throws {
+    func scrollingOrAFocusedFieldDoesNotReattachTheHostingViewUntilTheFieldLetsGo() throws {
       let harness = NativeTestHarness()
       let list = harness.surface.addScroller(
         frame: CGRect(x: 0, y: 100, width: 300, height: 200),
@@ -126,6 +126,12 @@ extension NativeBridgeTests {
       window.makeKeyAndVisible()
       let island = try #require(harness.island("card"))
       _ = island.reattachHostIfMoved()
+      let wantsReattach: Bool
+      if #available(iOS 18.0, *) {
+        wantsReattach = false
+      } else {
+        wantsReattach = true
+      }
 
       list.contentOffset = CGPoint(x: 0, y: 120)
       #expect(!island.reattachHostIfMoved())
@@ -139,6 +145,8 @@ extension NativeBridgeTests {
       #expect(NativeIsland.holdsFirstResponder(island.host.view))
       field.resignFirstResponder()
       #expect(!NativeIsland.holdsFirstResponder(island.host.view))
+      #expect(island.reattachHostIfMoved() == wantsReattach)
+      #expect(!island.reattachHostIfMoved())
     }
   }
 

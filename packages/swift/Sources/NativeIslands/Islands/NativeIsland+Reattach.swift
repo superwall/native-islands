@@ -6,16 +6,16 @@ extension NativeIsland {
   /// layer far above the island, so its controls would take no taps there;
   /// attaching the hosting view again makes SwiftUI place it anew. Scrolling
   /// is not such a move, and a host holding the first responder is left alone,
-  /// since leaving the window would end its editing. Returns whether it did.
+  /// since leaving the window would end its editing; the move stays pending
+  /// until the next touch after it lets go. Returns whether it did.
   @discardableResult
   func reattachHostIfMoved() -> Bool {
     if #available(iOS 18.0, *) { return false }
     guard host.view.window != nil, let parent = host.view.superview,
           let index = parent.subviews.firstIndex(of: host.view) else { return false }
     let origin = Self.unscrolledOrigin(of: host.view)
-    guard origin != attachedOrigin else { return false }
+    guard origin != attachedOrigin, !Self.holdsFirstResponder(host.view) else { return false }
     attachedOrigin = origin
-    guard !Self.holdsFirstResponder(host.view) else { return false }
     host.view.removeFromSuperview()
     parent.insertSubview(host.view, at: index)
     return true
