@@ -21,26 +21,27 @@ Islands, the same page shows its web version.
 > between page and app, and the APIs on both sides, will change between
 > versions. Read [Where it stands](#where-it-stands) before you build on it.
 
-## Why we built this
+## Web or native
 
-Most teams that have a web product and an iOS app make the same trade-off at
-some point.
+An app with a web product behind it usually has to choose how to build each
+screen.
 
-One option is to ship the web product inside a web view. The app reuses all of
-the React code, the components and the release process. The downside is that
-it looks like a web view. The buttons don't have the system's glass, the
-switches don't respond like switches, and users notice.
+It can show the web page in a web view. The app reuses all of the React code,
+the components and the release process, but the screen looks like a web page.
+The buttons don't have the system's glass, the switches don't respond like
+switches, and users notice.
 
-The other option is to build the screens natively, in Swift or React Native.
-They look right, but now there is a second codebase. Every screen is built
-twice, and someone has to keep both versions in sync. React Native narrows the
-gap but doesn't close it: you give up the DOM and CSS, and with them most of
-the web packages you already depend on.
+Or it can build the screen natively, in Swift or React Native. The screen looks
+right, but now there is a second codebase. Every screen is built twice, and
+someone has to keep both versions in sync. React Native narrows the gap but
+doesn't close it: you give up the DOM and CSS, and with them most of the web
+packages you already depend on.
 
-We wanted a third option: keep the page a web page and make only the important
-elements native. With Native Islands, the page can use any React code, any CSS
-and any library, and it deploys the way it does today. The elements you mark
-are drawn by UIKit and SwiftUI, not imitated in CSS, and a Liquid Glass button
+Native Islands removes the choice. The page stays a web page and only the
+elements that matter are native. It can use any React code, any CSS and any
+library, and it deploys the way it does today. That holds for one screen, such
+as a sign-up flow or a checkout, or for a whole app. The elements you mark are
+drawn by UIKit and SwiftUI, not imitated in CSS, and a Liquid Glass button
 samples the actual page content behind it.
 
 ```tsx
@@ -460,8 +461,12 @@ You can use, modify and ship it in your own apps and products for any purpose
 except a competing use: a commercial product or service that substitutes for
 Native Islands, or for a Superwall product built on it, or that offers
 substantially the same functionality. Each release becomes available under the
-MIT license two years after it is published. FSL is a
-[Fair Source](https://fair.io) license, not an OSI-approved open source
-license.
+MIT license two years after it is published.
+
+Because of the competing-use limit, FSL is not an open source license in the
+sense the [Open Source Initiative](https://opensource.org/osd) defines, which
+allows no limits on who may use the code or for what. It belongs to
+[Fair Source](https://fair.io), a group of licenses that publish the source and
+allow almost any use, as Sentry and Codecov do with theirs.
 
 Copyright 2026 Superwall, Inc.
