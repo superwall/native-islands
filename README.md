@@ -215,18 +215,17 @@ Pro with iOS 27.2, taking the median of three runs:
 
 | Islands | Page shown, every island drawn | Memory per island | Dropped frames while scrolling | One full relayout (JS) |
 | ------: | -----------------------------: | ----------------: | -----------------------------: | ---------------------: |
-|      10 |                         220 ms |            962 KB |                              0 |                18.8 ms |
-|      50 |                         318 ms |            431 KB |                              0 |                46.4 ms |
-|     100 |                         414 ms |            360 KB |                              0 |                80.3 ms |
+|      10 |                         165 ms |            971 KB |                              0 |                 8.8 ms |
+|      50 |                         247 ms |            421 KB |                              0 |                19.3 ms |
+|     100 |                         483 ms |            357 KB |                              0 |                37.9 ms |
 
 "Page shown" is the time from creating the web view to revealing the page with
 every island drawn. Scrolling, sticky elements and page transitions don't get
 slower as islands are added, because UIKit moves the views. Each island after
-the tenth adds about 300 KB of app memory. The cost that does grow is a full
-relayout of the page, at about 0.8 ms of main-thread JavaScript per island.
-That fits within one frame for a few dozen islands and takes about five frames
-for 100. We're currently reworking how islands mount, so the first number will
-change. [`docs/performance.md`](docs/performance.md) defines each measurement
+the tenth adds about 290 KB of app memory. The cost that does grow is a full
+relayout of the page, at about 0.32 ms of main-thread JavaScript per island.
+That fits within one frame for up to about 30 islands and takes a bit over two
+frames for 100. [`docs/performance.md`](docs/performance.md) defines each measurement
 and explains how to repeat it on your own phone.
 
 ## Where it stands
@@ -242,7 +241,7 @@ These are the limits we know of today. None of them blocks a typical page:
   width animated, gets a new message on each frame, so its native view can be
   one frame behind while it moves. Scrolling, sticky elements and page slides
   aren't affected.
-- A full relayout costs about 0.8 ms per island on an iPhone 18 Pro (see
+- A full relayout costs about 0.32 ms per island on an iPhone 18 Pro (see
   [Performance](#performance)). On pages with many islands, avoid animating
   layout.
 - An island inside a 3D transform, a filter or a clip path shows its web
