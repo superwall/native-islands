@@ -13,9 +13,12 @@ Open an issue with:
 - what you expected and what you saw, with a screenshot or recording when the
   problem is visual.
 
-Layout bugs are easiest to fix with the alignment log: run the TestHost app
-with `-pagesURL http://<your-mac>:5173/` and it logs each native frame beside
-its DOM rect.
+Layout bugs are easiest to fix with the alignment log. Start the scenario
+pages with `bun run --cwd tests/pages dev`, then run a Debug build of the
+TestHost app (`tests/ios`) with the launch arguments
+`-pagesURL http://<your-mac>:5173/ -NativeIslandsAlignmentLog YES`. The first
+loads your pages from the dev server; the second logs each native frame beside
+its DOM rect in the Xcode console. Add `-route <name>` to open one page.
 
 ## Setting up
 

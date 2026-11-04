@@ -146,6 +146,10 @@ app runs the same slide in Core Animation.
 The page can't describe 3D transforms, filters or clip paths this way, so an
 island inside one of those shows its web version.
 
+Each of these is a feature the host offers in its capability.
+[`docs/host-features.md`](docs/host-features.md) lists them with exactly what
+the page sends for each.
+
 ### No flash of the web version
 
 Users should never see the web version of a button and then the native one.
@@ -155,6 +159,8 @@ appears. Pages that are rendered but not yet visible, such as the next step of
 a flow, mount their islands ahead of time, so they slide in already native. An
 island that comes back, such as a search result that reappears, reuses its
 existing native view instead of creating a new one.
+[`docs/host-features.md`](docs/host-features.md) has the rules for reuse and
+for pages that wait off screen.
 
 ### Public API only, with a web fallback
 

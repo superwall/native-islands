@@ -71,7 +71,9 @@ scripts/                simulator helpers, parallel UI test runs and the
                         iOS runtime matrix with its WebKit view-tree diff
 docs/                   compatibility.md, what each iOS was proven on;
                         performance.md, device numbers and how to measure
-                        them; assets/ the images the README shows
+                        them; host-features.md, the feature names, reuse
+                        limits and test thresholds; assets/ the images
+                        the README shows
 LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
