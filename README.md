@@ -115,7 +115,13 @@ and has one purpose:
 | **requests** | native → page, with a reply  | The native view asks the page something and waits for the reply. | "is this email valid?" |
 | **commands** | page → native, with a result | The page tells the native view to act and waits for the result.  | `focus`, `reset`       |
 
-A component declares only the kinds it uses:
+A value the user owns is state, and a moment is an event. A switch's on/off,
+a slider's position and the text in a field are state: the app keeps the
+latest value, and a stale echo from the page can't move the control back.
+A press, a submit or a selection is an event.
+
+A component declares only the kinds it uses, and the page handles every
+message from native with an `on…` prop:
 
 ```tsx
 const SignupForm = defineNativeComponent<{
@@ -125,7 +131,23 @@ const SignupForm = defineNativeComponent<{
   requests: { validateEmail: { payload: { email: string }; result: { error?: string } } };
   commands: { focus: { args: void; result: void } };
 }>("signupForm");
+
+<SignupForm
+  ref={form}
+  title="Join"
+  onSubmit={({ email }) => send(email)}
+  onEmailChange={(email) => setDraft(email)}
+  onValidateEmail={({ email }) => ({ error: valid(email) ? undefined : "Check it" })}
+>
+  <WebSignupForm />
+</SignupForm>;
+
+await form.current?.command("focus");
 ```
+
+An event `submit` becomes `onSubmit`, a state key `email` becomes
+`onEmailChange`, and a request `validateEmail` becomes `onValidateEmail`,
+whose return value, or a promise of it, is the reply.
 
 ### Motion without a message per frame
 
