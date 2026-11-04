@@ -118,6 +118,35 @@ extension NativeIslandManager {
     }
   }
 
+  /// A new island in a scroller the host already draws in mounts there at
+  /// once. Rows that come back grow the scroller before WebKit grows its
+  /// scroll view, so for a frame or more no scroll view matches the page's
+  /// content size, yet the scroller's other islands show which one it is.
+  func mountContainer(
+    for anchor: NativeAnchor,
+    in surface: NativeHostSurface,
+    besides extra: NativeIsland? = nil
+  ) -> UIView? {
+    container(for: anchor, in: surface) ?? knownContainer(for: anchor, in: surface, besides: extra)
+  }
+
+  func knownContainer(
+    for anchor: NativeAnchor,
+    in surface: NativeHostSurface,
+    besides extra: NativeIsland? = nil
+  ) -> UIView? {
+    guard case .scroller(let scroller) = anchor else { return nil }
+    let candidates = [extra].compactMap { $0 } + Array(islands.values) + retired.values.map(\.island)
+    for island in candidates {
+      guard case .scroller(let other) = island.anchor, other.id == scroller.id,
+        let container = island.container as? UIScrollView,
+        container !== surface.pageScrollView, container.isDescendant(of: surface.pageScrollView)
+      else { continue }
+      return container
+    }
+    return nil
+  }
+
   func holdsIslands(of scrollView: UIView, otherThan scrollerID: String) -> Bool {
     islands.values.contains { island in
       guard island.container === scrollView, case .scroller(let other) = island.anchor else { return false }

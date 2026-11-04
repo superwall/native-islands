@@ -136,6 +136,51 @@ extension NativeBridgeTests {
       #expect(harness.island("cta")?.view.superview !== other)
     }
 
+    @Test("Mounts a new island into its scroller's scroll view before WebKit grows it")
+    func mountsIntoTheKnownScrollViewBeforeItGrows() {
+      let harness = NativeTestHarness()
+      let list = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      let frame = NativeFrame(x: 0, y: 100, width: 400, height: 600)
+      harness.manager.apply(
+        batch(1, mountOp("first", anchor: scroller(frame: frame, contentSize: NativeSize(width: 400, height: 900))))
+      )
+      #expect(harness.island("first")?.view.superview === list)
+
+      let grown = scroller(frame: frame, contentSize: NativeSize(width: 400, height: 2000))
+      harness.manager.apply(
+        batch(
+          2,
+          mountOp("back", frame: NativeFrame(x: 10, y: 1200, width: 40, height: 40), anchor: grown)
+        )
+      )
+      #expect(harness.manager.parked.isEmpty)
+      #expect(harness.retries.isEmpty)
+      #expect(harness.island("back")?.view.superview === list)
+      #expect(harness.island("back")?.view.frame == CGRect(x: 10, y: 1200, width: 40, height: 40))
+    }
+
+    @Test("Still waits for the scroll view of a scroller none of its islands lives in yet")
+    func waitsForAScrollerWithNoIslandsYet() {
+      let harness = NativeTestHarness()
+      let list = harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 600),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      let frame = NativeFrame(x: 0, y: 100, width: 400, height: 600)
+      harness.manager.apply(
+        batch(1, mountOp("first", anchor: scroller(frame: frame, contentSize: NativeSize(width: 400, height: 900))))
+      )
+      #expect(harness.island("first")?.view.superview === list)
+
+      let other = scroller("other", frame: frame, contentSize: NativeSize(width: 400, height: 2000))
+      harness.manager.apply(batch(2, mountOp("next", anchor: other)))
+      #expect(harness.island("next") == nil)
+      #expect(harness.manager.parked["next"] != nil)
+    }
+
     @Test
     func takesTheNearestFarScrollViewOnceItStopsWaiting() {
       let harness = NativeTestHarness()
