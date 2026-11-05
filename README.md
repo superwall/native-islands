@@ -320,18 +320,9 @@ style.
 
 ## License
 
-Native Islands is released under the
-[Functional Source License 1.1, MIT Future License](LICENSE) (FSL-1.1-MIT).
-You can use, modify and ship it in your own apps and products for any purpose
-except a competing use: a commercial product or service that substitutes for
-Native Islands, or for a Superwall product built on it, or that offers
-substantially the same functionality. Each release becomes available under the
-MIT license two years after it is published.
-
-Because of the competing-use limit, FSL is not an open source license in the
-sense the [Open Source Initiative](https://opensource.org/osd) defines, which
-allows no limits on who may use the code or for what. It belongs to
-[Fair Source](https://fair.io), a group of licenses that publish the source and
-allow almost any use, as Sentry and Codecov do with theirs.
+[FSL-1.1-MIT](LICENSE). Use it, change it and ship it in your apps, free. The
+one thing you can't do is build a competing product out of it. Two years after
+each release, that release becomes plain MIT. Because of that one limit, it isn't OSI open
+source.
 
 Copyright 2026 Superwall, Inc.
