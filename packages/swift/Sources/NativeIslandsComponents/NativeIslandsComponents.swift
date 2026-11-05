@@ -1,8 +1,12 @@
 import NativeIslands
 import SwiftUI
+import TipKit
 
 /// Ready-made native islands for the controls a web page needs, each under the
-/// name its `native-islands/components` twin on the page uses.
+/// name its `native-islands/components` twin on the page uses. None of them
+/// needs an Info.plist key; the map, the camera and permission prompts, which
+/// do, are in `NativeIslandsMaps`, `NativeIslandsCamera` and
+/// `NativeIslandsPermissions`.
 public enum NativeIslandsComponents {
   public enum Component: String, CaseIterable, Sendable {
     case glassButton
@@ -19,6 +23,12 @@ public enum NativeIslandsComponents {
     case symbol
     case symbolEffect
     case gauge
+    case chart
+    case video
+    case photoPicker
+    case shareButton
+    case hapticButton
+    case tip
 
     /// The name pages mount it by.
     public var name: String { rawValue }
@@ -26,17 +36,22 @@ public enum NativeIslandsComponents {
     /// Whether this iOS can draw it; one it cannot is not offered, so the
     /// page keeps its web version.
     public var isAvailable: Bool {
-      guard self == .gauge else { return true }
-      if #available(iOS 16.0, *) {
+      switch self {
+      case .gauge, .chart:
+        if #available(iOS 16.0, *) { return true }
+        return false
+      case .tip:
+        if #available(iOS 17.0, *) { return true }
+        return false
+      default:
         return true
       }
-      return false
     }
 
     @MainActor
     var glass: (@MainActor (NativeComponentProps) -> NativeGlass?)? {
       switch self {
-      case .glassButton, .menu: NativeIslandsComponents.buttonGlass
+      case .glassButton, .menu, .photoPicker, .shareButton, .hapticButton: NativeIslandsComponents.buttonGlass
       case .closeButton: NativeIslandsComponents.closeButtonGlass
       default: nil
       }
@@ -67,19 +82,35 @@ public enum NativeIslandsComponents {
         if #available(iOS 16.0, *) {
           GaugeView(component: context)
         }
+      case .chart:
+        if #available(iOS 16.0, *) {
+          ChartView(component: context)
+        }
+      case .video: VideoView(component: context)
+      case .photoPicker: PhotoPickerView(component: context)
+      case .shareButton: ShareButtonView(component: context)
+      case .hapticButton: HapticButtonView(component: context)
+      case .tip:
+        if #available(iOS 17.0, *) {
+          TipIslandView(component: context)
+        }
       }
     }
   }
 
   /// Registers `components`, all of them by default. Register before attaching
   /// a host; a component the app registers under the same name afterwards
-  /// replaces the built-in one.
+  /// replaces the built-in one. With `tip`, it also calls `Tips.configure()`
+  /// unless the app configured TipKit already.
   @MainActor
   public static func register(
     in registry: NativeComponentRegistry? = nil,
     only components: Set<Component> = Set(Component.allCases)
   ) {
     let registry = registry ?? .shared
+    if components.contains(.tip), #available(iOS 17.0, *) {
+      try? Tips.configure()
+    }
     for component in Component.allCases where components.contains(component) && component.isAvailable {
       registry.register(component.name, glass: component.glass) { context in
         ComponentView(component: component, context: context)

@@ -180,3 +180,176 @@ export const NativeGauge = defineNativeComponent<{
     tint?: string;
   };
 }>("gauge", { colorProps: ["tint"] });
+
+export type ChartKind = "bar" | "line" | "area" | "point";
+
+/** An x value: a label on a `category` axis, a number, or an ISO 8601 date such as `2026-11-04`. */
+export type ChartX = string | number;
+
+export type ChartSeries = {
+  id: string;
+  /** The name in the legend. Defaults to `id`. */
+  name?: string;
+  /** The mark of this series. Defaults to the chart's `kind`. */
+  kind?: ChartKind;
+  /** Hex (`#ff9500`), `rgb()` or a `var(--token)` holding one. Defaults to the tint, then a palette. */
+  color?: string;
+  points: readonly { x: ChartX; y: number }[];
+};
+
+export type ChartXAxis = { type?: "category" | "number" | "date"; title?: string };
+
+export type ChartYAxis = {
+  title?: string;
+  min?: number;
+  max?: number;
+  /** `percent` writes 0.25 as 25%; `currency` uses `currency`, USD by default. */
+  format?: "number" | "percent" | "currency";
+  currency?: string;
+};
+
+/** The x under the finger, as the page wrote it, and each series' value there; `x` is null on release. */
+export type ChartSelection = { x: ChartX | null; values: readonly { series: string; y: number }[] };
+
+export const NativeChart = defineNativeComponent<{
+  props: {
+    series: readonly ChartSeries[];
+    kind?: ChartKind;
+    xAxis?: ChartXAxis;
+    yAxis?: ChartYAxis;
+    stacked?: boolean;
+    smooth?: boolean;
+    legend?: boolean;
+    tint?: string;
+  };
+  events: { select: ChartSelection };
+}>("chart", { colorProps: ["tint"] });
+
+export type VideoStatus = {
+  playing: boolean;
+  time: number;
+  duration: number;
+  pictureInPicture: boolean;
+};
+
+export type VideoCommands = {
+  play: { args: undefined; result: void };
+  pause: { args: undefined; result: void };
+  pictureInPicture: { args: undefined; result: void };
+};
+
+export const NativeVideo = defineNativeComponent<{
+  props: { url: string };
+  events: { status: VideoStatus };
+  commands: VideoCommands;
+}>("video");
+
+type ActionButton = GlassGroup & {
+  title?: string;
+  systemImage?: string;
+  prominence?: Prominence;
+  tint?: string;
+};
+
+export const NativePhotoPicker = defineNativeComponent<{
+  props: ActionButton & { limit: number };
+  /** The photos chosen, in order, as JPEG data URLs. */
+  events: { pick: { images: readonly string[] } };
+}>("photoPicker", { colorProps: ["tint"] });
+
+export type HapticFeedback =
+  | "light"
+  | "medium"
+  | "heavy"
+  | "soft"
+  | "rigid"
+  | "success"
+  | "warning"
+  | "error"
+  | "selection";
+
+export const NativeHapticButton = defineNativeComponent<{
+  props: ActionButton & { feedback: HapticFeedback };
+  events: { press: undefined };
+}>("hapticButton", { colorProps: ["tint"] });
+
+export const NativeShareButton = defineNativeComponent<{
+  props: ActionButton & { text?: string; url?: string };
+  /** The activity chosen, such as `com.apple.UIKit.activity.CopyToPasteboard`, or null if cancelled. */
+  events: { complete: { activity: string | null } };
+}>("shareButton", { colorProps: ["tint"] });
+
+export type TipAction = { id: string; title: string };
+
+export type TipArrowEdge = "top" | "bottom" | "leading" | "trailing";
+
+/**
+ * TipKit's inline tip. Its web version sets its size; once TipKit stops
+ * showing it (`shown: false`), the web version collapses so it takes no room.
+ */
+export const NativeTip = defineNativeComponent<{
+  props: {
+    /** Names the tip: TipKit remembers across launches that it was closed. */
+    id: string;
+    title: string;
+    message?: string;
+    systemImage?: string;
+    actions?: readonly TipAction[];
+    arrowEdge?: TipArrowEdge;
+    tint?: string;
+  };
+  events: { action: { id: string }; dismiss: undefined };
+  state: { shown: boolean };
+  commands: { invalidate: { args: undefined; result: void } };
+}>("tip", { colorProps: ["tint"] });
+
+export type MapStyle = "standard" | "hybrid" | "imagery";
+
+export type MapPlace = {
+  id: string;
+  title: string;
+  latitude: number;
+  longitude: number;
+  symbol?: string;
+};
+
+export type MapRegion = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
+
+/** Registered by `NativeIslandsMaps`. */
+export const NativeMap = defineNativeComponent<{
+  props: {
+    places: readonly MapPlace[];
+    style: MapStyle;
+    realistic?: boolean;
+    showsUser?: boolean;
+    selectedId?: string;
+    tint?: string;
+  };
+  events: { select: { id: string | null }; regionChange: MapRegion };
+}>("map", { colorProps: ["tint"] });
+
+export type CameraState = "starting" | "running" | "unavailable" | "denied";
+
+/** Registered by `NativeIslandsCamera`. */
+export const NativeCamera = defineNativeComponent<{
+  /** The camera runs only while `running`, so a hidden screen holds no camera. */
+  props: { position: "back" | "front"; running: boolean };
+  events: { status: { state: CameraState } };
+  /** A photo of the live camera as a JPEG data URL. */
+  commands: { capture: { args: undefined; result: { image: string } } };
+}>("camera");
+
+export type PermissionKind = "camera" | "microphone" | "location" | "photos" | "notifications";
+
+export type PermissionStatus = "notDetermined" | "granted" | "limited" | "denied" | "restricted";
+
+/** Registered by `NativeIslandsPermissions`. Sized by its native view: Allow, Settings and Allowed differ in width. */
+export const NativePermission = defineNativeComponent<{
+  props: { kind: PermissionKind; tint?: string };
+  state: { status: PermissionStatus };
+}>("permission", { sizing: "native", colorProps: ["tint"] });

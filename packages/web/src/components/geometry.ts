@@ -45,3 +45,41 @@ export const cssVariables = (
   }
   return style;
 };
+
+/** A round axis maximum at or above the largest value: 1, 2 or 5 times a power of ten. */
+export const niceMaximum = (values: readonly number[]): number => {
+  const largest = Math.max(0, ...values);
+  if (largest === 0) return 1;
+  const power = 10 ** Math.floor(Math.log10(largest));
+  const step = [1, 2, 5].find((factor) => factor * power >= largest) ?? 10;
+  return step * power;
+};
+
+/** The index of the slot under `x` when `count` equal slots fill `width`. */
+export const slotAt = (x: number, width: number, count: number): number | undefined => {
+  if (count <= 0 || width <= 0 || x < 0 || x > width) return;
+  return clamp(Math.floor((x / width) * count), 0, count - 1);
+};
+
+/**
+ * Where each place sits on the map's web version, as percentages of its box:
+ * the places' bounding box fitted inside `margin` of each edge, north up.
+ */
+export const projectPlaces = (
+  places: readonly { id: string; latitude: number; longitude: number }[],
+  margin = 15,
+): { id: string; x: number; y: number }[] => {
+  if (places.length === 0) return [];
+  const latitudes = places.map((place) => place.latitude);
+  const longitudes = places.map((place) => place.longitude);
+  const [south, north] = [Math.min(...latitudes), Math.max(...latitudes)];
+  const [west, east] = [Math.min(...longitudes), Math.max(...longitudes)];
+  const span = 100 - margin * 2;
+  const along = (value: number, low: number, high: number) =>
+    high === low ? 50 : margin + ((value - low) / (high - low)) * span;
+  return places.map((place) => ({
+    id: place.id,
+    x: along(place.longitude, west, east),
+    y: 100 - along(place.latitude, south, north),
+  }));
+};

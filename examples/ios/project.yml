@@ -17,6 +17,12 @@ targets:
         product: NativeIslands
       - package: NativeIslands
         product: NativeIslandsComponents
+      - package: NativeIslands
+        product: NativeIslandsMaps
+      - package: NativeIslands
+        product: NativeIslandsCamera
+      - package: NativeIslands
+        product: NativeIslandsPermissions
     preBuildScripts:
       - name: Bundle the showcase
         basedOnDependencyAnalysis: false

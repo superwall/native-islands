@@ -9,7 +9,16 @@ import {
   parseLocal,
   shiftMonth,
 } from "../../src/components/dates";
-import { arcPath, clamp, cssVariables, fractionOf, stepped } from "../../src/components/geometry";
+import {
+  arcPath,
+  clamp,
+  cssVariables,
+  fractionOf,
+  niceMaximum,
+  projectPlaces,
+  slotAt,
+  stepped,
+} from "../../src/components/geometry";
 
 const RING = { cx: 40, cy: 40, radius: 32, start: 0, sweep: 360 };
 
@@ -87,5 +96,40 @@ describe("dates", () => {
     expect(describeDate(date, "en-US")).toBe("Nov 4, 2026");
     expect(describeTime(date, "en-US")).toBe("6:07 PM");
     expect(describeMonth(date, "en-US")).toBe("November 2026");
+  });
+});
+
+describe("chart and map geometry", () => {
+  it("rounds an axis up to 1, 2 or 5 times a power of ten, and gives an empty chart a scale", () => {
+    expect([11, 4, 0.7, 200, 501].map((value) => niceMaximum([value]))).toEqual([
+      20, 5, 1, 200, 1000,
+    ]);
+    expect(niceMaximum([])).toBe(1);
+    expect(niceMaximum([0, -3])).toBe(1);
+  });
+
+  it("finds the slot under a point, and none outside the chart", () => {
+    expect([0, 35, 70].map((x) => slotAt(x, 70, 7))).toEqual([0, 3, 6]);
+    expect(slotAt(-1, 70, 7)).toBeUndefined();
+    expect(slotAt(71, 70, 7)).toBeUndefined();
+    expect(slotAt(10, 70, 0)).toBeUndefined();
+    expect(slotAt(10, 0, 7)).toBeUndefined();
+  });
+
+  it("fits places inside the margin, north up, and centres an axis they do not span", () => {
+    const place = (id: string, latitude: number, longitude: number) => ({
+      id,
+      latitude,
+      longitude,
+    });
+    expect(projectPlaces([place("nw", 10, -20), place("se", 0, 0)], 10)).toEqual([
+      { id: "nw", x: 10, y: 10 },
+      { id: "se", x: 90, y: 90 },
+    ]);
+    expect(projectPlaces([place("a", 5, 5), place("b", 5, 6)], 10)).toEqual([
+      { id: "a", x: 10, y: 50 },
+      { id: "b", x: 90, y: 50 },
+    ]);
+    expect(projectPlaces([])).toEqual([]);
   });
 });

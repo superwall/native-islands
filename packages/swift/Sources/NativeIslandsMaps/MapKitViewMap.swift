@@ -1,8 +1,9 @@
 import MapKit
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
-/// `MapView` before iOS 17, where SwiftUI's `Map` has no selection, markers
+/// `MapView` before iOS 17 (flat before iOS 16), where SwiftUI's `Map` has no selection, markers
 /// or camera: the same places, styles and events on an `MKMapView`.
 struct MapKitViewMap: UIViewRepresentable {
   @ObservedObject var component: NativeComponentContext
@@ -27,11 +28,15 @@ struct MapKitViewMap: UIViewRepresentable {
 
     let style = props.string("style")
     let realistic = props.bool("realistic") == true
-    map.preferredConfiguration = Self.configuration(style, realistic: realistic)
+    if #available(iOS 16.0, *) {
+      map.preferredConfiguration = Self.configuration(style, realistic: realistic)
+    } else {
+      map.mapType = style == "hybrid" ? .hybrid : style == "imagery" ? .satellite : .standard
+    }
 
     let showsUser = props.bool("showsUser") == true
     if showsUser, !map.showsUserLocation {
-      Task { await LocationAuthorization.shared.request() }
+      MapLocation.request()
     }
     map.showsUserLocation = showsUser
 
@@ -59,6 +64,7 @@ struct MapKitViewMap: UIViewRepresentable {
     }
   }
 
+  @available(iOS 16.0, *)
   static func configuration(_ name: String?, realistic: Bool) -> MKMapConfiguration {
     let elevation: MKMapConfiguration.ElevationStyle = realistic ? .realistic : .flat
     switch name {

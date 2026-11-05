@@ -251,14 +251,50 @@ import "native-islands/components.css";
 <Toggle label="Notifications" isOn={on} onChange={setOn} />
 ```
 
-There are 14: `GlassButton`, `CloseButton`, `Menu`, `Toggle`,
-`SegmentedControl`, `Slider`, `Stepper`, `Picker`, `DatePicker`,
-`ColorPicker`, `TextField`, `SystemSymbol`, `SymbolEffect` and `Gauge`. Each
-draws its own web version, which matches the native control's size and shape,
-and takes children to replace it. The package ships no SF Symbol drawings for
-the web, so a button's `icon` and a symbol's children are your own. The web
-versions follow the `--ni-*` custom properties in
+There are 20 in that library:
+
+- **Controls:** `GlassButton`, `CloseButton`, `Menu`, `Toggle`,
+  `SegmentedControl`, `Slider`, `Stepper`, `Picker`, `DatePicker`,
+  `ColorPicker` and `TextField`.
+- **Indicators:** `SystemSymbol`, `SymbolEffect`, `Gauge`, `Chart` (Swift
+  Charts) and `Tip` (TipKit).
+- **Media and system:** `Video` (AVKit, with Picture in Picture),
+  `PhotoPicker`, `HapticButton` and `ShareButton`.
+
+None of them needs an Info.plist key. Three more live in libraries of their own,
+so an app links them, and declares their keys, only when it uses them:
+
+| Component    | Swift library              | Info.plist keys                                                                                                     |
+| ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `MapView`    | `NativeIslandsMaps`        | `NSLocationWhenInUseUsageDescription`, only if a page sets `showsUser`                                              |
+| `Camera`     | `NativeIslandsCamera`      | `NSCameraUsageDescription`                                                                                          |
+| `Permission` | `NativeIslandsPermissions` | the usage description of each kind a page asks for: camera, microphone, location or photos; notifications need none |
+
+Register each the same way, such as `NativeIslandsMaps.register()`. `Video`
+keeps playing in Picture in Picture over other apps only when the app has the
+`audio` background mode. `Chart` needs iOS 16 and `Tip` iOS 17; before that,
+the page shows their web versions.
+
+Each component draws its own web version, which matches the native control's
+size and shape, and takes children to replace it. The package ships no SF
+Symbol drawings for the web, so a button's `icon` and a symbol's children are
+your own. The web versions follow the `--ni-*` custom properties in
 `native-islands/components.css`, such as `--ni-accent` and `--ni-glass`.
+
+A chart takes series rather than a flat list, so one chart can compare several
+things on a category, number or date axis:
+
+```tsx
+<Chart
+  kind="bar"
+  series={[
+    { id: "run", name: "Running", points: [{ x: "Mon", y: 4 }, { x: "Tue", y: 6 }] },
+    { id: "ride", name: "Cycling", kind: "line", points: [{ x: "Mon", y: 10 }] },
+  ]}
+  yAxis={{ title: "km" }}
+  onSelect={({ x, values }) => show(x, values)}
+/>
+```
 
 To register only some, pass `only: [.glassButton, .toggle]`. A component the
 app registers later under the same name, such as its own `toggle`, replaces

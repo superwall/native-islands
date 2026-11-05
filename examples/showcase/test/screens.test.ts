@@ -80,7 +80,7 @@ describe("the app's screens", () => {
     ).toEqual([
       ["Location", ["maps"]],
       ["Media", ["video", "camera", "photos"]],
-      ["System", ["permissions", "haptics", "share"]],
+      ["System", ["permissions", "haptics", "tips", "share"]],
     ]);
   });
 
@@ -100,7 +100,7 @@ describe("searchScreens", () => {
 
   it("finds every demo, and no tab root or settings page, for an empty query", () => {
     const all = ids("  ");
-    expect(all).toHaveLength(19);
+    expect(all).toHaveLength(20);
     expect(all).not.toContain("components");
     expect(all).not.toContain("search");
     expect(all).not.toContain("accent");

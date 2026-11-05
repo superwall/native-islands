@@ -6,7 +6,10 @@ let package = Package(
   platforms: [.iOS(.v15)],
   products: [
     .library(name: "NativeIslands", targets: ["NativeIslands"]),
-    .library(name: "NativeIslandsComponents", targets: ["NativeIslandsComponents"])
+    .library(name: "NativeIslandsComponents", targets: ["NativeIslandsComponents"]),
+    .library(name: "NativeIslandsMaps", targets: ["NativeIslandsMaps"]),
+    .library(name: "NativeIslandsCamera", targets: ["NativeIslandsCamera"]),
+    .library(name: "NativeIslandsPermissions", targets: ["NativeIslandsPermissions"])
   ],
   targets: [
     .target(name: "NativeIslands", path: "packages/swift/Sources/NativeIslands"),
@@ -15,6 +18,21 @@ let package = Package(
       dependencies: ["NativeIslands"],
       path: "packages/swift/Sources/NativeIslandsComponents"
     ),
+    .target(
+      name: "NativeIslandsMaps",
+      dependencies: ["NativeIslands", "NativeIslandsComponents"],
+      path: "packages/swift/Sources/NativeIslandsMaps"
+    ),
+    .target(
+      name: "NativeIslandsCamera",
+      dependencies: ["NativeIslands", "NativeIslandsComponents"],
+      path: "packages/swift/Sources/NativeIslandsCamera"
+    ),
+    .target(
+      name: "NativeIslandsPermissions",
+      dependencies: ["NativeIslands", "NativeIslandsComponents"],
+      path: "packages/swift/Sources/NativeIslandsPermissions"
+    ),
     .testTarget(
       name: "NativeIslandsTests",
       dependencies: ["NativeIslands"],
@@ -22,7 +40,9 @@ let package = Package(
     ),
     .testTarget(
       name: "NativeIslandsComponentsTests",
-      dependencies: ["NativeIslandsComponents"],
+      dependencies: [
+        "NativeIslandsComponents", "NativeIslandsMaps", "NativeIslandsCamera", "NativeIslandsPermissions"
+      ],
       path: "packages/swift/Tests/NativeIslandsComponentsTests"
     )
   ],

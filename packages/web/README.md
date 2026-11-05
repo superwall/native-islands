@@ -129,25 +129,37 @@ The untyped form `defineNativeComponent` is built on.
 
 ## Components
 
-`native-islands/components` has a typed component for each control in the
-Swift `NativeIslandsComponents` library, under the same name and props:
+`native-islands/components` has a typed component for each island in the
+Swift component libraries, under the same name and props. The app registers
+`NativeIslandsComponents` for most of them, and `NativeIslandsMaps`,
+`NativeIslandsCamera` or `NativeIslandsPermissions` for the three that need
+Info.plist keys:
 
-| Component          | Native name        | Main props                                              |
-| ------------------ | ------------------ | ------------------------------------------------------- |
-| `GlassButton`      | `glassButton`      | `title`, `systemImage`, `icon`, `prominence`, `onPress` |
-| `CloseButton`      | `closeButton`      | `onPress`                                               |
-| `Menu`             | `menu`             | `title`, `items`, `onSelect`                            |
-| `Toggle`           | `toggle`           | `isOn`, `onChange`, `label`                             |
-| `SegmentedControl` | `segmentedControl` | `segments`, `selectedIndex`, `onChange`, `label`        |
-| `Slider`           | `slider`           | `value`, `minimum`, `maximum`, `step`, `onChange`       |
-| `Stepper`          | `stepper`          | `value`, `minimum`, `maximum`, `step`, `onChange`       |
-| `Picker`           | `picker`           | `options`, `selectedIndex`, `style`, `onChange`         |
-| `DatePicker`       | `datePicker`       | `date` (`yyyy-MM-ddTHH:mm`), `components`, `onChange`   |
-| `ColorPicker`      | `colorPicker`      | `color`, `onChange`                                     |
-| `TextField`        | `textField`        | `text`, `placeholder`, `onChange`, `onSubmit`, `handle` |
-| `SystemSymbol`     | `symbol`           | `name`; children are the web drawing                    |
-| `SymbolEffect`     | `symbolEffect`     | `name`, `effect`; children are the web drawing          |
-| `Gauge`            | `gauge`            | `value`, `style`, `valueLabel`                          |
+| Component          | Native name        | Main props                                                |
+| ------------------ | ------------------ | --------------------------------------------------------- |
+| `GlassButton`      | `glassButton`      | `title`, `systemImage`, `icon`, `prominence`, `onPress`   |
+| `CloseButton`      | `closeButton`      | `onPress`                                                 |
+| `Menu`             | `menu`             | `title`, `items`, `onSelect`                              |
+| `Toggle`           | `toggle`           | `isOn`, `onChange`, `label`                               |
+| `SegmentedControl` | `segmentedControl` | `segments`, `selectedIndex`, `onChange`, `label`          |
+| `Slider`           | `slider`           | `value`, `minimum`, `maximum`, `step`, `onChange`         |
+| `Stepper`          | `stepper`          | `value`, `minimum`, `maximum`, `step`, `onChange`         |
+| `Picker`           | `picker`           | `options`, `selectedIndex`, `style`, `onChange`           |
+| `DatePicker`       | `datePicker`       | `date` (`yyyy-MM-ddTHH:mm`), `components`, `onChange`     |
+| `ColorPicker`      | `colorPicker`      | `color`, `onChange`                                       |
+| `TextField`        | `textField`        | `text`, `placeholder`, `onChange`, `onSubmit`, `handle`   |
+| `SystemSymbol`     | `symbol`           | `name`; children are the web drawing                      |
+| `SymbolEffect`     | `symbolEffect`     | `name`, `effect`; children are the web drawing            |
+| `Gauge`            | `gauge`            | `value`, `style`, `valueLabel`                            |
+| `Chart`            | `chart`            | `series`, `kind`, `xAxis`, `yAxis`, `stacked`, `onSelect` |
+| `Tip`              | `tip`              | `id`, `title`, `message`, `actions`, `onAction`, `handle` |
+| `Video`            | `video`            | `url`, `webUrl`, `onStatus`, `handle`                     |
+| `PhotoPicker`      | `photoPicker`      | `title`, `limit`, `onPick`                                |
+| `HapticButton`     | `hapticButton`     | `title`, `feedback`, `onPress`                            |
+| `ShareButton`      | `shareButton`      | `title`, `text`, `url`, `onComplete`                      |
+| `MapView`          | `map`              | `places`, `style`, `selectedId`, `onSelect`, `pinIcon`    |
+| `Camera`           | `camera`           | `position`, `running`, `onStatus`, `handle`               |
+| `Permission`       | `permission`       | `kind`, `label`, `onStatus`                               |
 
 ```tsx
 import { Slider } from "native-islands/components";
@@ -155,6 +167,17 @@ import "native-islands/components.css";
 
 <Slider value={volume} onChange={setVolume} label="Volume" />;
 ```
+
+A chart's `series` are `{ id, name?, kind?, color?, points: [{ x, y }] }`. On a
+`category` axis (the default) `x` is a label, on a `number` axis a number, and
+on a `date` axis an ISO 8601 date such as `2026-11-04`. `yAxis` takes a
+`title`, a `min` and `max`, and a `format` of `number`, `percent` or
+`currency`. Scrubbing reports `{ x, values: [{ series, y }] }`, with `x: null`
+on release. Series colours are hex or `rgb()`; without one, a series takes the
+tint, then the `--ni-chart-1` to `--ni-chart-5` palette.
+
+`MapView`, `Video` and `Camera` fill the box their parent gives them, so set
+the parent's size, such as `aspect-ratio: 16 / 9`.
 
 Each draws a default web version sized like the native control. Pass children
 to draw your own instead; they then set the island's size. The web versions

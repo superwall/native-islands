@@ -1,46 +1,6 @@
 import NativeIslands
-import NativeIslandsComponents
 import SwiftUI
 import UIKit
-
-/// Where an island presents a system sheet. Islands are hosted outside the
-/// view controller tree, so they present from the window's frontmost controller.
-enum Presenter {
-  @MainActor
-  static func front() -> UIViewController? {
-    let window = UIApplication.shared.connectedScenes
-      .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-      .first
-    var front = window?.rootViewController
-    while let presented = front?.presentedViewController, !presented.isBeingDismissed {
-      front = presented
-    }
-    return front
-  }
-}
-
-/// The label of a glass button whose action happens natively: a symbol and
-/// a title, drawn like `GlassButtonView`.
-struct GlassActionLabel: View {
-  let props: NativeComponentProps
-
-  var body: some View {
-    let prominent = props.string("prominence") == "prominent"
-    HStack(spacing: 6) {
-      if let symbol = props.string("systemImage") {
-        Image(systemName: symbol)
-      }
-      if let title = props.string("title"), !title.isEmpty {
-        Text(title).lineLimit(1)
-      }
-    }
-    .font(.body.weight(.semibold))
-    .foregroundStyle(prominent ? GlassButtonView.ink(on: props.uiColor("tint")) : Color.primary)
-    .padding(.horizontal, 12)
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .contentShape(Capsule())
-  }
-}
 
 /// A glass button that plays haptic feedback the moment it is pressed, with no
 /// round trip to the page. `feedback` is an impact (`light`, `medium`, `heavy`,
@@ -104,18 +64,4 @@ struct ShareButtonView: View {
     }
     front.present(sheet, animated: true)
   }
-}
-
-/// Hands back the UIKit view behind a SwiftUI view, for anchoring a popover.
-struct SourceView: UIViewRepresentable {
-  @Binding var view: UIView?
-
-  func makeUIView(context: Context) -> UIView {
-    let view = UIView()
-    view.isUserInteractionEnabled = false
-    DispatchQueue.main.async { self.view = view }
-    return view
-  }
-
-  func updateUIView(_ uiView: UIView, context: Context) {}
 }

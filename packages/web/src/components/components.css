@@ -23,6 +23,12 @@
   --ni-font: system-ui, -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
   --ni-font-rounded: ui-rounded, system-ui, -apple-system, sans-serif;
   --ni-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A chart's series without a colour of their own, after the first, which takes the tint. */
+  --ni-chart-1: light-dark(#ff9500, #ff9f0a);
+  --ni-chart-2: light-dark(#34c759, #30d158);
+  --ni-chart-3: light-dark(#af52de, #bf5af2);
+  --ni-chart-4: light-dark(#ff2d55, #ff375f);
+  --ni-chart-5: light-dark(#30b0c7, #40c8e0);
 }
 
 :where(
@@ -31,7 +37,9 @@
   .ni-segmented button,
   .ni-stepper button,
   .ni-menu-item,
-  .ni-calendar button
+  .ni-calendar button,
+  .ni-map-pin,
+  .ni-tip button
 ) {
   margin: 0;
   padding: 0;
@@ -689,4 +697,273 @@
   to {
     rotate: 1turn;
   }
+}
+
+/* Charts */
+
+.ni-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.ni-chart svg {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.ni-chart-grid {
+  stroke: var(--ni-separator);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 3;
+}
+
+.ni-chart-bar {
+  transition: opacity 0.2s;
+}
+
+.ni-chart-bar[data-dimmed] {
+  opacity: 0.35;
+}
+
+.ni-chart-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.ni-chart-area {
+  opacity: 0.3;
+}
+
+.ni-chart-rule {
+  stroke: var(--ni-label-tertiary);
+  stroke-width: 1;
+}
+
+.ni-chart-label {
+  font: 500 11px var(--ni-font);
+  fill: var(--ni-label-secondary);
+  text-anchor: middle;
+}
+
+.ni-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 400 12px var(--ni-font);
+  color: var(--ni-label-secondary);
+}
+
+.ni-chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ni-chart-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Maps, video and the camera fill the box their parent gives them. */
+
+.ni-map,
+.ni-video,
+.ni-camera {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.ni-map {
+  position: relative;
+  background:
+    linear-gradient(115deg, transparent 46%, rgb(255 255 255 / 70%) 46.5% 48%, transparent 48.5%),
+    linear-gradient(25deg, transparent 60%, rgb(255 255 255 / 70%) 60.5% 62%, transparent 62.5%),
+    radial-gradient(circle at 78% 18%, #a9d3f5 0 22%, transparent 22.5%),
+    linear-gradient(160deg, #e6efd9, #d7e6c6);
+}
+
+.ni-map[data-style="hybrid"],
+.ni-map[data-style="imagery"] {
+  background:
+    radial-gradient(circle at 78% 18%, #1f4a6b 0 22%, transparent 22.5%),
+    linear-gradient(160deg, #3d5a3a, #2b3f2a);
+}
+
+.ni-map-pin {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-50%, -100%);
+}
+
+.ni-map-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ni-tint, light-dark(#ff3b30, #ff453a));
+  color: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+  transition: transform 0.2s;
+}
+
+.ni-map-pin[aria-pressed="true"] .ni-map-marker {
+  transform: scale(1.3);
+}
+
+.ni-map-marker svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ni-map-title {
+  font: 600 11px var(--ni-font);
+  color: #1c1c1e;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 2px #fff;
+  white-space: nowrap;
+}
+
+.ni-map[data-style="hybrid"] .ni-map-title,
+.ni-map[data-style="imagery"] .ni-map-title {
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ni-video,
+.ni-camera {
+  object-fit: cover;
+  background: #000;
+}
+
+/* Permissions */
+
+.ni-permission {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  font: 600 15px / 20px var(--ni-font);
+}
+
+.ni-permission-status {
+  font: 400 17px / 22px var(--ni-font);
+  color: var(--ni-label-secondary);
+}
+
+.ni-permission-status[data-status="granted"] {
+  color: var(--ni-on);
+}
+
+/* Tips */
+
+.ni-tip {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 26px;
+  background: var(--ni-cell);
+  box-shadow:
+    inset 0 0 0 0.5px var(--ni-glass-edge),
+    0 4px 16px rgb(0 0 0 / 8%);
+  font-family: var(--ni-font);
+  color: var(--ni-label);
+}
+
+.ni-tip-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ni-tint, var(--ni-accent));
+}
+
+.ni-tip-icon > svg {
+  width: 28px;
+  height: 28px;
+}
+
+.ni-tip-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ni-tip-title {
+  display: block;
+  font: 600 17px / 22px var(--ni-font);
+}
+
+.ni-tip-message {
+  margin: 2px 0 0;
+  font: 400 15px / 20px var(--ni-font);
+  color: var(--ni-label-secondary);
+}
+
+.ni-tip-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ni-tip-actions button {
+  height: 44px;
+  border-radius: 22px;
+  background: var(--ni-tint, var(--ni-accent));
+  font: 600 17px / 22px var(--ni-font);
+  color: #fff;
+}
+
+.ni-tip-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--ni-label-tertiary);
+}
+
+.ni-tip-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ni-tip[data-arrow="top"]::before,
+.ni-tip[data-arrow="bottom"]::before {
+  position: absolute;
+  left: 24px;
+  width: 14px;
+  height: 14px;
+  background: var(--ni-cell);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.ni-tip[data-arrow="top"]::before {
+  top: -7px;
+}
+
+.ni-tip[data-arrow="bottom"]::before {
+  bottom: -7px;
 }

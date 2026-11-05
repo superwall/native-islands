@@ -17,9 +17,18 @@ export const COMPONENTS = {
   symbol: 1,
   symbolEffect: 1,
   gauge: 1,
+  chart: 1,
+  video: 1,
+  photoPicker: 1,
+  shareButton: 1,
+  hapticButton: 1,
+  tip: 1,
+  map: 1,
+  camera: 1,
+  permission: 1,
 };
 
-/** A host that registered every component of `NativeIslandsComponents`. */
+/** A host that registered every component of the four Swift libraries. */
 export const installComponents = () => {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
     new DOMRect(20, 40, 120, 44),
@@ -46,4 +55,23 @@ export const mountComponent = async (ui: React.ReactElement) => {
       return view.send({ event_name: "native_component_state", id: mount.id, revision, values });
     },
   };
+};
+
+type Outgoing = { event_name: string; request_id?: string; name?: string };
+
+/** Answers the last command the page sent, by name, as the host would. */
+export const replyTo = async (
+  view: { outgoing: readonly Outgoing[]; send: (message: never) => Promise<void> | void },
+  name: string,
+  reply: { ok: true; value?: unknown } | { ok: false; error: string },
+) => {
+  const command = view.outgoing.findLast(
+    (message) => message.event_name === "native_component_command" && message.name === name,
+  );
+  if (!command?.request_id) throw new Error(`No ${name} command was sent.`);
+  await view.send({
+    event_name: "native_component_reply",
+    request_id: command.request_id,
+    ...reply,
+  } as never);
 };

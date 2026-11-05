@@ -1,6 +1,6 @@
 import * as React from "react";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { CameraState, VideoStatus } from "../../islands/definitions";
+import type { CameraState, VideoStatus } from "native-islands/components";
 import { formatClock } from "../../ui/capabilities";
 import { Button, Segmented } from "../../ui/controls";
 import { Readout, Section } from "../../ui/List";

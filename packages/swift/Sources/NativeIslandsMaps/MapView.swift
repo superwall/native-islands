@@ -1,5 +1,6 @@
 import MapKit
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
 /// A MapKit map of the page's `places`. `style` is `standard`, `hybrid` or
@@ -81,7 +82,7 @@ private struct MapKitMap: View {
     }
     .onChangeOf(showsUser) { next in
       guard next else { return }
-      Task { await LocationAuthorization.shared.request() }
+      MapLocation.request()
     }
     .onMapCameraChange(frequency: .onEnd) { context in
       let region = context.region
@@ -104,5 +105,17 @@ private struct MapKitMap: View {
     case "imagery": return .imagery(elevation: elevation)
     default: return .standard(elevation: elevation, pointsOfInterest: .all)
     }
+  }
+}
+
+/// Asks for location while in use, once, for `showsUser`. The map shows the
+/// user by itself once iOS has the answer.
+@MainActor
+enum MapLocation {
+  private static let manager = CLLocationManager()
+
+  static func request() {
+    guard manager.authorizationStatus == .notDetermined else { return }
+    manager.requestWhenInUseAuthorization()
   }
 }

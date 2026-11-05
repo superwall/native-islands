@@ -178,6 +178,16 @@ const PATHS: Record<string, React.ReactNode> = {
       stroke="none"
     />
   ),
+  "lightbulb.fill": (
+    <>
+      <path
+        d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8v.5h6v-.5c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5Z"
+        fill="currentColor"
+        stroke="none"
+      />
+      <path d="M9.5 19h5M10.5 21.5h3" fill="none" strokeWidth="1.8" />
+    </>
+  ),
   "chart.bar.fill": (
     <path
       d="M4 13h3.5v7H4ZM10.25 8h3.5v12h-3.5ZM16.5 4H20v16h-3.5Z"

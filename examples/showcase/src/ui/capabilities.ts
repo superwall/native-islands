@@ -1,27 +1,4 @@
-import type { MapPlace, MapRegion, PermissionStatus } from "../islands/definitions";
-
-/**
- * Where each place sits on the web map, as percentages of its box: the
- * places' bounding box fitted inside `margin` of each edge, north up.
- */
-export const projectPlaces = (
-  places: readonly MapPlace[],
-  margin = 15,
-): { id: string; x: number; y: number }[] => {
-  if (places.length === 0) return [];
-  const latitudes = places.map((place) => place.latitude);
-  const longitudes = places.map((place) => place.longitude);
-  const [south, north] = [Math.min(...latitudes), Math.max(...latitudes)];
-  const [west, east] = [Math.min(...longitudes), Math.max(...longitudes)];
-  const span = 100 - margin * 2;
-  const along = (value: number, low: number, high: number) =>
-    high === low ? 50 : margin + ((value - low) / (high - low)) * span;
-  return places.map((place) => ({
-    id: place.id,
-    x: along(place.longitude, west, east),
-    y: 100 - along(place.latitude, south, north),
-  }));
-};
+import type { MapRegion, PermissionStatus } from "native-islands/components";
 
 /** A region's centre the way Maps writes it, such as `37.8199° N, 122.4783° W`. */
 export const formatCentre = ({ latitude, longitude }: Pick<MapRegion, "latitude" | "longitude">) =>
@@ -32,18 +9,6 @@ export const formatCentre = ({ latitude, longitude }: Pick<MapRegion, "latitude"
 export const formatClock = (seconds: number): string => {
   const whole = Number.isFinite(seconds) ? Math.max(Math.floor(seconds), 0) : 0;
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-};
-
-/** A browser permission state, or `Notification.permission`, as the app's status. */
-export const fromBrowser = (state: string): PermissionStatus => {
-  switch (state) {
-    case "granted":
-      return "granted";
-    case "denied":
-      return "denied";
-    default:
-      return "notDetermined";
-  }
 };
 
 export const STATUS_TITLES: Record<PermissionStatus, string> = {

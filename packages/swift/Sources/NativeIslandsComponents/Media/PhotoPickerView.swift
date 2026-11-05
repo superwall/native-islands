@@ -52,28 +52,12 @@ struct PhotoPickerView: View {
   var body: some View {
     Button {
       presenter.present(limit: max(component.props.int("limit") ?? 1, 1)) { images in
-        let urls = images.compactMap { Self.dataURL(from: $0, side: 900) }
+        let urls = images.compactMap { ImageData.dataURL(from: $0, side: 900) }
         component.emit("pick", payload: ["images": urls])
       }
     } label: {
       GlassActionLabel(props: component.props)
     }
     .buttonStyle(.plain)
-  }
-
-  /// A JPEG data URL of the image, no longer than `side` points on its long edge.
-  static func dataURL(from image: UIImage, side: CGFloat) -> String? {
-    let scale = min(side / max(image.size.width, image.size.height, 1), 1)
-    let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-    let format = UIGraphicsImageRendererFormat()
-    format.scale = 1
-    let scaled = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-      image.draw(in: CGRect(origin: .zero, size: size))
-    }
-    return scaled.jpegData(compressionQuality: 0.8).map { "data:image/jpeg;base64,\($0.base64EncodedString())" }
-  }
-
-  static func dataURL(from data: Data, side: CGFloat) -> String? {
-    UIImage(data: data).flatMap { dataURL(from: $0, side: side) }
   }
 }

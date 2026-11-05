@@ -1,5 +1,6 @@
 @preconcurrency import AVFoundation
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
 /// A capture session on its own queue, as AVFoundation asks, with a still
@@ -8,7 +9,7 @@ final class CameraSession: NSObject, ObservableObject, @unchecked Sendable, AVCa
   let session = AVCaptureSession()
   /// `starting`, `running`, `unavailable` (no camera, as on the simulator) or `denied`.
   @MainActor @Published private(set) var state = "starting"
-  private let queue = DispatchQueue(label: "Islands.camera")
+  private let queue = DispatchQueue(label: "NativeIslandsCamera.session")
   private let output = AVCapturePhotoOutput()
   private var position: AVCaptureDevice.Position?
   private var pending: CheckedContinuation<Data?, Never>?
@@ -136,15 +137,15 @@ struct CameraView: View {
       component.onCommand { [camera] name, _ in
         guard name == "capture" else { throw NativeComponentError.refused("Unknown command \(name).") }
         guard let data = await camera.capture() else { throw NativeComponentError.refused("No camera is running.") }
-        return ["image": PhotoPickerView.dataURL(from: data, side: 720) ?? ""]
+        return ["image": ImageData.dataURL(from: data, side: 720) ?? ""]
       }
     }
   }
 
   static func message(_ state: String) -> String {
     switch state {
-    case "denied": "Camera access is off for Islands. Turn it on in Settings."
-    case "unavailable": "This device has no camera. Run Islands on an iPhone to see it live."
+    case "denied": "Camera access is off. Turn it on in Settings."
+    case "unavailable": "This device has no camera."
     default: "Starting the camera…"
     }
   }

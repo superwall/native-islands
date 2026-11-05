@@ -32,6 +32,9 @@ jobs:
         run: |
           pod lib lint NativeIslands.podspec --platforms=ios --fail-fast
           pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast
+          for pod in NativeIslandsMaps NativeIslandsCamera NativeIslandsPermissions; do
+            pod lib lint "$pod.podspec" --include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec' --platforms=ios --fail-fast
+          done
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4

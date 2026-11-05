@@ -1,6 +1,6 @@
 import * as React from "react";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { MapPlace, MapRegion, MapStyle } from "../../islands/definitions";
+import type { MapPlace, MapRegion, MapStyle } from "native-islands/components";
 import { formatCentre } from "../../ui/capabilities";
 import { Segmented, Toggle } from "../../ui/controls";
 import { PlacesMap } from "../../ui/map";
