@@ -279,6 +279,10 @@ fails a test.
 | App (iOS)  | `NativeIslands` (SwiftPM) | `packages/swift/Sources/NativeIslands` |
 | Page (web) | `native-islands` (npm)    | [`packages/web/`](packages/web/)       |
 
+Each side also has an optional set of ready-made controls: the
+`NativeIslandsComponents` library in the same Swift package, and the
+`native-islands/components` entry in the npm package.
+
 Install the page side from npm:
 
 ```bash
@@ -308,9 +312,7 @@ const GlassButton = defineNativeComponent<{
 The children are the web version. If the app registered `glassButton`, it
 draws the native button in their place; otherwise the children show. The full
 page API, including state, requests, commands and use without React, is in
-[`packages/web/README.md`](packages/web/README.md). A package of ready-made
-native components is in progress. Until it ships, the example app has glass
-buttons and controls you can copy.
+[`packages/web/README.md`](packages/web/README.md).
 
 ### In the app
 
@@ -346,6 +348,40 @@ override func didMoveToWindow() {
   islands.webViewDidMoveToWindow()
 }
 ```
+
+### Ready-made controls
+
+For the common controls you don't have to write either side. Add the
+`NativeIslandsComponents` library to the app and register it once:
+
+```swift
+import NativeIslandsComponents
+
+NativeIslandsComponents.register()
+```
+
+On the page, import the components and the stylesheet for their web versions:
+
+```tsx
+import { GlassButton, Toggle } from "native-islands/components";
+import "native-islands/components.css";
+
+<GlassButton title="Continue" prominence="prominent" onPress={purchase} />
+<Toggle label="Notifications" isOn={on} onChange={setOn} />
+```
+
+There are 14: `GlassButton`, `CloseButton`, `Menu`, `Toggle`,
+`SegmentedControl`, `Slider`, `Stepper`, `Picker`, `DatePicker`,
+`ColorPicker`, `TextField`, `SystemSymbol`, `SymbolEffect` and `Gauge`. Each
+draws its own web version, which matches the native control's size and shape,
+and takes children to replace it. The package ships no SF Symbol drawings for
+the web, so a button's `icon` and a symbol's children are your own. The web
+versions follow the `--ni-*` custom properties in
+`native-islands/components.css`, such as `--ni-accent` and `--ni-glass`.
+
+To register only some, pass `only: [.glassButton, .toggle]`. A component the
+app registers later under the same name, such as its own `toggle`, replaces
+the built-in one, and the host logs a debug message saying so.
 
 ### Revealing the page
 

@@ -17,11 +17,13 @@ npm install native-islands
 
 React 19 or later is an optional peer, needed only for `/react`.
 
-| Entry                      | For                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `native-islands`           | Any page, no framework: the island controller, the WebKit transport, layout helpers, the protocol schemas          |
-| `native-islands/react`     | React bindings                                                                                                     |
-| `native-islands/simulator` | A host written in JS that draws outlines where native views would sit, for browsers and tests. No framework needed |
+| Entry                           | For                                                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `native-islands`                | Any page, no framework: the island controller, the WebKit transport, layout helpers, the protocol schemas                     |
+| `native-islands/react`          | React bindings                                                                                                                |
+| `native-islands/simulator`      | A host written in JS that draws outlines where native views would sit, for browsers and tests. No framework needed            |
+| `native-islands/components`     | Ready-made controls, each with its web version; the app registers them with `NativeIslandsComponents.register()`. Needs React |
+| `native-islands/components.css` | The styles for those web versions                                                                                             |
 
 ## React
 
@@ -44,8 +46,8 @@ React 19 or later is an optional peer, needed only for `/react`.
 Types a component the app registered. Everything in the spec is optional.
 Colours in `colorProps` can be any CSS colour or `var(--token)`; they are
 resolved before they reach native. Islands that share a `glassGroup` prop blend
-like system glass. The example pages define a set of glass buttons and controls
-in `tests/pages/src/components/defaults.ts`.
+like system glass. For the common controls, `native-islands/components` already
+defines them (see [Components](#components)).
 
 ```tsx
 const SignupForm = defineNativeComponent<{
@@ -106,6 +108,43 @@ The untyped form `defineNativeComponent` is built on.
 | `useNativeSupport(component, version = 1)` | `"supported" \| "unavailable" \| "unknown_component" \| "unsupported_version"` |
 | `useNativeIslandsReady()`                  | `true` once no island is still on its way to native                            |
 | `useNativeIslands()`                       | the island controller                                                          |
+
+## Components
+
+`native-islands/components` has a typed component for each control in the
+Swift `NativeIslandsComponents` library, under the same name and props:
+
+| Component          | Native name        | Main props                                              |
+| ------------------ | ------------------ | ------------------------------------------------------- |
+| `GlassButton`      | `glassButton`      | `title`, `systemImage`, `icon`, `prominence`, `onPress` |
+| `CloseButton`      | `closeButton`      | `onPress`                                               |
+| `Menu`             | `menu`             | `title`, `items`, `onSelect`                            |
+| `Toggle`           | `toggle`           | `isOn`, `onChange`, `label`                             |
+| `SegmentedControl` | `segmentedControl` | `segments`, `selectedIndex`, `onChange`, `label`        |
+| `Slider`           | `slider`           | `value`, `minimum`, `maximum`, `step`, `onChange`       |
+| `Stepper`          | `stepper`          | `value`, `minimum`, `maximum`, `step`, `onChange`       |
+| `Picker`           | `picker`           | `options`, `selectedIndex`, `style`, `onChange`         |
+| `DatePicker`       | `datePicker`       | `date` (`yyyy-MM-ddTHH:mm`), `components`, `onChange`   |
+| `ColorPicker`      | `colorPicker`      | `color`, `onChange`                                     |
+| `TextField`        | `textField`        | `text`, `placeholder`, `onChange`, `onSubmit`, `handle` |
+| `SystemSymbol`     | `symbol`           | `name`; children are the web drawing                    |
+| `SymbolEffect`     | `symbolEffect`     | `name`, `effect`; children are the web drawing          |
+| `Gauge`            | `gauge`            | `value`, `style`, `valueLabel`                          |
+
+```tsx
+import { Slider } from "native-islands/components";
+import "native-islands/components.css";
+
+<Slider value={volume} onChange={setVolume} label="Volume" />;
+```
+
+Each draws a default web version sized like the native control. Pass children
+to draw your own instead; they then set the island's size. The web versions
+read `--ni-*` custom properties, such as `--ni-accent`, `--ni-glass` and
+`--ni-glass-edge`, which a page sets on `:root` to match its theme. Light and
+dark follow `color-scheme`. The `Native*` specs underneath, such as
+`NativeToggle`, are exported too, for a page that wants the native island with
+its own wrapper.
 
 ## Without React
 

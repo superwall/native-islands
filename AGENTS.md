@@ -46,6 +46,8 @@ packages/web/           native-islands (page side)
   src/simulator/        the JS reference host (the /simulator entry)
   src/react/            the /react entry: components/, hooks/, provider/,
                         dom/ (props, accessibility, style rules)
+  src/components/       the /components entry: the ready-made controls with
+                        their web versions, and components.css
   test/                 mirrors src/; shared helpers in test/support/
 packages/swift/         NativeIslands (host side); Package.swift is at the root
   Sources/NativeIslands/
@@ -93,6 +95,15 @@ or opened, then keeps it parked the same way, so a demo that holds a device
 behaves the same, and an entry in `main.tsx`'s simulator list. A new demo is a
 row in its section's `demoScreens(...)` with `keywords` for Search, and its
 symbol needs a web drawing in `src/ui/icons.tsx` (a test checks).
+
+A ready-made control lives in both halves at once: its view in
+`Sources/NativeIslandsComponents/` with a case in
+`NativeIslandsComponents.Component`, and its spec, web version and styles in
+`packages/web/src/components/`, under the same name. A test reads the Swift
+cases and fails when the web names drift. Its web version must keep the
+native control's size and shape, so a change there is a change to TestHost's
+screenshot baselines too. Keep app-specific islands (maps, media, permissions,
+bars) in the showcase, not in the library.
 
 ## Commands
 
