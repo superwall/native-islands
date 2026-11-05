@@ -251,26 +251,32 @@ import "native-islands/components.css";
 <Toggle label="Notifications" isOn={on} onChange={setOn} />
 ```
 
-There are 20 in that library:
+There are 21 in that library:
 
 - **Controls:** `GlassButton`, `CloseButton`, `Menu`, `Toggle`,
   `SegmentedControl`, `Slider`, `Stepper`, `Picker`, `DatePicker`,
   `ColorPicker` and `TextField`.
-- **Indicators:** `SystemSymbol`, `SymbolEffect`, `Gauge`, `Chart` (Swift
-  Charts) and `Tip` (TipKit).
-- **Media and system:** `Video` (AVKit, with Picture in Picture),
-  `PhotoPicker`, `HapticButton` and `ShareButton`.
+- **Indicators:** `SystemSymbol`, `SymbolEffect`, `Gauge` and `Tip` (TipKit).
+- **Media and system:** `Video` (AVKit, with Picture in Picture), `Camera`,
+  `PhotoPicker`, `HapticButton`, `ShareButton` and `Permission`.
 
-None of them needs an Info.plist key. Three more live in libraries of their own,
-so an app links them, and declares their keys, only when it uses them:
+The map and the chart live in libraries of their own, so an app links MapKit
+and Swift Charts only when its pages use them. Register them the same way,
+with `NativeIslandsMaps.register()` and `NativeIslandsCharts.register()`.
 
-| Component    | Swift library              | Info.plist keys                                                                                                     |
-| ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `MapView`    | `NativeIslandsMaps`        | `NSLocationWhenInUseUsageDescription`, only if a page sets `showsUser`                                              |
-| `Camera`     | `NativeIslandsCamera`      | `NSCameraUsageDescription`                                                                                          |
-| `Permission` | `NativeIslandsPermissions` | the usage description of each kind a page asks for: camera, microphone, location or photos; notifications need none |
+Some islands need Info.plist keys, but only when a page uses them:
 
-Register each the same way, such as `NativeIslandsMaps.register()`. `Video`
+| Component    | Swift library             | Info.plist keys                                                                                                     |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Camera`     | `NativeIslandsComponents` | `NSCameraUsageDescription`                                                                                          |
+| `Permission` | `NativeIslandsComponents` | the usage description of each kind a page asks for: camera, microphone, location or photos; notifications need none |
+| `MapView`    | `NativeIslandsMaps`       | `NSLocationWhenInUseUsageDescription`, only if a page sets `showsUser`                                              |
+
+Because `NativeIslandsComponents` links the camera, location and photo
+frameworks, App Store Connect may warn about a missing purpose string even when
+no page uses those islands. Add the keys, or register only what you use with
+`NativeIslandsComponents.register(only:)`; the warning comes from linking, so
+the second does not silence it. `Video`
 keeps playing in Picture in Picture over other apps only when the app has the
 `audio` background mode. `Chart` needs iOS 16 and `Tip` iOS 17; before that,
 the page shows their web versions.

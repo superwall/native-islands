@@ -201,7 +201,7 @@ export const cameraStateOf = (error: unknown): CameraState =>
 /**
  * The live camera from AVFoundation, while `running`. Its web version asks
  * the browser for the camera, and only when the native one is not drawn, so
- * there are never two. Register it with `NativeIslandsCamera.register()`.
+ * there are never two. Register it with `NativeIslandsComponents.register()`.
  */
 export const Camera = ({
   position = "back",

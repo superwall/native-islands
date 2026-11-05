@@ -1,8 +1,8 @@
 /**
  * Ready-made native islands for the controls a page needs, each with a web
  * version. Register them in the app with `NativeIslandsComponents.register()`
- * (and `NativeIslandsMaps`, `NativeIslandsCamera` or `NativeIslandsPermissions`
- * for those three) and import `native-islands/components.css` for the web versions.
+ * (and `NativeIslandsMaps` or `NativeIslandsCharts` for the map and the chart)
+ * and import `native-islands/components.css` for the web versions.
  */
 export { CloseButton, GlassButton, Menu } from "./buttons";
 export {

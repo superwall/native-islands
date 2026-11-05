@@ -211,6 +211,7 @@ export type ChartYAxis = {
 /** The x under the finger, as the page wrote it, and each series' value there; `x` is null on release. */
 export type ChartSelection = { x: ChartX | null; values: readonly { series: string; y: number }[] };
 
+/** Registered by `NativeIslandsCharts`. */
 export const NativeChart = defineNativeComponent<{
   props: {
     series: readonly ChartSeries[];
@@ -335,7 +336,7 @@ export const NativeMap = defineNativeComponent<{
 
 export type CameraState = "starting" | "running" | "unavailable" | "denied";
 
-/** Registered by `NativeIslandsCamera`. */
+/** Needs `NSCameraUsageDescription` in the app. */
 export const NativeCamera = defineNativeComponent<{
   /** The camera runs only while `running`, so a hidden screen holds no camera. */
   props: { position: "back" | "front"; running: boolean };
@@ -348,7 +349,7 @@ export type PermissionKind = "camera" | "microphone" | "location" | "photos" | "
 
 export type PermissionStatus = "notDetermined" | "granted" | "limited" | "denied" | "restricted";
 
-/** Registered by `NativeIslandsPermissions`. Sized by its native view: Allow, Settings and Allowed differ in width. */
+/** Needs the usage description of each kind it asks for. Sized by its native view: Allow, Settings and Allowed differ in width. */
 export const NativePermission = defineNativeComponent<{
   props: { kind: PermissionKind; tint?: string };
   state: { status: PermissionStatus };

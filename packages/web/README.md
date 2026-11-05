@@ -131,9 +131,8 @@ The untyped form `defineNativeComponent` is built on.
 
 `native-islands/components` has a typed component for each island in the
 Swift component libraries, under the same name and props. The app registers
-`NativeIslandsComponents` for most of them, and `NativeIslandsMaps`,
-`NativeIslandsCamera` or `NativeIslandsPermissions` for the three that need
-Info.plist keys:
+`NativeIslandsComponents` for most of them, and `NativeIslandsMaps` or
+`NativeIslandsCharts` for the map and the chart:
 
 | Component          | Native name        | Main props                                                |
 | ------------------ | ------------------ | --------------------------------------------------------- |

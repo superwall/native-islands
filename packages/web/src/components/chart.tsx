@@ -242,7 +242,7 @@ const WebChart = ({
  * A Swift Charts chart of the page's series: bars, lines, areas or points,
  * on a category, number or date axis. Dragging across it scrubs and reports
  * the x under the finger with each series' value there. Its web version is an
- * SVG drawing of the same data.
+ * SVG drawing of the same data. Register it with `NativeIslandsCharts.register()`.
  */
 export const Chart = ({
   series,

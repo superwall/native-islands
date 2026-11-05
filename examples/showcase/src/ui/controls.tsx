@@ -1,4 +1,5 @@
 import {
+  CloseButton as PackageCloseButton,
   GlassButton,
   SegmentedControl,
   SystemSymbol as PackageSymbol,
@@ -61,6 +62,15 @@ export const SystemSymbol = ({
     </PackageSymbol>
   );
 };
+
+/** The round glass close button of a sheet, with the system's cross. */
+export const CloseButton = ({ onPress }: { onPress: () => void }) => (
+  <PackageCloseButton native={useNativeEnabled()} onPress={onPress}>
+    <button type="button" className="glass-circle" aria-label="Close" onClick={onPress}>
+      <WebSymbol name="xmark" />
+    </button>
+  </PackageCloseButton>
+);
 
 /** The round glass button iOS 26 puts in navigation bars, such as Back. */
 export const BarButton = ({

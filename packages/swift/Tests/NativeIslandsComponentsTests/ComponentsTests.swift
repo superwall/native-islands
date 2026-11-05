@@ -2,10 +2,9 @@ import SwiftUI
 import Testing
 import UIKit
 @testable import NativeIslands
-@testable import NativeIslandsCamera
+@testable import NativeIslandsCharts
 @testable import NativeIslandsComponents
 @testable import NativeIslandsMaps
-@testable import NativeIslandsPermissions
 
 @MainActor
 @Suite
@@ -29,25 +28,24 @@ struct RegistrationTests {
       "symbol": 1,
       "symbolEffect": 1,
       "gauge": 1,
-      "chart": 1,
       "video": 1,
+      "camera": 1,
       "photoPicker": 1,
       "shareButton": 1,
       "hapticButton": 1,
+      "permission": 1,
       "tip": 1
     ])
   }
 
-  @Test("Registers the map, the camera and permissions from their own libraries")
+  @Test("Registers the map and the chart from their own libraries")
   func registersTheOptInLibraries() {
     let registry = NativeComponentRegistry()
     NativeIslandsMaps.register(in: registry)
-    NativeIslandsCamera.register(in: registry)
-    NativeIslandsPermissions.register(in: registry)
-    #expect(registry.registeredComponents == ["map": 1, "camera": 1, "permission": 1])
-    #expect([NativeIslandsMaps.name, NativeIslandsCamera.name, NativeIslandsPermissions.name] == [
-      "map", "camera", "permission"
-    ])
+    NativeIslandsCharts.register(in: registry)
+    #expect(registry.registeredComponents == ["map": 1, "chart": 1])
+    #expect([NativeIslandsMaps.name, NativeIslandsCharts.name] == ["map", "chart"])
+    #expect(NativeIslandsCharts.isAvailable)
   }
 
   @Test("Registers only the components asked for")
@@ -104,12 +102,11 @@ struct RegistrationTests {
     for component in NativeIslandsComponents.Component.allCases {
       _ = NativeIslandsComponents.ComponentView(component: component, context: context).body
     }
-    for name in ["map", "camera", "permission"] {
-      let registry = NativeComponentRegistry()
-      NativeIslandsMaps.register(in: registry)
-      NativeIslandsCamera.register(in: registry)
-      NativeIslandsPermissions.register(in: registry)
-      #expect(registry.entries[name]?.make(context) != nil)
+    let optIn = NativeComponentRegistry()
+    NativeIslandsMaps.register(in: optIn)
+    NativeIslandsCharts.register(in: optIn)
+    for name in ["map", "chart"] {
+      #expect(optIn.entries[name]?.make(context) != nil)
     }
   }
 

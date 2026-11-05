@@ -60,14 +60,14 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Debug/              frame reporter and alignment
     Extensions/, Support/
   Sources/NativeIslandsComponents/
-                        the ready-made islands that need no Info.plist key,
+                        the ready-made controls, media and system islands,
                         their glass and the iOS 15–25 fallbacks;
                         NativeIslandsComponents.register()
-  Sources/NativeIslandsMaps/, NativeIslandsCamera/, NativeIslandsPermissions/
-                        one island each that needs an Info.plist key, so an
-                        app links it only when it uses it
+  Sources/NativeIslandsMaps/, NativeIslandsCharts/
+                        the map and the chart, apart so an app links MapKit
+                        and Swift Charts only when it uses them
   Tests/NativeIslandsTests/, Tests/NativeIslandsComponentsTests/  mirror Sources/
-                        (the second covers all four component libraries)
+                        (the second covers all three component libraries)
 tests/pages/            the scenario gallery: regression pages (Vite + React)
 tests/ios/              TestHost, the app that bundles the gallery, with its
                         UI tests and screenshot baselines
@@ -109,9 +109,9 @@ A ready-made island lives in both halves at once: its view in
 `packages/web/src/components/`, under the same name. A test reads the Swift
 names and fails when the web names drift. Its web version must keep the
 native control's size and shape, so a change there is a change to TestHost's
-screenshot baselines too. An island that needs an Info.plist key, or links a
-framework that App Store review checks for one, goes in a library of its own
-(as `NativeIslandsMaps` does), with its podspec, its key in the README's table
+screenshot baselines too. An island that needs an Info.plist key notes it in
+the README's table. A large, rarely needed framework (MapKit, Swift Charts)
+goes in a library of its own, as `NativeIslandsMaps` does, with its podspec
 and its `public static let name` read by that test. Shared Swift helpers use
 `package` access; every component podspec passes `-package-name NativeIslands`.
 App chrome (tab bar, navigation bar, search) stays in the showcase.
@@ -127,7 +127,7 @@ Run only what your change touches; never a whole suite by hand.
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
-- Podspecs: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast` and `pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast`, then each of `NativeIslandsMaps`, `NativeIslandsCamera` and `NativeIslandsPermissions` with `--include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec'`; they mirror the products in `Package.swift`, so change them together
+- Podspecs: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast` and `pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast`, then `NativeIslandsMaps` and `NativeIslandsCharts` with `--include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec'`; they mirror the products in `Package.swift`, so change them together
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test --conditions source test`; in a browser `bun run --cwd examples/showcase dev`

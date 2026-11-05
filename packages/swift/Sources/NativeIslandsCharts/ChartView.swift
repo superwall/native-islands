@@ -1,5 +1,6 @@
 import Charts
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
 /// A Swift Charts chart of the page's series (see `ChartData` for the props).

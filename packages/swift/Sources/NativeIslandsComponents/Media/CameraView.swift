@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import NativeIslands
-import NativeIslandsComponents
 import SwiftUI
 
 /// A capture session on its own queue, as AVFoundation asks, with a still
@@ -9,7 +8,7 @@ final class CameraSession: NSObject, ObservableObject, @unchecked Sendable, AVCa
   let session = AVCaptureSession()
   /// `starting`, `running`, `unavailable` (no camera, as on the simulator) or `denied`.
   @MainActor @Published private(set) var state = "starting"
-  private let queue = DispatchQueue(label: "NativeIslandsCamera.session")
+  private let queue = DispatchQueue(label: "NativeIslandsComponents.camera")
   private let output = AVCapturePhotoOutput()
   private var position: AVCaptureDevice.Position?
   private var pending: CheckedContinuation<Data?, Never>?

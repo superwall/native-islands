@@ -196,7 +196,7 @@ const STATUS_TITLES: Record<PermissionStatus, string> = {
  * The button a permission row ends in: Allow while iOS has not asked yet, the
  * answer once it has, and Settings when it was denied. It reports what iOS
  * holds. Its web version asks the browser. Register it with
- * `NativeIslandsPermissions.register()`.
+ * `NativeIslandsComponents.register()`.
  */
 export const Permission = ({
   kind,

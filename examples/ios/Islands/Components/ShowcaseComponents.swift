@@ -1,8 +1,7 @@
 import NativeIslands
-import NativeIslandsCamera
+import NativeIslandsCharts
 import NativeIslandsComponents
 import NativeIslandsMaps
-import NativeIslandsPermissions
 import SwiftUI
 
 /// The native components the showcase uses: every ready-made one from the
@@ -15,8 +14,7 @@ enum ShowcaseComponents {
   static func register(in registry: NativeComponentRegistry = .shared) {
     NativeIslandsComponents.register(in: registry)
     NativeIslandsMaps.register(in: registry)
-    NativeIslandsCamera.register(in: registry)
-    NativeIslandsPermissions.register(in: registry)
+    NativeIslandsCharts.register(in: registry)
     add("tabBar", in: registry) { TabBarView(component: $0) }
     add("searchTab", in: registry, glass: searchTabGlass) { SearchTabView(component: $0) }
     add("searchField", in: registry, glass: tabBarGlass) { SearchFieldView(component: $0) }

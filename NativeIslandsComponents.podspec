@@ -4,10 +4,12 @@ Pod::Spec.new do |s|
   s.summary = 'Ready-made native controls for pages that use native-islands/components.'
   s.description = <<~DESC
     Glass buttons, menus, toggles, segmented controls, sliders, steppers, pickers,
-    date and colour pickers, text fields, symbols, gauges, Swift Charts, video,
-    the photo picker, haptics, the share sheet and TipKit tips, registered with
-    one call under the names the native-islands/components entry on the page
-    mounts. None needs an Info.plist key.
+    date and colour pickers, text fields, symbols, gauges, video, the live
+    camera, the photo picker, haptics, the share sheet, permission prompts and
+    TipKit tips, registered with one call under the names the
+    native-islands/components entry on the page mounts. The camera needs
+    NSCameraUsageDescription, and permissions the usage description of each kind
+    a page asks for.
   DESC
   s.homepage = 'https://github.com/superwall/native-islands'
   s.license = { type: 'FSL-1.1-MIT', file: 'LICENSE' }
@@ -18,8 +20,8 @@ Pod::Spec.new do |s|
   s.swift_versions = ['5.0']
 
   s.source_files = 'packages/swift/Sources/NativeIslandsComponents/**/*.swift'
-  s.frameworks = 'UIKit', 'SwiftUI', 'AVKit', 'PhotosUI'
-  s.weak_frameworks = 'Charts', 'TipKit'
+  s.frameworks = 'UIKit', 'SwiftUI', 'AVKit', 'AVFoundation', 'PhotosUI', 'Photos', 'CoreLocation', 'UserNotifications'
+  s.weak_frameworks = 'TipKit'
   # Shares helpers with the other component pods through Swift's `package` access.
   s.pod_target_xcconfig = { 'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name NativeIslands' }
   s.dependency 'NativeIslands', s.version.to_s

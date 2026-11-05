@@ -2,11 +2,14 @@ import NativeIslands
 import SwiftUI
 import TipKit
 
-/// Ready-made native islands for the controls a web page needs, each under the
-/// name its `native-islands/components` twin on the page uses. None of them
-/// needs an Info.plist key; the map, the camera and permission prompts, which
-/// do, are in `NativeIslandsMaps`, `NativeIslandsCamera` and
-/// `NativeIslandsPermissions`.
+/// Ready-made native islands for the controls and system features a web page
+/// needs, each under the name its `native-islands/components` twin on the page
+/// uses. The map and the chart, which pull in MapKit and Swift Charts, are in
+/// `NativeIslandsMaps` and `NativeIslandsCharts`.
+///
+/// Info.plist keys: `camera` needs `NSCameraUsageDescription`, and `permission`
+/// needs the usage description of every kind its pages ask for. The others
+/// need none.
 public enum NativeIslandsComponents {
   public enum Component: String, CaseIterable, Sendable {
     case glassButton
@@ -23,11 +26,12 @@ public enum NativeIslandsComponents {
     case symbol
     case symbolEffect
     case gauge
-    case chart
     case video
+    case camera
     case photoPicker
     case shareButton
     case hapticButton
+    case permission
     case tip
 
     /// The name pages mount it by.
@@ -37,7 +41,7 @@ public enum NativeIslandsComponents {
     /// page keeps its web version.
     public var isAvailable: Bool {
       switch self {
-      case .gauge, .chart:
+      case .gauge:
         if #available(iOS 16.0, *) { return true }
         return false
       case .tip:
@@ -82,14 +86,12 @@ public enum NativeIslandsComponents {
         if #available(iOS 16.0, *) {
           GaugeView(component: context)
         }
-      case .chart:
-        if #available(iOS 16.0, *) {
-          ChartView(component: context)
-        }
       case .video: VideoView(component: context)
+      case .camera: CameraView(component: context)
       case .photoPicker: PhotoPickerView(component: context)
       case .shareButton: ShareButtonView(component: context)
       case .hapticButton: HapticButtonView(component: context)
+      case .permission: PermissionView(component: context)
       case .tip:
         if #available(iOS 17.0, *) {
           TipIslandView(component: context)

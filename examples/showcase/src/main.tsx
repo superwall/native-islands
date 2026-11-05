@@ -21,6 +21,7 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
   installNativeSimulator({
     components: {
       glassButton: 1,
+      closeButton: 1,
       toggle: 1,
       segmentedControl: 1,
       symbol: 1,
