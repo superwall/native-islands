@@ -295,10 +295,10 @@ Native Islands has two packages, one for each side. They share a contract:
 packages' tests decode it, so a change on one side that the other can't read
 fails a test.
 
-| Side       | Package                   | Where                                  |
-| ---------- | ------------------------- | -------------------------------------- |
-| App (iOS)  | `NativeIslands` (SwiftPM) | `packages/swift/Sources/NativeIslands` |
-| Page (web) | `native-islands` (npm)    | [`packages/web/`](packages/web/)       |
+| Side       | Package                              | Where                                  |
+| ---------- | ------------------------------------ | -------------------------------------- |
+| App (iOS)  | `NativeIslands` (SwiftPM, CocoaPods) | `packages/swift/Sources/NativeIslands` |
+| Page (web) | `native-islands` (npm)               | [`packages/web/`](packages/web/)       |
 
 Install the page side from npm:
 
@@ -307,7 +307,14 @@ npm install native-islands
 ```
 
 Add the app side with Swift Package Manager, from
-`https://github.com/superwall/native-islands`.
+`https://github.com/superwall/native-islands`, or with CocoaPods, which React
+Native and Expo apps build through:
+
+```ruby
+pod 'NativeIslands'
+```
+
+A pod of your own depends on it with `s.dependency 'NativeIslands'`.
 
 ### On the page
 

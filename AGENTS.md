@@ -104,6 +104,7 @@ Run only what your change touches; never a whole suite by hand.
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
+- Podspec: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast`; it mirrors `Package.swift`, so change both together
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test --conditions source test`; in a browser `bun run --cwd examples/showcase dev`
