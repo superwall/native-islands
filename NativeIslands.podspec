@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name = 'NativeIslands'
   s.version = '0.1.0'
-  s.summary = 'Native views drawn inside a WKWebView page that uses @superwall/native-islands.'
+  s.summary = 'Native views drawn inside a WKWebView page that uses the native-islands npm package.'
   s.description = <<~DESC
     NativeIslands draws native SwiftUI views in WebKit's own scroll views, so they
     scroll, slide and are covered exactly like the web content around them. The page
