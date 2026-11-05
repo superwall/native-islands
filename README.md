@@ -322,7 +322,7 @@ style.
 
 [FSL-1.1-MIT](LICENSE). Use it, change it and ship it in your apps, free. The
 one thing you can't do is build a competing product out of it. Two years after
-each release, that release becomes plain MIT. Because of that one limit, it isn't OSI open
-source.
+each release, that release becomes plain MIT. Because of that one limit, it
+isn't OSI open source.
 
 Copyright 2026 Superwall, Inc.

@@ -7,7 +7,7 @@ Islands, the web element stays. The page has no platform checks.
 
 > [!WARNING]
 > **Experimental.** The API and the contract with the app will change between
-> versions. See [Where it stands](../../README.md#where-it-stands).
+> versions. See [Known limits](../../README.md#known-limits).
 
 ## Install
 
