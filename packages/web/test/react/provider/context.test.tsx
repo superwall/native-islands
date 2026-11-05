@@ -1,7 +1,9 @@
 import * as React from "react";
 import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ISLAND_STYLE_ATTRIBUTE, NATIVE_ACK_TIMEOUT_MS, connectNativeIslands } from "../../../src";
+import { ISLAND_STYLE_ATTRIBUTE } from "../../../src/layout/attributes";
+import { NATIVE_ACK_TIMEOUT_MS } from "../../../src/islands/controller";
+import { connectNativeIslands } from "../../../src/bridge/connect";
 import { ISLAND_SCROLLER_ATTRIBUTE } from "../../../src/layout/attributes";
 import { GlassButton } from "../../support/components";
 import { NativeIslandsProvider, useNativeIslands, useNativeIslandsReady } from "../../../src/react";

@@ -56,14 +56,10 @@ struct RegistrationTests {
     #expect(registry.registeredComponents.count == NativeIslandsComponents.Component.allCases.count)
   }
 
-  @Test("Draws each component inside the app's wrapper")
-  func wrapsEachComponent() {
+  @Test("Draws each component it registered")
+  func drawsEachComponent() {
     let registry = NativeComponentRegistry()
-    var wrapped: [NativeIslandsComponents.Component] = []
-    NativeIslandsComponents.register(in: registry, only: [.symbol, .stepper]) { component, view in
-      wrapped.append(component)
-      return view
-    }
+    NativeIslandsComponents.register(in: registry, only: [.symbol, .stepper])
     let mount = NativeMount(
       id: "a",
       component: "symbol",
@@ -79,9 +75,8 @@ struct RegistrationTests {
       reuse: nil
     )
     let context = NativeComponentContext(mount: mount, sequence: 1, waitsUntilReady: false, host: nil)
-    _ = registry.entries["symbol"]?.make(context)
-    _ = registry.entries["stepper"]?.make(context)
-    #expect(wrapped == [.symbol, .stepper])
+    #expect(registry.entries["symbol"]?.make(context) != nil)
+    #expect(registry.entries["stepper"]?.make(context) != nil)
     for component in NativeIslandsComponents.Component.allCases {
       _ = NativeIslandsComponents.ComponentView(component: component, context: context).body
     }

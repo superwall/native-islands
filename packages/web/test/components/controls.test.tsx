@@ -36,7 +36,7 @@ describe("Toggle", () => {
       props: { isOn: false, tint: "rgb(0, 128, 0)" },
       accessibility: { label: "Wi-Fi" },
     });
-    view.event("change", { isOn: true });
+    view.state({ isOn: true });
     const web = screen.getByRole("switch", { name: "Wi-Fi" });
     expect(web.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(web);
@@ -71,7 +71,7 @@ describe("SegmentedControl", () => {
       props: { segments: ["Day", "Week"], selectedIndex: 0, glassGroup: "bar" },
       accessibility: { label: "View", value: "Day" },
     });
-    view.event("change", { selectedIndex: 1 });
+    view.state({ selectedIndex: 1 });
     expect(screen.getByRole("button", { name: "Day" }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "Week" }));
     expect(onChange.mock.calls).toEqual([[1], [1]]);

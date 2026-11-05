@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NativeComponentLimits } from "../../src/protocol/schemas";
 import {
-  NativeComponentLimits,
   ToHostMessageSchema,
   type TToPageMessage,
   type TToHostMessage,
-} from "../../src";
+} from "../../src/protocol/messages";
 import {
   createNativeIslands,
   NATIVE_ACK_TIMEOUT_MS,
   NATIVE_FLUSH_FALLBACK_MS,
   NATIVE_REUSE_LIMIT,
   NATIVE_REUSE_WINDOW_MS,
-  readNativeCapability,
   toNativeProps,
   type NativeIslandListener,
   type NativeIslandSpec,
-} from "../../src";
+} from "../../src/islands/controller";
+import { readNativeCapability } from "../../src/protocol/capability";
 
 const capability = readNativeCapability({
   protocol: 1,

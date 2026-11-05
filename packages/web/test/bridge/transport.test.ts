@@ -3,8 +3,8 @@ import {
   createWebKitTransport,
   NATIVE_RECEIVER_GLOBAL,
   type NativeIslandsReceiver,
-  type TToHostMessage,
-} from "../../src";
+} from "../../src/bridge/transport";
+import type { TToHostMessage } from "../../src/protocol/messages";
 import { decodeBase64Json } from "../../src/bridge/transport";
 
 type HostWindow = Window & {

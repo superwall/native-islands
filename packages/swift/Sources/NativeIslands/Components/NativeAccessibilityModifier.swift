@@ -21,10 +21,10 @@ struct NativeAccessibilityModifier: ViewModifier {
     var traits: AccessibilityTraits = []
     for name in names {
       switch name {
-      case "button": traits.insert(.isButton)
-      case "link": traits.insert(.isLink)
-      case "image": traits.insert(.isImage)
-      case "header": traits.insert(.isHeader)
+      case "button": traits.formUnion(.isButton)
+      case "link": traits.formUnion(.isLink)
+      case "image": traits.formUnion(.isImage)
+      case "header": traits.formUnion(.isHeader)
       default: break
       }
     }

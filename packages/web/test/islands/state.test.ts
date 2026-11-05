@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ToHostMessageSchema, type TToPageMessage, type TToHostMessage } from "../../src";
+import {
+  ToHostMessageSchema,
+  type TToPageMessage,
+  type TToHostMessage,
+} from "../../src/protocol/messages";
 import {
   createNativeIslands,
   NATIVE_COMMAND_TIMEOUT_MS,
   NativeCommandError,
-  readNativeCapability,
-  supportsFeature,
   type NativeIslandListener,
   type NativeIslandSpec,
-} from "../../src";
+} from "../../src/islands/controller";
+import { readNativeCapability, supportsFeature } from "../../src/protocol/capability";
 
 const spec: NativeIslandSpec = {
   component: "signupForm",

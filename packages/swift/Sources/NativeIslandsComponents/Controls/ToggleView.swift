@@ -1,9 +1,10 @@
 import NativeIslands
 import SwiftUI
 
+/// A switch whose value is state, so the page's echo of an older value
+/// never flips it back.
 public struct ToggleView: View {
   @ObservedObject var component: NativeComponentContext
-  @State private var isOn: Bool?
 
   public init(component: NativeComponentContext) {
     self.component = component
@@ -11,23 +12,16 @@ public struct ToggleView: View {
 
   public var body: some View {
     let props = component.props
-    let value = props.bool("isOn") ?? false
     Toggle(
       "",
       isOn: Binding(
-        get: { isOn ?? value },
-        set: { next in
-          isOn = next
-          component.emit("change", payload: ["isOn": next])
-        }
+        get: { props.bool("isOn") ?? false },
+        set: { component.setState(["isOn": $0]) }
       )
     )
     .labelsHidden()
     .tint(props.color("tint"))
     .disabled(props.bool("disabled") == true)
     .fixedSize()
-    .onChangeOf(value) { next in
-      isOn = next
-    }
   }
 }

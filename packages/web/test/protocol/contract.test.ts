@@ -5,9 +5,8 @@ import {
   NATIVE_PROTOCOL_VERSION,
   NativeCapabilitySchema,
   NativeComponentLimits,
-  ToHostMessageSchema,
-  ToPageMessageSchema,
-} from "../../src";
+} from "../../src/protocol/schemas";
+import { ToHostMessageSchema, ToPageMessageSchema } from "../../src/protocol/messages";
 import contract from "../../../../tests/fixtures/messages.json";
 
 const mount = {

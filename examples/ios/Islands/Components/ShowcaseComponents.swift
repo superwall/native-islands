@@ -4,16 +4,13 @@ import SwiftUI
 
 /// The native components the showcase uses: the ready-made ones from
 /// `NativeIslandsComponents` and the app's own, by the names in
-/// `examples/showcase/src/islands/definitions.ts`. Each can draw the
-/// outline the page's Outlines mode asks for.
+/// `examples/showcase/src/islands/definitions.ts`.
 enum ShowcaseComponents {
   typealias Glass = @MainActor (NativeComponentProps) -> NativeGlass?
 
   @MainActor
   static func register(in registry: NativeComponentRegistry = .shared) {
-    NativeIslandsComponents.register(in: registry) { component, view in
-      view.modifier(IslandOutline(name: component.name))
-    }
+    NativeIslandsComponents.register(in: registry)
     let glassButton = NativeIslandsComponents.buttonGlass
     add("tabBar", in: registry) { TabBarView(component: $0) }
     add("searchTab", in: registry, glass: searchTabGlass) { SearchTabView(component: $0) }
@@ -36,9 +33,7 @@ enum ShowcaseComponents {
     glass: Glass? = nil,
     @ViewBuilder content: @escaping @MainActor (NativeComponentContext) -> Content
   ) {
-    registry.register(name, glass: glass) { component in
-      content(component).modifier(IslandOutline(name: name))
-    }
+    registry.register(name, glass: glass, content: content)
   }
 
   @MainActor

@@ -64,7 +64,7 @@ export const Toggle = ({
     tint={tint}
     disabled={disabled}
     accessibility={accessibilityOf({ label, accessibility })}
-    onChange={({ isOn: next }) => onChange(next)}
+    onIsOnChange={onChange}
     {...common}
   >
     {children ?? (
@@ -106,7 +106,7 @@ export const SegmentedControl = ({
     disabled={disabled}
     glassGroup={glassGroup}
     accessibility={accessibilityOf({ label, accessibility }, segments[selectedIndex])}
-    onChange={({ selectedIndex: index }) => onChange(index)}
+    onSelectedIndexChange={onChange}
     {...common}
   >
     {children ?? (
@@ -169,7 +169,7 @@ export const Slider = ({
     tint={tint}
     disabled={disabled}
     accessibility={accessibilityOf({ label, accessibility })}
-    onStateChange={(_, { value: next }) => next !== undefined && onChange(next)}
+    onValueChange={onChange}
     {...common}
   >
     {children ?? (
@@ -222,7 +222,7 @@ export const Stepper = ({
     step={step}
     disabled={disabled}
     accessibility={accessibilityOf({ label, accessibility }, String(value))}
-    onStateChange={(_, { value: next }) => next !== undefined && onChange(next)}
+    onValueChange={onChange}
     {...common}
   >
     {children ?? (
@@ -362,7 +362,7 @@ export const Picker = ({
       style={style}
       tint={tint}
       accessibility={accessibilityOf({ label, accessibility }, options[selectedIndex])}
-      onStateChange={(_, { selectedIndex: next }) => next !== undefined && onChange(next)}
+      onSelectedIndexChange={onChange}
       {...common}
     >
       {children ?? web}
@@ -509,7 +509,7 @@ export const DatePicker = ({
       style={style}
       tint={tint}
       accessibility={accessibilityOf({ label, accessibility })}
-      onStateChange={(_, { date: next }) => next !== undefined && onChange(next)}
+      onDateChange={onChange}
       {...common}
     >
       {children ?? web}
@@ -533,7 +533,7 @@ export const ColorPicker = ({
   <NativeColorPicker
     color={color}
     accessibility={accessibilityOf({ label, accessibility })}
-    onStateChange={(_, { color: next }) => next !== undefined && onChange(next)}
+    onColorChange={onChange}
     {...common}
   >
     {children ?? (
@@ -595,7 +595,7 @@ export const TextField = ({
       submitLabel={submitLabel}
       tint={tint}
       accessibility={accessibilityOf({ label, accessibility })}
-      onStateChange={(_, { text: next }) => next !== undefined && onChange(next)}
+      onTextChange={onChange}
       onSubmit={({ text: submitted }) => onSubmit?.(submitted)}
       onFocusChange={({ focused }) => onFocusChange?.(focused)}
       {...common}

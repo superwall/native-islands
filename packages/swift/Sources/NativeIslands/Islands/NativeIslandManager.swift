@@ -20,6 +20,7 @@ final class NativeIslandManager: NativeIslandMessaging {
   var retired: [String: RetiredIsland] = [:]
   var retiredCount = 0
   var trace: NativeMountTrace?
+  let outlines = NativeIslandOutlines()
   let expire: @MainActor (@escaping @MainActor () -> Void) -> Void
   let retry: @MainActor (@escaping @MainActor () -> Void) -> Void
   static let parkingAttempts = NativeFrameTicker.framesPerSecond
@@ -151,7 +152,7 @@ final class NativeIslandManager: NativeIslandMessaging {
       waitsUntilReady: entry.waitsUntilReady,
       host: self
     )
-    let host = UIHostingController(rootView: NativeIslandRoot(context: context, make: entry.make))
+    let host = UIHostingController(rootView: NativeIslandRoot(context: context, make: entry.make, outlines: outlines))
     let island = NativeIsland(context: context, host: host, mount: mount, glass: entry.glass)
     if mount.sizing == .native {
       island.watchSize { [weak self, weak island] in
@@ -342,27 +343,6 @@ extension NativeIslandManager {
       )
     }
     .sorted { $0.id < $1.id }
-  }
-}
-
-struct NativeIslandFrame: Equatable {
-  let id: String
-  let component: String
-  let frame: CGRect
-  let visible: Bool
-  let acknowledged: Bool
-
-  var json: [String: Any] {
-    [
-      "id": id,
-      "component": component,
-      "x": Double(frame.origin.x),
-      "y": Double(frame.origin.y),
-      "width": Double(frame.width),
-      "height": Double(frame.height),
-      "visible": visible,
-      "acknowledged": acknowledged
-    ]
   }
 }
 

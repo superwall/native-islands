@@ -7,11 +7,11 @@ open class IslandWebView: WKWebView {
 
   public init(
     frame: CGRect = .zero,
-    configuration: WKWebViewConfiguration = WKWebViewConfiguration(),
+    configuration: WKWebViewConfiguration? = nil,
     registry: NativeComponentRegistry? = nil,
     reveal: NativeIslandsReveal = .whenIslandsReady(timeout: 2)
   ) {
-    super.init(frame: frame, configuration: configuration)
+    super.init(frame: frame, configuration: configuration ?? WKWebViewConfiguration())
     islands = NativeIslandsHost(webView: self, registry: registry, reveal: reveal)
   }
 

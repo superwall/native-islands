@@ -10,8 +10,10 @@ public struct NativeIslandAlignment: Equatable, Sendable, Codable {
   public let acknowledged: Bool
   public let shown: Bool
   public let handoff: String?
-  public let scenario: String?
-  public let expect: String?
+  /// The test page's scenario and what it expects of the island, read from
+  /// its `data-scenario` and `data-expect` attributes.
+  @_spi(Testing) public let scenario: String?
+  @_spi(Testing) public let expect: String?
 
   public var deltas: [Double] {
     guard let web else { return [] }

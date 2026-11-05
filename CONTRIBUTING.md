@@ -60,6 +60,8 @@ Run what your change touches. CI runs everything on the pull request.
 | UI and screenshot tests   | `scripts/ui-tests.sh`                                                                        |
 | Every installed iOS       | `scripts/compat-matrix.sh`                                                                   |
 | Performance against today | `performance/run.sh`                                                                         |
+| Web package               | `bun run --cwd packages/web build && bunx publint packages/web --strict`                     |
+| Packed in fresh apps      | `scripts/pack-smoke.sh`                                                                      |
 
 `packages/web/src` stays at 100% test coverage. Record new screenshot
 baselines (`scripts/ui-tests.sh --record`) only after a deliberate visual
@@ -78,6 +80,23 @@ change, and say so in the pull request.
 
 [AGENTS.md](./AGENTS.md) has the full layout of the repository and the rules
 coding agents follow here; they apply to people too.
+
+## Releasing
+
+The web package is published to npm as `native-islands`. Bump `version` in
+`packages/web/package.json`, run `scripts/pack-smoke.sh`, then publish from the
+package's folder:
+
+```bash
+cd packages/web
+npm publish
+```
+
+`prepack` copies the root `LICENSE` in and builds `dist` first, and
+`publishConfig` makes the package public. Check what will ship with
+`npm pack --dry-run`: only `dist`, `README.md`, `LICENSE` and `package.json`.
+The Swift package ships from this repository through Swift Package Manager; tag
+the release commit with the same version.
 
 ## Licence
 

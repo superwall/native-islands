@@ -79,21 +79,10 @@ public enum NativeIslandsComponents {
     in registry: NativeComponentRegistry? = nil,
     only components: Set<Component> = Set(Component.allCases)
   ) {
-    register(in: registry, only: components) { _, view in view }
-  }
-
-  /// Registers `components`, each drawn inside `wrap`, such as a debug
-  /// outline around every island.
-  @MainActor
-  public static func register<Wrapped: View>(
-    in registry: NativeComponentRegistry? = nil,
-    only components: Set<Component> = Set(Component.allCases),
-    wrap: @escaping @MainActor (Component, ComponentView) -> Wrapped
-  ) {
     let registry = registry ?? .shared
     for component in Component.allCases where components.contains(component) && component.isAvailable {
       registry.register(component.name, glass: component.glass) { context in
-        wrap(component, ComponentView(component: component, context: context))
+        ComponentView(component: component, context: context)
       }
     }
   }
