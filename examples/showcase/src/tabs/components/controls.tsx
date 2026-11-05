@@ -1,6 +1,6 @@
 import * as React from "react";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { MenuItem } from "../../islands/definitions";
+import type { MenuItem } from "native-islands/components";
 import { Button, Segmented, Toggle } from "../../ui/controls";
 import { Menu, Slider, Stepper } from "../../ui/inputs";
 import { Readout, Row, Section, Stage } from "../../ui/List";

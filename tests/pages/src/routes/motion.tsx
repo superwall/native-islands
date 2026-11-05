@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useRouter } from "../router";
 import { Glass } from "../components/controls";
-import { GlassButton } from "../components/defaults";
+import { NativeGlassButton } from "native-islands/components";
 import { Scenario } from "../components/Scenario";
 
 export default function Motion() {
@@ -27,9 +27,9 @@ export default function Motion() {
         </div>
       </Scenario>
       <Scenario id="S55" title="Below an island whose web version spins" expect="native">
-        <GlassButton systemImage="arrow.triangle.2.circlepath">
+        <NativeGlassButton systemImage="arrow.triangle.2.circlepath">
           <div className="spinner" role="progressbar" aria-busy />
-        </GlassButton>
+        </NativeGlassButton>
         <div className="solid-card">
           <Glass title="Below the spinner" />
         </div>

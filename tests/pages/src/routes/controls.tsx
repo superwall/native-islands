@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SystemSymbol } from "../components/defaults";
+import { NativeSymbol } from "native-islands/components";
 import { Confetti, Rating, RatingV2, SilentBadge, Stars } from "../components/custom";
 import { Segments, Switch } from "../components/controls";
 import { Scenario } from "../components/Scenario";
@@ -28,11 +28,11 @@ export default function Controls() {
         />
       </Scenario>
       <Scenario id="S11" title="SF Symbol" expect="native">
-        <SystemSymbol name="crown.fill" tint="var(--accent)" pointSize={28}>
+        <NativeSymbol name="crown.fill" tint="var(--accent)" pointSize={28}>
           <span role="img" aria-label="Crown" style={{ fontSize: 28 }}>
             ♛
           </span>
-        </SystemSymbol>
+        </NativeSymbol>
       </Scenario>
       <Scenario id="S12" title="An app's own component" expect="native">
         <Rating value={rating} max={5} tint="var(--accent)" onChange={setRating}>

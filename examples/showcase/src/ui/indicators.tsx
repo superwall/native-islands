@@ -1,79 +1,19 @@
-import * as React from "react";
-import { useAccent, useNativeEnabled } from "../app/preferences";
+import type * as React from "react";
 import {
-  NativeChart,
-  NativeGauge,
-  NativeSymbolEffect,
-  type ChartKind,
-  type ChartPoint,
+  Gauge as PackageGauge,
+  SymbolEffect,
   type GaugeStyle,
-  type SymbolEffect,
-} from "../islands/definitions";
-import { arcPath, niceMaximum, slotAt } from "./geometry";
+  type SymbolEffectName,
+} from "native-islands/components";
+import { useAccent, useNativeEnabled } from "../app/preferences";
+import { NativeChart, type ChartKind, type ChartPoint } from "../islands/definitions";
+import { niceMaximum, slotAt } from "./geometry";
 import { WebSymbol } from "./icons";
-
-const RING = { cx: 40, cy: 40, radius: 32 };
-
-const WebGauge = ({
-  value,
-  style,
-  label,
-  minimumLabel,
-  maximumLabel,
-}: {
-  value: number;
-  style: GaugeStyle;
-  label?: string;
-  minimumLabel?: string;
-  maximumLabel?: string;
-}) => {
-  switch (style) {
-    case "spinner":
-      return <div className="web-spinner" role="progressbar" aria-busy />;
-    case "bar":
-    case "linear":
-      return (
-        <div className="web-gauge-linear" data-style={style}>
-          {style === "linear" && <span>{minimumLabel}</span>}
-          <div className="web-gauge-track">
-            <div
-              className="web-gauge-fill"
-              style={{ width: `${Math.min(Math.max(value, 0), 1) * 100}%` }}
-            />
-          </div>
-          {style === "linear" && <span>{maximumLabel}</span>}
-        </div>
-      );
-    default: {
-      const arc = style === "capacity" ? { start: 0, sweep: 360 } : { start: -135, sweep: 270 };
-      return (
-        <div className="web-gauge-circular">
-          <svg viewBox="0 0 80 80" aria-hidden>
-            <path className="web-gauge-ring" d={arcPath(1, { ...RING, ...arc })} />
-            <path className="web-gauge-value" d={arcPath(value, { ...RING, ...arc })} />
-          </svg>
-          <span className="web-gauge-label">{label}</span>
-          {style === "circular" && (
-            <span className="web-gauge-ends">
-              <span>{minimumLabel}</span>
-              <span>{maximumLabel}</span>
-            </span>
-          )}
-        </div>
-      );
-    }
-  }
-};
 
 /** A gauge or progress view, from SwiftUI's `Gauge` and `ProgressView`. */
 export const Gauge = ({
-  label,
-  value,
-  style,
-  valueLabel,
-  minimumLabel,
-  maximumLabel,
   tint,
+  ...props
 }: {
   label: string;
   value: number;
@@ -84,28 +24,7 @@ export const Gauge = ({
   tint?: string;
 }) => {
   const accent = useAccent();
-  return (
-    <NativeGauge
-      value={value}
-      style={style}
-      label={valueLabel}
-      minimumLabel={minimumLabel}
-      maximumLabel={maximumLabel}
-      tint={tint ?? accent}
-      native={useNativeEnabled()}
-      accessibility={{ label, value: valueLabel }}
-    >
-      <div className="web-gauge" style={{ "--tint": tint ?? "var(--accent)" }}>
-        <WebGauge
-          value={value}
-          style={style}
-          label={valueLabel}
-          minimumLabel={minimumLabel}
-          maximumLabel={maximumLabel}
-        />
-      </div>
-    </NativeGauge>
-  );
+  return <PackageGauge {...props} tint={tint ?? accent} native={useNativeEnabled()} />;
 };
 
 /**
@@ -120,14 +39,14 @@ export const AnimatedSymbol = ({
   tint,
 }: {
   name: string;
-  effect: SymbolEffect;
+  effect: SymbolEffectName;
   trigger: number;
   active: boolean;
   tint?: string;
 }) => {
   const accent = useAccent();
   return (
-    <NativeSymbolEffect
+    <SymbolEffect
       name={name}
       effect={effect}
       trigger={trigger}
@@ -136,17 +55,8 @@ export const AnimatedSymbol = ({
       pointSize={56}
       native={useNativeEnabled()}
     >
-      <div className="web-symbol-effect" style={{ color: tint ?? "var(--accent)" }}>
-        <span
-          key={`${name}-${trigger}`}
-          className="web-symbol-effect-image"
-          data-effect={effect}
-          data-active={active ? "" : undefined}
-        >
-          <WebSymbol name={name} />
-        </span>
-      </div>
-    </NativeSymbolEffect>
+      <WebSymbol name={name} />
+    </SymbolEffect>
   );
 };
 

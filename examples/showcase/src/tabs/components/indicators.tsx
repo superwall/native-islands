@@ -1,6 +1,7 @@
 import * as React from "react";
+import type { SymbolEffectName } from "native-islands/components";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { ChartKind, ChartPoint, SymbolEffect } from "../../islands/definitions";
+import type { ChartKind, ChartPoint } from "../../islands/definitions";
 import { Button, Segmented, Toggle } from "../../ui/controls";
 import { AnimatedSymbol, Chart, Gauge } from "../../ui/indicators";
 import { MenuPicker, Slider } from "../../ui/inputs";
@@ -59,7 +60,7 @@ const Gauges = () => {
 };
 
 const EFFECTS: readonly {
-  effect: SymbolEffect;
+  effect: SymbolEffectName;
   title: string;
   symbol: string;
   repeats: boolean;

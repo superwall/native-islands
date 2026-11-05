@@ -8,6 +8,7 @@ import { capabilityScreens } from "./tabs/capabilities";
 import { componentScreens } from "./tabs/components";
 import { searchScreen } from "./tabs/search";
 import { settingScreens } from "./tabs/settings";
+import "native-islands/components.css";
 import "./styles/live.css";
 import "./styles/tokens.css";
 import "./styles/app.css";

@@ -1,17 +1,16 @@
-import { useAccent, useNativeEnabled } from "../app/preferences";
 import {
-  NativeGlassButton,
-  NativeSegmentedControl,
-  NativeSymbol,
-  NativeToggle,
+  GlassButton,
+  SegmentedControl,
+  SystemSymbol as PackageSymbol,
+  Toggle as PackageToggle,
   type SymbolWeight,
-} from "../islands/definitions";
+} from "native-islands/components";
+import { useAccent, useNativeEnabled } from "../app/preferences";
 import { WebSymbol } from "./icons";
 
 /**
- * Each control is a native island with its web version as the children: the
- * web version sets the island's size and place, and is what a browser, or
- * Settings with native islands off, shows.
+ * The showcase's buttons and switches: the package's components with the
+ * accent colour, the Native Islands setting and the showcase's symbol drawings.
  */
 
 export const Toggle = ({
@@ -22,22 +21,7 @@ export const Toggle = ({
   label: string;
   isOn: boolean;
   onChange: (isOn: boolean) => void;
-}) => (
-  <NativeToggle
-    isOn={isOn}
-    native={useNativeEnabled()}
-    onChange={({ isOn: next }) => onChange(next)}
-  >
-    <button
-      type="button"
-      role="switch"
-      className="web-toggle"
-      aria-label={label}
-      aria-checked={isOn}
-      onClick={() => onChange(!isOn)}
-    />
-  </NativeToggle>
-);
+}) => <PackageToggle label={label} isOn={isOn} native={useNativeEnabled()} onChange={onChange} />;
 
 export const Segmented = ({
   segments,
@@ -48,25 +32,13 @@ export const Segmented = ({
   selectedIndex: number;
   onChange: (index: number) => void;
 }) => (
-  <NativeSegmentedControl
+  <SegmentedControl
+    label={segments.join(", ")}
     segments={segments}
     selectedIndex={selectedIndex}
     native={useNativeEnabled()}
-    onChange={({ selectedIndex: index }) => onChange(index)}
-  >
-    <div className="web-segmented" role="group">
-      {segments.map((segment, index) => (
-        <button
-          key={segment}
-          type="button"
-          aria-pressed={index === selectedIndex}
-          onClick={() => onChange(index)}
-        >
-          {segment}
-        </button>
-      ))}
-    </div>
-  </NativeSegmentedControl>
+    onChange={onChange}
+  />
 );
 
 export const SystemSymbol = ({
@@ -82,11 +54,11 @@ export const SystemSymbol = ({
 }) => {
   const accent = useAccent();
   return (
-    <NativeSymbol name={name} tint={tint ?? accent} weight={weight} native={useNativeEnabled()}>
-      <span className={className} style={{ color: tint ?? "var(--accent)" }}>
+    <PackageSymbol name={name} tint={tint ?? accent} weight={weight} native={useNativeEnabled()}>
+      <span className={className}>
         <WebSymbol name={name} />
       </span>
-    </NativeSymbol>
+    </PackageSymbol>
   );
 };
 
@@ -102,17 +74,14 @@ export const BarButton = ({
   glassGroup?: string;
   onPress: () => void;
 }) => (
-  <NativeGlassButton
+  <GlassButton
     systemImage={symbol}
+    icon={<WebSymbol name={symbol} />}
+    label={label}
     glassGroup={glassGroup}
     native={useNativeEnabled()}
-    accessibility={{ label }}
     onPress={onPress}
-  >
-    <button type="button" className="glass-circle" aria-label={label} onClick={onPress}>
-      <WebSymbol name={symbol} className="bar-symbol" />
-    </button>
-  </NativeGlassButton>
+  />
 );
 
 /** A Liquid Glass button: regular glass, or prominent in the accent colour. */
@@ -135,28 +104,17 @@ export const Button = ({
 }) => {
   const accent = useAccent();
   return (
-    <NativeGlassButton
+    <GlassButton
       title={title}
       systemImage={symbol}
+      icon={symbol && <WebSymbol name={symbol} />}
+      label={label}
       prominence={prominent ? "prominent" : "regular"}
       tint={prominent ? accent : undefined}
       disabled={disabled}
       glassGroup={glassGroup}
       native={useNativeEnabled()}
-      accessibility={{ label: label ?? title }}
       onPress={onPress}
-    >
-      <button
-        type="button"
-        className={title ? "glass-pill" : "glass-circle"}
-        data-prominent={prominent ? "" : undefined}
-        aria-label={label ?? title}
-        disabled={disabled}
-        onClick={onPress}
-      >
-        {symbol && <WebSymbol name={symbol} className="bar-symbol" />}
-        {title}
-      </button>
-    </NativeGlassButton>
+    />
   );
 };

@@ -1,4 +1,6 @@
-import { CloseButton, GlassButton, SegmentedControl, Toggle } from "./defaults";
+import { CloseButton, GlassButton, SegmentedControl, Toggle } from "native-islands/components";
+
+/** The package's components, each with this gallery's own web version as children. */
 
 type GlassProps = {
   title: string;
@@ -58,7 +60,7 @@ export const Switch = ({
   onChange: (isOn: boolean) => void;
 }) => {
   return (
-    <Toggle isOn={isOn} tint="var(--accent)" onChange={({ isOn: next }) => onChange(next)}>
+    <Toggle label={label} isOn={isOn} tint="var(--accent)" onChange={onChange}>
       <button
         type="button"
         role="switch"
@@ -82,9 +84,10 @@ export const Segments = ({
 }) => {
   return (
     <SegmentedControl
+      label={segments.join(", ")}
       segments={segments}
       selectedIndex={selectedIndex}
-      onChange={({ selectedIndex: index }) => onChange(index)}
+      onChange={onChange}
     >
       <div className="segments" role="group">
         {segments.map((segment, index) => (
