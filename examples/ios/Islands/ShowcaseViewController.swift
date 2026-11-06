@@ -26,7 +26,11 @@ final class ShowcaseViewController: UIViewController, WKNavigationDelegate {
     configuration.setURLSchemeHandler(BundledPagesHandler(), forURLScheme: ShowcaseLocation.scheme)
     configuration.allowsInlineMediaPlayback = true
     configuration.mediaTypesRequiringUserActionForPlayback = []
-    let bridge = AppBridge { [weak self] message in self?.receive(message) }
+    let bridge = AppBridge { [weak self] message, sender in
+      // Only the app's own page sets the app up; a page in a sheet is a guest.
+      guard let self, sender == nil || sender === self.webView else { return }
+      self.receive(message)
+    }
     configuration.userContentController.add(bridge, name: AppBridge.name)
     let webView = IslandWebView(frame: view.bounds, configuration: configuration)
     webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]

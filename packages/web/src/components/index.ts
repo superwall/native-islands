@@ -35,6 +35,8 @@ export {
   type PresentationProps,
 } from "./presentations";
 export {
+  NAVIGATION_MOUNT_WAIT_MS,
+  NAVIGATION_SLIDE_MS,
   NavigationBar,
   NavigationStack,
   SearchField,

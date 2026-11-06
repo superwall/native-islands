@@ -1,5 +1,5 @@
 import * as React from "react";
-import { List, NavigationBar, usePresentedPage, type ListSection } from "native-islands/components";
+import { List, usePresentedPage, type ListSection } from "native-islands/components";
 import { useAccent, useNativeEnabled } from "../app/preferences";
 import { Readout, Section } from "../ui/List";
 import { Button } from "../ui/controls";
@@ -20,31 +20,25 @@ const COLORS: ListSection[] = [
 
 /**
  * The page a sheet, cover, popover or inspector shows: another load of the
- * showcase in its own web view, with its own native islands. It closes
- * itself with a result, and messages the page that presented it.
+ * showcase in its own web view, with its own native islands. The system draws
+ * its header (the title and Done). It closes itself with a result, moves its
+ * sheet between detents, and messages the page that presented it, which
+ * answers every message.
  */
-export const PresentedPage = ({ title }: { title: string }) => {
+export const PresentedPage = () => {
   const native = useNativeEnabled();
   const tint = useAccent();
   const [heard, setHeard] = React.useState("nothing yet");
   const page = usePresentedPage((data) => setHeard(JSON.stringify(data)));
   const [sent, setSent] = React.useState(0);
+  const sheet = page.style === "sheet" || page.style === "inspector";
   return (
     <div className="presented">
-      <header className="presented-bar">
-        <NavigationBar
-          title={title}
-          native={native}
-          tint={tint}
-          icon={webSymbol}
-          trailing={[{ id: "done", title: "Done", prominent: true, tint }]}
-          onSelect={() => page.dismiss("done")}
-        />
-      </header>
       <div className="presented-body">
         <p className="list-footer">
-          This is a separate web page in its own WKWebView, presented as a {page.style ?? "page"}.
-          The list and the buttons on it are native islands too.
+          This is a separate web page in its own WKWebView, presented as a {page.style ?? "page"}.{" "}
+          {page.style === "popover" ? "The" : "The header is the system navigation bar; the"} list
+          and the buttons are native islands.
         </p>
         <List
           sections={COLORS}
@@ -53,10 +47,29 @@ export const PresentedPage = ({ title }: { title: string }) => {
           icon={webSymbol}
           onPress={(id) => page.dismiss({ color: id })}
         />
-        <Section>
+        {sheet && (
+          <Section
+            header="Detent"
+            footer="Moves the sheet from the page inside it. Dragging the grabber changes it too."
+          >
+            <div className="row row--centered stage-row">
+              <Button
+                title="Medium"
+                prominent={page.detent === "medium"}
+                onPress={() => page.setDetent("medium")}
+              />
+              <Button
+                title="Large"
+                prominent={page.detent === "large"}
+                onPress={() => page.setDetent("large")}
+              />
+            </div>
+          </Section>
+        )}
+        <Section footer="The presenting page counts the messages and answers each one.">
           <div className="row row--centered">
             <Button
-              title="Send a Message Up"
+              title={sent === 0 ? "Send a Message Up" : `Send Message ${sent + 1}`}
               onPress={() => {
                 setSent(sent + 1);
                 page.send({ count: sent + 1 });
@@ -66,6 +79,7 @@ export const PresentedPage = ({ title }: { title: string }) => {
         </Section>
         <Section header="This page sees">
           <Readout title="Presented as" value={page.style ?? "not presented"} />
+          {sheet && <Readout title="Detent" value={page.detent ?? "–"} />}
           <Readout title="From the presenter" value={heard} />
         </Section>
       </div>

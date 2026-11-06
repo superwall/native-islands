@@ -47,8 +47,9 @@ struct ListView: View {
     .tint(props.color("tint"))
     .scrollDismissesKeyboardIfAvailable()
     .hiddenScrollBackground()
-    .background(ContentHeightReader { height in
-      guard abs((component.props.double("contentHeight") ?? 0) - height) >= 0.5 else { return }
+    .background(ContentHeightReader { [component] height in
+      // Only a real change is state: each state bumps the revision the page
+      // must echo, and props echoing an older one are dropped.
       component.setState(["contentHeight": height])
     })
   }
@@ -143,6 +144,11 @@ private struct RowTree: View {
 
   private var cell: some View {
     Button {
+      // A row with children opens and closes on a tap anywhere on it, as in
+      // Files and Settings, not only on its chevron.
+      if !row.children.isEmpty {
+        withAnimation { list.setExpanded(row.id, !expanded.contains(row.id)) }
+      }
       list.press(row)
     } label: {
       RowLabel(row: row, checked: selected.contains(row.id))
@@ -333,6 +339,14 @@ private struct ContentHeightReader: UIViewRepresentable {
       DispatchQueue.main.async { [weak self] in self?.attach() }
     }
 
+    private var reported: Double?
+
+    private func report(_ height: Double) {
+      guard height > 0, reported.map({ abs($0 - height) >= 1 }) ?? true else { return }
+      reported = height
+      changed?(height)
+    }
+
     private func attach() {
       var root: UIView? = superview
       while let view = root, Self.scrollView(in: view) == nil { root = view.superview }
@@ -340,7 +354,7 @@ private struct ContentHeightReader: UIViewRepresentable {
       observation = scroll.observe(\.contentSize, options: [.initial, .new]) { [weak self] scroll, _ in
         MainActor.assumeIsolated {
           let height = scroll.contentSize.height + scroll.adjustedContentInset.top + scroll.adjustedContentInset.bottom
-          if height > 0 { self?.changed?(Double(height.rounded(.up))) }
+          self?.report(Double(height.rounded(.up)))
         }
       }
     }

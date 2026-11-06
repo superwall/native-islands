@@ -56,8 +56,44 @@ export const useNativeEnabled = (): boolean =>
  * the colour scheme as `data-appearance` on `<html>` (the host follows it, so
  * native views do too) and the accent as `--accent-light`/`--accent-dark`.
  */
+const isAppearance = (value: string | null): value is Appearance =>
+  APPEARANCES.some((option) => option.value === value);
+
+const isViewMode = (value: string | null): value is ViewMode =>
+  value === "native" || value === "web" || value === "outlines";
+
+/**
+ * The settings a presented page starts with: the presenting page hands its
+ * own over in the URL, so a sheet looks like the app that opened it.
+ */
+const initialPreferences = (): Preferences => {
+  const query = new URLSearchParams(window.location.search);
+  const appearance = query.get("appearance");
+  const mode = query.get("mode");
+  const accent = ACCENTS.find((option) => option.name === query.get("accent"));
+  return {
+    appearance: isAppearance(appearance) ? appearance : DEFAULTS.appearance,
+    accent: accent ?? DEFAULTS.accent,
+    mode: isViewMode(mode) ? mode : DEFAULTS.mode,
+  };
+};
+
+let applied: Preferences = DEFAULTS;
+
+/** The settings as a query, for the URL of a page this one presents. */
+export const preferencesQuery = (): string =>
+  new URLSearchParams({
+    appearance: applied.appearance,
+    accent: applied.accent.name,
+    mode: applied.mode,
+  }).toString();
+
+/** Presented pages follow the app; only the app itself tells the host what to do. */
+const isPresentedPage = () => new URLSearchParams(window.location.search).has("page");
+
 export const PreferencesProvider = ({ children }: React.PropsWithChildren) => {
-  const [preferences, setPreferences] = React.useState(DEFAULTS);
+  const [preferences, setPreferences] = React.useState(initialPreferences);
+  applied = preferences;
 
   React.useLayoutEffect(() => {
     const root = document.documentElement;
@@ -68,11 +104,12 @@ export const PreferencesProvider = ({ children }: React.PropsWithChildren) => {
   }, [preferences.appearance, preferences.accent, preferences.mode]);
 
   React.useEffect(() => {
-    postToHost({ type: "appearance", value: preferences.appearance });
+    if (!isPresentedPage()) postToHost({ type: "appearance", value: preferences.appearance });
   }, [preferences.appearance]);
 
   React.useEffect(() => {
-    postToHost({ type: "outlines", value: preferences.mode === "outlines" });
+    if (!isPresentedPage())
+      postToHost({ type: "outlines", value: preferences.mode === "outlines" });
   }, [preferences.mode]);
 
   const value = React.useMemo<PreferencesValue>(

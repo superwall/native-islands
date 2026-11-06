@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { NativeCommonProps, NativeHandle } from "../react/components/Native";
+import { ISLAND_PHASE_ATTRIBUTE } from "../layout/attributes";
 import { cssVariables } from "./geometry";
 import { Glyph, type GlyphName } from "./glyphs";
 import {
@@ -525,18 +526,61 @@ export const TabView = ({
   );
 };
 
-/** A stack of screen ids: `push`, `pop` and `popToRoot`, for a `NavigationStack`. */
+const startsWith = (path: readonly string[], prefix: readonly string[]) =>
+  prefix.length <= path.length && prefix.every((id, index) => path[index] === id);
+
+const sameIds = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && startsWith(a, b);
+
+/**
+ * A stack of screen ids for a `NavigationStack`: `push`, `pop`, `popToRoot`
+ * and `popTo(id)`, plus `forward()`, which pushes again what the last pops
+ * took off, as a browser's Forward does, while `canGoForward`.
+ */
 export const useNavigationPath = (root: string) => {
-  const [path, setPath] = React.useState<readonly string[]>([root]);
+  const [state, setState] = React.useState<{
+    path: readonly string[];
+    ahead: readonly string[];
+  }>({ path: [root], ahead: [] });
+  const go = React.useCallback(
+    (next: (path: readonly string[]) => readonly string[]) =>
+      setState(({ path, ahead }) => {
+        const to = next(path);
+        if (sameIds(to, path)) return { path, ahead };
+        if (to.length >= path.length) return { path: to, ahead: [] };
+        // A stack of what pops took off, the next screen Forward pushes last.
+        // Built by hand: `toReversed()` is missing from older WebKit.
+        const popped: string[] = [];
+        for (const id of path.slice(to.length)) popped.unshift(id);
+        return { path: to, ahead: [...ahead, ...popped] };
+      }),
+    [],
+  );
   return {
-    path,
-    setPath,
-    push: React.useCallback((screen: string) => setPath((current) => [...current, screen]), []),
-    pop: React.useCallback(
-      () => setPath((current) => (current.length > 1 ? current.slice(0, -1) : current)),
+    path: state.path,
+    canGoForward: state.ahead.length > 0,
+    setPath: React.useCallback((path: readonly string[]) => go(() => path), [go]),
+    push: React.useCallback((screen: string) => go((path) => [...path, screen]), [go]),
+    pop: React.useCallback(() => go((path) => (path.length > 1 ? path.slice(0, -1) : path)), [go]),
+    popToRoot: React.useCallback(() => go((path) => path.slice(0, 1)), [go]),
+    popTo: React.useCallback(
+      (screen: string) =>
+        go((path) => {
+          const index = path.indexOf(screen);
+          return index < 0 ? path : path.slice(0, index + 1);
+        }),
+      [go],
+    ),
+    forward: React.useCallback(
+      () =>
+        setState((current) => {
+          const next = current.ahead.at(-1);
+          return next === undefined
+            ? current
+            : { path: [...current.path, next], ahead: current.ahead.slice(0, -1) };
+        }),
       [],
     ),
-    popToRoot: React.useCallback(() => setPath((current) => current.slice(0, 1)), []),
   };
 };
 
@@ -549,10 +593,64 @@ export type NavigationScreen = {
   render: () => React.ReactNode;
 };
 
+/** How long a push or a pop slides, as UINavigationController does. */
+export const NAVIGATION_SLIDE_MS = 500;
+
+/** How long a pushed screen waits off to the side for its islands before it slides in anyway. */
+export const NAVIGATION_MOUNT_WAIT_MS = 250;
+
+type Place = "top" | "below" | "parked" | "away";
+
+type Motion = "push-in" | "push-under" | "pop-out" | "pop-under";
+
+type Transition =
+  | { kind: "push"; stage: "mounting" | "moving"; key: number }
+  | { kind: "pop"; stage: "moving"; key: number; to: readonly string[] };
+
+const placeOf = (
+  index: number,
+  shown: readonly string[],
+  transition: Transition | undefined,
+): { place: Place; motion?: Motion } => {
+  const last = shown.length - 1;
+  if (transition?.kind === "push") {
+    if (index === last)
+      return transition.stage === "moving"
+        ? { place: "top", motion: "push-in" }
+        : { place: "parked" };
+    if (index === last - 1)
+      return transition.stage === "moving"
+        ? { place: "below", motion: "push-under" }
+        : { place: "top" };
+    return { place: "away" };
+  }
+  if (transition?.kind === "pop") {
+    if (index === last) return { place: "top", motion: "pop-out" };
+    if (index === transition.to.length - 1) return { place: "below", motion: "pop-under" };
+    return { place: "away" };
+  }
+  if (index === last) return { place: "top" };
+  return { place: index === last - 1 ? "below" : "away" };
+};
+
+const nextFrames = (frames: number, done: () => void) => {
+  let frame = 0;
+  const step = (left: number) => {
+    frame = requestAnimationFrame(() => (left > 1 ? step(left - 1) : done()));
+  };
+  step(frames);
+  return () => cancelAnimationFrame(frame);
+};
+
 /**
  * A navigation stack the page drives: the screen on top of `path`, sliding in
  * on a push and out on a pop, under one native navigation bar whose Back pops.
- * The screen below stays mounted, so Back is instant.
+ *
+ * Every screen on the path stays mounted, so Back is instant and its islands
+ * are already drawn. A pushed screen first waits off to the side until its
+ * islands are placed (a few frames, at most `NAVIGATION_MOUNT_WAIT_MS`),
+ * then slides in with `data-island-phase` set, so its native views slide
+ * with it instead of showing their web versions.
  */
 export const NavigationStack = ({
   path,
@@ -572,52 +670,133 @@ export const NavigationStack = ({
   /** A bar item was chosen on the screen on top. */
   onSelect?: (id: string, screen: string) => void;
 }) => {
-  const top = path.at(-1) ?? "";
-  const screen = screens[top];
+  const [shown, setShown] = React.useState<readonly string[]>(path);
+  const [transition, setTransition] = React.useState<Transition>();
   const [scrolled, setScrolled] = React.useState(false);
-  const previous = React.useRef(path.length);
-  const direction = path.length >= previous.current ? "push" : "pop";
-  React.useEffect(() => {
-    previous.current = path.length;
+  const counter = React.useRef(0);
+  // Where each pushed screen waits off to the side. The host tells scrolling
+  // areas apart by size and place, so no two screens ever wait at the same
+  // spot, not even a screen pushed again where one just popped from.
+  const parking = React.useRef(new Map<string, number>());
+  const parkedAt = (key: string) => {
+    let slot = parking.current.get(key);
+    if (slot === undefined) {
+      slot = (counter.current % 32) + 1;
+      parking.current.set(key, slot);
+    }
+    return slot;
+  };
+  const reduced =
+    typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  React.useLayoutEffect(() => {
+    const target = transition?.kind === "pop" ? transition.to : shown;
+    if (sameIds(path, target)) return;
+    counter.current += 1;
+    const key = counter.current;
     setScrolled(false);
-  }, [path.length]);
+    if (reduced) {
+      setShown(path);
+      setTransition(undefined);
+    } else if (path.length > shown.length && startsWith(path, shown) && !transition) {
+      setShown(path);
+      setTransition({ kind: "push", stage: "mounting", key });
+    } else if (path.length < shown.length && startsWith(shown, path) && !transition) {
+      setTransition({ kind: "pop", stage: "moving", key, to: path });
+    } else {
+      setShown(path);
+      setTransition(undefined);
+    }
+  }, [path, shown, transition, reduced]);
+
+  React.useEffect(() => {
+    if (transition?.kind !== "push" || transition.stage !== "mounting") return;
+    const { key } = transition;
+    let moved = false;
+    // The frames or the wait, whichever comes first.
+    const move = () => {
+      if (moved) return;
+      moved = true;
+      setTransition({ kind: "push", stage: "moving", key });
+    };
+    // One frame to measure the new screen's islands, one for their frames to
+    // reach the host, one for the host to place them.
+    const cancel = nextFrames(3, move);
+    const timer = setTimeout(move, NAVIGATION_MOUNT_WAIT_MS);
+    return () => {
+      cancel();
+      clearTimeout(timer);
+    };
+  }, [transition]);
+
+  React.useEffect(() => {
+    if (transition?.stage !== "moving") return;
+    const timer = setTimeout(() => {
+      if (transition.kind === "pop") setShown(transition.to);
+      setTransition(undefined);
+    }, NAVIGATION_SLIDE_MS);
+    return () => clearTimeout(timer);
+  }, [transition]);
+
+  for (const key of parking.current.keys()) {
+    if (!shown.some((id, index) => `${index}-${id}` === key)) parking.current.delete(key);
+  }
+  const current = transition?.kind === "pop" ? transition.to : path;
+  const top = current.at(-1) ?? "";
+  const screen = screens[top];
   return (
     <div className="ni-navigation-stack">
       <header className="ni-navigation-stack-bar">
         <NavigationBar
           title={screen?.title ?? ""}
           titleShown={!screen?.largeTitle || scrolled}
-          showsBack={path.length > 1}
+          showsBack={current.length > 1}
           leading={screen?.leading}
           trailing={screen?.trailing}
           tint={tint}
           icon={icon}
           native={native}
-          onBack={() => onPathChange(path.slice(0, -1))}
+          onBack={() => onPathChange(current.slice(0, -1))}
           onSelect={(id) => onSelect?.(id, top)}
         />
       </header>
-      {path.map((id, index) => {
+      {shown.map((id, index) => {
         const entry = screens[id];
-        const onTop = index === path.length - 1;
-        if (!entry || index < path.length - 2) return null;
+        if (!entry) return null;
+        const { place, motion } = placeOf(index, shown, transition);
+        // Islands on an inert screen keep the frame they were last measured
+        // at, so a pushed screen goes live while it waits off to the side,
+        // and nothing is live while screens slide.
+        const live =
+          transition?.kind === "push" && transition.stage === "mounting"
+            ? place === "parked" || place === "top"
+            : place === "top" && !transition;
+        const key = `${index}-${id}`;
         return (
-          <div
-            key={`${index}-${id}`}
+          <section
+            key={key}
             className="ni-navigation-stack-screen"
-            data-place={onTop ? "top" : "below"}
-            data-motion={onTop ? direction : undefined}
-            aria-hidden={onTop ? undefined : true}
-            inert={onTop ? undefined : true}
-            onScroll={
-              onTop && entry.largeTitle
-                ? (event) => setScrolled(event.currentTarget.scrollTop > 40)
-                : undefined
-            }
+            style={place === "parked" ? { left: `${parkedAt(key) * 100}%` } : undefined}
+            data-place={place}
+            data-motion={motion}
+            aria-hidden={live ? undefined : true}
+            inert={live ? undefined : true}
+            {...(motion ? { [ISLAND_PHASE_ATTRIBUTE]: motion } : {})}
           >
-            {entry.largeTitle && <h1 className="ni-large-title">{entry.title}</h1>}
-            {entry.render()}
-          </div>
+            <div
+              className="ni-navigation-stack-scroll"
+              onScroll={
+                entry.largeTitle && index === shown.length - 1
+                  ? (event) => setScrolled(event.currentTarget.scrollTop > 40)
+                  : undefined
+              }
+            >
+              <div className="ni-navigation-stack-content">
+                {entry.largeTitle && <h1 className="ni-large-title">{entry.title}</h1>}
+                {entry.render()}
+              </div>
+            </div>
+          </section>
         );
       })}
     </div>

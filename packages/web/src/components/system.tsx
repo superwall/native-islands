@@ -272,6 +272,7 @@ export const Tip = ({
   actions,
   arrowEdge,
   tint,
+  background,
   onAction,
   onDismiss,
   handle,
@@ -289,6 +290,8 @@ export const Tip = ({
   /** Draws an arrow on this edge, pointing at what the tip is about. */
   arrowEdge?: TipArrowEdge;
   tint?: string;
+  /** The tip's fill; an opaque card colour by default, as on a grouped page. */
+  background?: string;
   onAction?: (id: string) => void;
   onDismiss?: () => void;
   /** `invalidate()` closes the tip for good, such as once its feature is used. */
@@ -321,6 +324,7 @@ export const Tip = ({
       actions={actions}
       arrowEdge={arrowEdge}
       tint={tint}
+      background={background}
       accessibility={accessibility ?? { label: title }}
       onAction={({ id: action }) => onAction?.(action)}
       onDismiss={onDismiss}

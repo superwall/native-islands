@@ -46,6 +46,9 @@ struct TipIslandView: View {
       component.emit("action", payload: ["id": action.id])
     }
     .tint(component.props.color("tint"))
+    // Opaque, as a card on a grouped page, rather than TipKit's own
+    // translucent fill; `background` picks another colour.
+    .tipBackground(component.props.color("background") ?? Color(uiColor: .secondarySystemGroupedBackground))
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     .id(tip.id)
     .task(id: tip.id) {

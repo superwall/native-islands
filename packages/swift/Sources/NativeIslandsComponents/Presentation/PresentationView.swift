@@ -9,9 +9,15 @@ import WebKit
 /// `inspector`, which is a sheet on iPhone and a form sheet on iPad. `url` is
 /// read relative to the presenting page.
 ///
-/// The page opens and closes it with `open`. A user dismissal sets `open` to
-/// false and sends `dismiss` with `reason: "user"`; the presented page can
-/// close it too (`reason: "page"` and its `result`) and send `message`s up;
+/// Sheets, covers and inspectors get a system navigation bar with `title`
+/// and a Done button (no Done when `dismissible` is false); `header: false`
+/// leaves the whole page to the presented page. `background` colours the
+/// presentation while its page loads, so nothing flashes white.
+///
+/// The page opens and closes it with `open`. A user dismissal (a swipe, a tap
+/// outside or Done) sets `open` to false and sends `dismiss` with
+/// `reason: "user"`; the presented page can close it too (`reason: "page"`
+/// and its `result`), move it to another detent and send `message`s up;
 /// `post` sends data down to it.
 struct PresentationView: UIViewRepresentable {
   @ObservedObject var component: NativeComponentContext
@@ -39,7 +45,7 @@ struct PresentationView: UIViewRepresentable {
   }
 
   static func dismantleUIView(_ anchor: AnchorView, coordinator: Coordinator) {
-    coordinator.close(animated: false, report: false)
+    coordinator.close(animated: true, report: false)
   }
 
   @MainActor
@@ -47,7 +53,9 @@ struct PresentationView: UIViewRepresentable {
     var component: NativeComponentContext
     weak var anchor: AnchorView?
     private(set) var page: PresentedPageController?
+    private var shown: UIViewController?
     private var shownStyle: String?
+    private var applied: [String: String] = [:]
 
     init(component: NativeComponentContext) {
       self.component = component
@@ -56,8 +64,10 @@ struct PresentationView: UIViewRepresentable {
     private var props: NativeComponentProps { component.props }
 
     func update() {
-      let open = props.bool("open") == true && component.isVisible
-      if !open {
+      // Once shown, only `open` closes it: the presenting page's islands can
+      // report themselves hidden while a sheet covers them, and that must
+      // never close it.
+      guard props.bool("open") == true else {
         if page != nil { close(animated: true, report: false) }
         return
       }
@@ -66,6 +76,7 @@ struct PresentationView: UIViewRepresentable {
         configure(page)
         return
       }
+      guard component.isVisible else { return }
       present()
     }
 
@@ -74,58 +85,110 @@ struct PresentationView: UIViewRepresentable {
       return URL(string: string, relativeTo: anchor?.enclosingWebView?.url)?.absoluteURL
     }
 
+    private var presenterHost: NativeIslandsHost? {
+      anchor?.enclosingWebView.flatMap(NativeIslandsHost.of)
+    }
+
     private func present() {
       guard let anchor, let webView = anchor.enclosingWebView, let url = resolvedURL(),
         let front = anchor.frontController
       else { return }
       let style = props.string("style") ?? "sheet"
-      let page = PresentedPageController(url: url, configuration: webView.configuration, style: style)
-      page.onDismissRequest = { [weak self] result in self?.closeFromPage(result) }
+      let page = PresentedPageController(
+        url: url,
+        configuration: webView.configuration,
+        style: style,
+        background: props.uiColor("background")
+      )
+      page.webView.islands?.showsOutlines = presenterHost?.showsOutlines ?? false
+      page.onDismissRequest = { [weak self] result in
+        self?.close(animated: true, report: true, reason: "page", result: result)
+      }
       page.onMessage = { [weak self] data in self?.component.emit("message", payload: ["data": data ?? NSNull()]) }
+      page.onDetentRequest = { [weak self] name in self?.select(detent: name) }
+      page.onDone = { [weak self] in self?.close(animated: true, report: true, reason: "user") }
       shownStyle = style
+      applied = [:]
+      let header = props.bool("header") ?? (style != "popover")
+      let shown: UIViewController = header ? PresentationNavigationController(rootViewController: page) : page
+      // Opaque under the transparent bar too: a cover leaves the presenting
+      // page in place behind it.
+      shown.view.backgroundColor = props.uiColor("background") ?? .systemGroupedBackground
       switch style {
       case "fullScreenCover":
-        page.modalPresentationStyle = .fullScreen
+        // Over, not instead of, the presenting page: `.fullScreen` takes the
+        // presenting web view out of the window, and its islands with it.
+        shown.modalPresentationStyle = .overFullScreen
       case "popover":
-        page.modalPresentationStyle = .popover
-        page.preferredContentSize = CGSize(
+        shown.modalPresentationStyle = .popover
+        shown.preferredContentSize = CGSize(
           width: props.double("width") ?? 320,
           height: props.double("height") ?? 360
         )
-        page.popoverPresentationController?.sourceView = anchor
-        page.popoverPresentationController?.sourceRect = anchor.bounds
-        page.popoverPresentationController?.delegate = self
+        shown.popoverPresentationController?.sourceView = anchor
+        shown.popoverPresentationController?.sourceRect = anchor.bounds
+        shown.popoverPresentationController?.delegate = self
       case "inspector" where anchor.traitCollection.horizontalSizeClass == .regular:
-        page.modalPresentationStyle = .formSheet
+        shown.modalPresentationStyle = .formSheet
       default:
-        page.modalPresentationStyle = .pageSheet
+        shown.modalPresentationStyle = .pageSheet
       }
-      page.presentationController?.delegate = self
+      shown.presentationController?.delegate = self
       self.page = page
+      self.shown = shown
       configure(page)
-      front.present(page, animated: true)
+      front.present(shown, animated: true)
     }
 
+    /// Applies the props that changed since the last pass, so a re-render of
+    /// the presenting page never resets a sheet the person is dragging.
     private func configure(_ page: PresentedPageController) {
-      page.isModalInPresentation = props.bool("dismissible") == false
-      guard let sheet = page.sheetPresentationController else { return }
+      func changed(_ key: String, _ value: String) -> Bool {
+        guard applied[key] != value else { return false }
+        applied[key] = value
+        return true
+      }
+      let dismissible = props.bool("dismissible") != false
+      if changed("dismissible", "\(dismissible)") {
+        shown?.isModalInPresentation = !dismissible
+        page.showsDone = dismissible
+      }
+      if changed("title", props.string("title") ?? "") { page.title = props.string("title") }
+      guard let sheet = shown?.sheetPresentationController else { return }
+      sheet.delegate = self
       let names = props.strings("detents") ?? (shownStyle == "inspector" ? ["medium", "large"] : ["large"])
-      let detents = names.compactMap(Self.detent)
-      sheet.animateChanges {
-        sheet.detents = detents.isEmpty ? [.large()] : detents
-        sheet.prefersGrabberVisible = props.bool("grabber") ?? (detents.count > 1)
-        sheet.prefersScrollingExpandsWhenScrolledToEdge = props.bool("expandsOnScroll") ?? true
-        if let radius = props.double("cornerRadius") { sheet.preferredCornerRadius = radius }
-        if let selected = props.string("selectedDetent") {
-          sheet.selectedDetentIdentifier = Self.identifier(selected)
-        }
-        if props.bool("undimmed") == true {
-          // Dims nothing up to the tallest detent but the full height.
-          let tallest = names.last.map(Self.identifier) ?? .large
-          sheet.largestUndimmedDetentIdentifier = tallest == .large ? .medium : tallest
+      let grabber = props.bool("grabber") ?? (names.count > 1)
+      let shape = "\(names)|\(grabber)|\(props.bool("undimmed") == true)|\(props.double("cornerRadius") ?? -1)"
+      if changed("shape", shape) {
+        let detents = names.compactMap(Self.detent)
+        sheet.animateChanges {
+          sheet.detents = detents.isEmpty ? [.large()] : detents
+          sheet.prefersGrabberVisible = grabber
+          sheet.prefersScrollingExpandsWhenScrolledToEdge = props.bool("expandsOnScroll") ?? true
+          if let radius = props.double("cornerRadius") { sheet.preferredCornerRadius = radius }
+          if props.bool("undimmed") == true {
+            // Dims nothing up to the tallest detent but the full height.
+            let tallest = names.last.map(Self.identifier) ?? .large
+            sheet.largestUndimmedDetentIdentifier = tallest == .large ? .medium : tallest
+          } else {
+            sheet.largestUndimmedDetentIdentifier = nil
+          }
         }
       }
-      sheet.delegate = self
+      if let selected = props.string("selectedDetent"), changed("selected", selected),
+        sheet.selectedDetentIdentifier != Self.identifier(selected) {
+        sheet.animateChanges { sheet.selectedDetentIdentifier = Self.identifier(selected) }
+      }
+      page.detent = Self.name(of: sheet.selectedDetentIdentifier) ?? names.first ?? "large"
+    }
+
+    private func select(detent name: String) {
+      guard let sheet = shown?.sheetPresentationController else { return }
+      if #available(iOS 16.0, *), !sheet.detents.contains(where: { $0.identifier == Self.identifier(name) }) {
+        return
+      }
+      sheet.animateChanges { sheet.selectedDetentIdentifier = Self.identifier(name) }
+      sheetPresentationControllerDidChangeSelectedDetentIdentifier(sheet)
     }
 
     /// `medium`, `large`, or a height in points such as `"240"`.
@@ -150,23 +213,33 @@ struct PresentationView: UIViewRepresentable {
       }
     }
 
+    static func name(of identifier: UISheetPresentationController.Detent.Identifier?) -> String? {
+      guard let identifier else { return nil }
+      switch identifier {
+      case .medium: return "medium"
+      case .large: return "large"
+      default: return identifier.rawValue
+      }
+    }
+
     func close(animated: Bool, report: Bool, reason: String = "page", result: Any? = nil) {
       guard let page else { return }
+      let shown = self.shown
       self.page = nil
+      self.shown = nil
       page.close()
-      page.presentingViewController?.dismiss(animated: animated)
+      if let shown, shown.presentingViewController != nil, !shown.isBeingDismissed {
+        shown.presentingViewController?.dismiss(animated: animated)
+      }
       guard report else { return }
       component.setState(["open": false])
       component.emit("dismiss", payload: ["reason": reason, "result": result ?? NSNull()])
     }
 
-    private func closeFromPage(_ result: Any?) {
-      close(animated: true, report: true, reason: "page", result: result)
-    }
-
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
-      guard let page, presentationController.presentedViewController === page else { return }
+      guard let page, presentationController.presentedViewController === shown else { return }
       self.page = nil
+      shown = nil
       page.close()
       component.setState(["open": false])
       component.emit("dismiss", payload: ["reason": "user", "result": NSNull()])
@@ -175,8 +248,9 @@ struct PresentationView: UIViewRepresentable {
     func sheetPresentationControllerDidChangeSelectedDetentIdentifier(
       _ sheet: UISheetPresentationController
     ) {
-      guard let identifier = sheet.selectedDetentIdentifier?.rawValue else { return }
-      let name = identifier.contains("medium") ? "medium" : identifier.contains("large") ? "large" : identifier
+      guard let name = Self.name(of: sheet.selectedDetentIdentifier) else { return }
+      applied["selected"] = name
+      page?.detent = name
       component.setState(["selectedDetent": name])
     }
 
@@ -188,6 +262,14 @@ struct PresentationView: UIViewRepresentable {
       // `presentationCompactAdaptation(.popover)`, unless the page asks for a sheet.
       props.string("compact") == "sheet" ? .pageSheet : .none
     }
+  }
+}
+
+/// The navigation controller around a presented page, so it gets the system
+/// sheet header: the title and Done in a real navigation bar.
+final class PresentationNavigationController: UINavigationController {
+  override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+    presentingViewController?.supportedInterfaceOrientations ?? .all
   }
 }
 

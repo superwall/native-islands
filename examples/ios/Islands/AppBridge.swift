@@ -12,9 +12,11 @@ final class AppBridge: NSObject, WKScriptMessageHandler {
     case outlines(Bool)
   }
 
-  private let receive: @MainActor (Message) -> Void
+  private let receive: @MainActor (Message, WKWebView?) -> Void
 
-  init(receive: @escaping @MainActor (Message) -> Void) {
+  /// `receive` also gets the web view that posted, as pages presented in
+  /// sheets share the app's configuration and so this handler.
+  init(receive: @escaping @MainActor (Message, WKWebView?) -> Void) {
     self.receive = receive
   }
 
@@ -33,6 +35,6 @@ final class AppBridge: NSObject, WKScriptMessageHandler {
 
   func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
     guard let decoded = Self.decode(message.body) else { return }
-    MainActor.assumeIsolated { receive(decoded) }
+    MainActor.assumeIsolated { receive(decoded, message.webView) }
   }
 }

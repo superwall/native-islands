@@ -14,6 +14,7 @@ import {
   type NavigationScreen,
 } from "native-islands/components";
 import { useAccent, useNativeEnabled } from "../app/preferences";
+import { Button } from "../ui/controls";
 import { webSymbol } from "../ui/symbols";
 
 const INBOX: ListSection[] = [
@@ -100,12 +101,31 @@ export const DemoApp = () => {
   const [playing, setPlaying] = React.useState(true);
   const mail = useNavigationPath("inbox");
   const close: BarItem = { id: "close", systemImage: "xmark" };
+  const forward: BarItem[] = mail.canGoForward
+    ? [{ id: "forward", systemImage: "chevron.right" }]
+    : [];
+  const contact = (name: string): NavigationScreen => ({
+    title: name,
+    largeTitle: true,
+    render: () => (
+      <div className="demo-message">
+        <p>
+          Three screens deep. Back goes one screen at a time, swipe-free; the buttons jump back to
+          the thread or all the way to the Inbox at once.
+        </p>
+        <div className="demo-actions">
+          <Button title="Back to the Thread" onPress={mail.pop} />
+          <Button title="Back to Inbox" prominent onPress={mail.popToRoot} />
+        </div>
+      </div>
+    ),
+  });
   const screens: Record<string, NavigationScreen> = {
     inbox: {
       title: "Inbox",
       largeTitle: true,
       leading: [close],
-      trailing: [{ id: "compose", systemImage: "square.and.pencil" }],
+      trailing: [...forward, { id: "compose", systemImage: "square.and.pencil" }],
       render: () => (
         <List
           sections={inbox}
@@ -119,39 +139,57 @@ export const DemoApp = () => {
         />
       ),
     },
+    compose: {
+      title: "New Message",
+      trailing: [{ id: "send", title: "Send", prominent: true, tint }],
+      render: () => (
+        <div className="demo-message">
+          <p>A pushed screen with its own bar items. Send pops back to the Inbox.</p>
+        </div>
+      ),
+    },
     ...Object.fromEntries(
-      (inbox[0]?.rows ?? []).map((row) => [
-        row.id,
-        {
-          title: row.title,
-          trailing: [
-            {
-              id: "more",
-              kind: "menu",
-              systemImage: "ellipsis",
-              items: [
-                { id: "reply", title: "Reply", systemImage: "arrowshape.turn.up.left" },
-                { id: "delete", title: "Delete", systemImage: "trash", destructive: true },
-              ],
-            },
-          ],
-          render: () => (
-            <div className="demo-message">
-              <p>{row.subtitle}</p>
-              <Toolbar
-                native={native}
-                tint={tint}
-                icon={webSymbol}
-                items={[
-                  { id: "archive", systemImage: "archivebox" },
-                  { id: "flag", systemImage: "flag" },
-                  { kind: "flexibleSpace" },
-                  { id: "reply", title: "Reply", prominent: true, tint },
-                ]}
-              />
-            </div>
-          ),
-        },
+      (inbox[0]?.rows ?? []).flatMap((row) => [
+        [
+          row.id,
+          {
+            title: row.title,
+            trailing: [
+              {
+                id: "more",
+                kind: "menu",
+                systemImage: "ellipsis",
+                items: [
+                  { id: "reply", title: "Reply", systemImage: "arrowshape.turn.up.left" },
+                  { id: "delete", title: "Delete", systemImage: "trash", destructive: true },
+                ],
+              },
+            ],
+            render: () => (
+              <div className="demo-message">
+                <p>{row.subtitle}</p>
+                <div className="demo-actions">
+                  <Button
+                    title={`About ${row.title}`}
+                    onPress={() => mail.push(`${row.id}-contact`)}
+                  />
+                </div>
+                <Toolbar
+                  native={native}
+                  tint={tint}
+                  icon={webSymbol}
+                  items={[
+                    { id: "archive", systemImage: "archivebox" },
+                    { id: "flag", systemImage: "flag" },
+                    { kind: "flexibleSpace" },
+                    { id: "reply", title: "Reply", prominent: true, tint },
+                  ]}
+                />
+              </div>
+            ),
+          } satisfies NavigationScreen,
+        ],
+        [`${row.id}-contact`, contact(row.title)],
       ]),
     ),
   };
@@ -165,6 +203,9 @@ export const DemoApp = () => {
   };
   const onBar = (id: string) => {
     if (id === "close") page.dismiss(null);
+    else if (id === "forward") mail.forward();
+    else if (id === "compose") mail.push("compose");
+    else if (id === "send") mail.popToRoot();
   };
   return (
     <div className="demo-app">

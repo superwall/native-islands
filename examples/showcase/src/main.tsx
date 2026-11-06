@@ -65,7 +65,7 @@ const presented = query.get("page");
 /** `?page=` is a page a presentation shows; anything else is the app. */
 const App = () => {
   if (presented === "app") return <DemoApp />;
-  if (presented) return <PresentedPage title={query.get("title") ?? "Page"} />;
+  if (presented) return <PresentedPage />;
   return <Shell screens={SCREENS} />;
 };
 

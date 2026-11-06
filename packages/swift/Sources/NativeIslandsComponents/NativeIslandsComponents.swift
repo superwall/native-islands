@@ -117,8 +117,8 @@ public enum NativeIslandsComponents {
         if #available(iOS 17.0, *) {
           TipIslandView(component: context)
         }
-      case .presentation: PresentationView(component: context)
-      case .alert: AlertView(component: context)
+      case .presentation: PresentationView(component: context).allowsHitTesting(false)
+      case .alert: AlertView(component: context).allowsHitTesting(false)
       case .tabBar: TabBarView(component: context)
       case .tabAccessory: TabAccessoryView(component: context)
       case .searchTab: SearchTabView(component: context)

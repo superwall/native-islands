@@ -9,7 +9,7 @@ import {
 } from "native-islands/components";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
 import { useAccent, useNativeEnabled } from "../../app/preferences";
-import { Readout, Section, Stage } from "../../ui/List";
+import { Readout, Row, Section, Stage } from "../../ui/List";
 import { Button, Toggle } from "../../ui/controls";
 import { webSymbol } from "../../ui/symbols";
 import { presentedURL } from "./presentations";
@@ -174,10 +174,10 @@ const Editing = () => {
     <>
       <div className="nav-gap" />
       <Section>
-        <div className="row">
-          <span className="row-title">Edit Mode</span>
-          <Toggle label="Edit Mode" isOn={editing} onChange={setEditing} />
-        </div>
+        <Row
+          title="Edit Mode"
+          accessory={<Toggle label="Edit Mode" isOn={editing} onChange={setEditing} />}
+        />
       </Section>
       <List
         sections={sections}
@@ -332,6 +332,8 @@ const AppChrome = () => {
         native={native}
         url={presentedURL("app", "Demo App")}
         title="Demo App"
+        header={false}
+        background="var(--bg)"
       />
     </>
   );

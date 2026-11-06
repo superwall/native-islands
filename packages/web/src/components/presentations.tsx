@@ -38,8 +38,12 @@ export type PresentationProps = NativeCommonProps & {
   /** Data the presented page sent with `send()`. */
   onMessage?: (data: NativeJSON) => void;
   dismissible?: boolean;
-  /** The web version's title over the page. */
+  /** The title in the system navigation bar, and over the web version. */
   title?: string;
+  /** False leaves out the system navigation bar with the title and Done; the page draws its own. */
+  header?: boolean;
+  /** Shows behind the presented page while it loads, such as `var(--page-background)`. */
+  background?: string;
   handle?: React.Ref<PresentationHandle>;
 };
 
@@ -73,6 +77,14 @@ const useModal = (open: boolean) => {
 
 const isData = (value: unknown): value is { data: NativeJSON } =>
   typeof value === "object" && value !== null && "data" in value && value.data !== undefined;
+
+const isDetent = (value: unknown): value is { type: "detent"; detent: SheetDetent } =>
+  typeof value === "object" &&
+  value !== null &&
+  "type" in value &&
+  value.type === "detent" &&
+  "detent" in value &&
+  typeof value.detent === "string";
 
 /** The web version: a `<dialog>` showing the page in an `<iframe>`, closed by Escape or its Done button. */
 const WebPresentation = ({
@@ -151,6 +163,8 @@ const Presentation = ({
   onMessage,
   dismissible,
   title,
+  header,
+  background,
   handle,
   style,
   detents,
@@ -202,6 +216,9 @@ const Presentation = ({
         width={width}
         height={height}
         compact={compact}
+        title={title}
+        header={header}
+        background={background}
         native={native}
         onOpenChange={(next) => {
           if (!next) onOpenChange(false);
@@ -277,10 +294,11 @@ export const Popover = ({
   ...props
 }: PresentationProps & Pick<StyleProps, "width" | "height" | "compact">) => (
   <span className="ni-anchored">
-    {children}
+    {/* Before the children, so their islands stay above the anchor and take the taps. */}
     <Presentation {...props} style="popover" width={width} height={height} compact={compact}>
       <span className="ni-anchor ni-anchor--fill" aria-hidden="true" />
     </Presentation>
+    {children}
   </span>
 );
 
@@ -307,7 +325,7 @@ export const usePresentation = (initial = false) => {
 export const useSheet = usePresentation;
 
 type PresentedWindow = Window & {
-  __NATIVE_ISLANDS_PRESENTED__?: { style?: PresentationStyle };
+  __NATIVE_ISLANDS_PRESENTED__?: { style?: PresentationStyle; detent?: SheetDetent };
   webkit?: {
     messageHandlers?: Record<string, { postMessage: (body: unknown) => void } | undefined>;
   };
@@ -322,9 +340,10 @@ const presentedStyle = (): PresentationStyle | undefined => {
 };
 
 const postUp = (body: {
-  action: "dismiss" | "message";
+  action: "dismiss" | "message" | "detent";
   result?: NativeJSON;
   data?: NativeJSON;
+  detent?: SheetDetent;
 }) => {
   const page = presentedWindow();
   const handler = page.webkit?.messageHandlers?.[MESSAGE_TYPE];
@@ -333,26 +352,36 @@ const postUp = (body: {
       type: body.action,
       result: body.result ?? null,
       data: body.data ?? null,
+      ...(body.detent === undefined ? {} : { detent: body.detent }),
     });
   } else if (window.parent !== window) {
     window.parent.postMessage({ type: MESSAGE_TYPE, ...body }, "*");
   }
 };
 
+const presentedDetent = (): SheetDetent | undefined =>
+  presentedWindow().__NATIVE_ISLANDS_PRESENTED__?.detent;
+
 /**
  * For the page a presentation shows: whether it is presented and how,
  * `dismiss(result)` to close it and hand `result` to the presenting page,
- * `send(data)` to message it, and the data it posts down.
+ * `send(data)` to message it, the data it posts down, and for a sheet the
+ * `detent` it rests at and `setDetent()` to move it.
  */
 export const usePresentedPage = (onMessage?: (data: NativeJSON) => void) => {
   const [style, setStyle] = React.useState(presentedStyle);
+  const [detent, setDetentState] = React.useState(presentedDetent);
   const latest = React.useRef(onMessage);
   latest.current = onMessage;
   React.useEffect(() => {
-    const presented = () => setStyle(presentedStyle());
+    const presented = () => {
+      setStyle(presentedStyle());
+      setDetentState(presentedDetent());
+    };
     const native = (event: Event) => {
       const detail: unknown = event instanceof CustomEvent ? event.detail : undefined;
-      latest.current?.(isData(detail) ? detail.data : null);
+      if (isDetent(detail)) setDetentState(detail.detent);
+      else latest.current?.(isData(detail) ? detail.data : null);
     };
     const framed = (event: MessageEvent) => {
       if (event.source === window.parent && isMessage(event.data))
@@ -375,6 +404,11 @@ export const usePresentedPage = (onMessage?: (data: NativeJSON) => void) => {
       [],
     ),
     send: React.useCallback((data: NativeJSON) => postUp({ action: "message", data }), []),
+    detent,
+    setDetent: React.useCallback(
+      (next: SheetDetent) => postUp({ action: "detent", detent: next }),
+      [],
+    ),
   };
 };
 

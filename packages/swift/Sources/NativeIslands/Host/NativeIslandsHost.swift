@@ -24,6 +24,11 @@ public final class NativeIslandsHost {
     set { manager?.outlines.isShown = newValue }
   }
 
+  /// The host drawing the islands of `webView`, if one is attached.
+  package static func of(_ webView: WKWebView) -> NativeIslandsHost? {
+    NativeIslandsRouter.of(webView.configuration.userContentController).host(for: webView)
+  }
+
   let manager: NativeIslandManager?
   private let surface: WebViewSurface?
   private let schedule: NativeIslandsScheduler

@@ -210,6 +210,7 @@ export const List = ({
     editing,
     icon,
     press: (row) => {
+      if (row.children) setExpanded(toggle(expanded, row.id));
       select(row.id);
       onPress?.(row.id);
     },

@@ -2,6 +2,7 @@ import SwiftUI
 import Testing
 import UIKit
 import UserNotifications
+import WebKit
 @testable import NativeIslands
 @testable import NativeIslandsComponents
 
@@ -111,6 +112,47 @@ struct AppComponentsTests {
     #expect(PresentationView.Coordinator.detent("240") != nil)
     #expect(PresentationView.Coordinator.detent("tall") == nil)
     #expect(PresentationView.Coordinator.identifier("240").rawValue == "240")
+    #expect(PresentationView.Coordinator.name(of: .medium) == "medium")
+    #expect(PresentationView.Coordinator.name(of: .large) == "large")
+    #expect(PresentationView.Coordinator.name(of: .init("240")) == "240")
+    #expect(PresentationView.Coordinator.name(of: nil) == nil)
+  }
+
+  @Test("Routes a presented page's messages, and gives it the system header")
+  func presentedPage() throws {
+    let page = PresentedPageController(
+      url: try #require(URL(string: "about:blank")),
+      configuration: WKWebViewConfiguration(),
+      style: "sheet",
+      background: .red
+    )
+    var heard: [String] = []
+    page.onDismissRequest = { heard.append("dismiss \($0 as? String ?? "?")") }
+    page.onMessage = { heard.append("message \($0 as? Int ?? 0)") }
+    page.onDetentRequest = { heard.append("detent \($0)") }
+    page.receive(["type": "dismiss", "result": "done"])
+    page.receive(["type": "message", "data": 1])
+    page.receive(["type": "detent", "detent": "medium"])
+    page.receive(["type": "detent"])
+    page.receive(["type": "other"])
+    page.receive("not a message")
+    #expect(heard == ["dismiss done", "message 1", "detent medium"])
+
+    let navigation = PresentationNavigationController(rootViewController: page)
+    page.loadViewIfNeeded()
+    #expect(page.view.backgroundColor == .red)
+    #expect(page.edgesForExtendedLayout.isEmpty)
+    var done = false
+    page.onDone = { done = true }
+    let item = try #require(page.navigationItem.rightBarButtonItem)
+    item.primaryAction?.performWithSender(nil, target: nil)
+    #expect(done)
+    page.showsDone = false
+    #expect(page.navigationItem.rightBarButtonItem == nil)
+    page.detent = "large"
+    page.detent = "large"
+    #expect(navigation.viewControllers == [page])
+    page.close()
   }
 
   @Test("Draws glass for glass materials only")

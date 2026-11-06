@@ -1212,7 +1212,7 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
-  height: 44px;
+  height: 54px;
 }
 
 .ni-navbar-leading,
@@ -1371,6 +1371,7 @@
 
 .ni-tab-view-bottom {
   position: absolute;
+  z-index: 1;
   right: 16px;
   bottom: max(16px, env(safe-area-inset-bottom));
   left: 16px;
@@ -1389,6 +1390,7 @@
 
 .ni-navigation-stack {
   position: relative;
+  isolation: isolate;
   height: 100%;
   overflow: hidden;
 }
@@ -1404,23 +1406,107 @@
 .ni-navigation-stack-screen {
   position: absolute;
   inset: 0;
-  padding-top: calc(env(safe-area-inset-top) + 52px);
-  overflow: auto;
+  overflow: hidden;
   background: var(--ni-page, transparent);
-  transition: translate 0.45s var(--ni-ease);
+}
+
+.ni-navigation-stack-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/*
+ * One pixel taller than the screen, so the scrolling area always scrolls:
+ * WebKit only gives a scrolling area its own native scroll view while it
+ * overflows, and the screen's islands ride that view when the screen slides.
+ */
+.ni-navigation-stack-content {
+  box-sizing: border-box;
+  min-height: calc(100% + 1px);
+  padding-top: calc(env(safe-area-inset-top) + 62px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 140px);
+}
+
+.ni-navigation-stack-screen[data-place="top"] {
+  z-index: 1;
 }
 
 .ni-navigation-stack-screen[data-place="below"] {
-  translate: -30% 0;
+  z-index: 0;
+  transform: translateX(-30%);
 }
 
-.ni-navigation-stack-screen[data-motion="push"] {
-  animation: ni-push-in 0.45s var(--ni-ease);
+.ni-navigation-stack-screen[data-place="parked"] {
+  right: auto;
+  width: 100%;
+}
+
+.ni-navigation-stack-screen[data-place="away"] {
+  visibility: hidden;
+}
+
+.ni-navigation-stack-screen[data-motion="push-in"],
+.ni-navigation-stack-screen[data-motion="pop-out"] {
+  box-shadow: -6px 0 24px rgb(0 0 0 / 10%);
+}
+
+.ni-navigation-stack-screen[data-motion="push-in"] {
+  animation: ni-push-in 0.5s var(--ni-ease) both;
+}
+
+.ni-navigation-stack-screen[data-motion="push-under"] {
+  animation: ni-push-under 0.5s var(--ni-ease) both;
+}
+
+.ni-navigation-stack-screen[data-motion="pop-out"] {
+  animation: ni-pop-out 0.5s var(--ni-ease) both;
+}
+
+.ni-navigation-stack-screen[data-motion="pop-under"] {
+  animation: ni-pop-under 0.5s var(--ni-ease) both;
 }
 
 @keyframes ni-push-in {
   from {
-    translate: 100% 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ni-push-under {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-30%);
+  }
+}
+
+@keyframes ni-pop-out {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ni-pop-under {
+  from {
+    transform: translateX(-30%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ni-navigation-stack-screen[data-motion] {
+    animation: none;
   }
 }
 
@@ -1570,6 +1656,16 @@
   display: flex;
   gap: 4px;
   padding-right: 8px;
+}
+
+/* Swipe actions stay out of the way until the row is hovered or focused. */
+.ni-list-actions {
+  display: none;
+}
+
+.ni-list-row:hover .ni-list-actions,
+.ni-list-row:focus-within .ni-list-actions {
+  display: flex;
 }
 
 .ni-list-action,

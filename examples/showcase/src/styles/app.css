@@ -542,15 +542,11 @@ html[data-view-mode="outlines"] [data-island] > * {
   overflow: auto;
 }
 
-.presented-bar {
-  position: sticky;
-  z-index: 2;
-  top: 0;
-  padding: 12px 16px 4px;
-}
-
+/* One pixel taller than the page, so it scrolls natively and its islands ride it. */
 .presented-body {
-  padding-bottom: 40px;
+  box-sizing: border-box;
+  min-height: calc(100% + 1px);
+  padding: 8px 0 40px;
 }
 
 .demo-app {
@@ -564,6 +560,12 @@ html[data-view-mode="outlines"] [data-island] > * {
   gap: 24px;
   padding: 16px 20px;
   font: 400 17px / 24px var(--ni-font);
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .demo-search {

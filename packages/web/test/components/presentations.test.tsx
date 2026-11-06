@@ -176,8 +176,23 @@ describe("Sheet", () => {
 
 describe("the other presentations", () => {
   it("are covers, popovers around their anchor, and inspectors", async () => {
-    const cover = await mountComponent(<FullScreenCover open url="/c" onOpenChange={() => {}} />);
-    expect(cover.mount.props).toMatchObject({ style: "fullScreenCover" });
+    const cover = await mountComponent(
+      <FullScreenCover
+        open
+        url="/c"
+        title="Cover"
+        header={false}
+        background="#123456"
+        onOpenChange={() => {}}
+      />,
+    );
+    expect(cover.mount.props).toMatchObject({
+      style: "fullScreenCover",
+      title: "Cover",
+      header: false,
+      // Resolved to a colour the host reads, as every colour prop is.
+      background: "rgb(18, 52, 86)",
+    });
     cover.unmount();
     const popover = await mountComponent(
       <Popover open url="/p" width={300} height={200} compact="sheet" onOpenChange={() => {}}>
@@ -191,6 +206,9 @@ describe("the other presentations", () => {
       compact: "sheet",
     });
     expect(screen.getByRole("button", { name: "Anchor" })).toBeTruthy();
+    // The anchor comes first, so the islands of the children stay above it and take the taps.
+    const anchored = screen.getByRole("button", { name: "Anchor" }).closest(".ni-anchored");
+    expect(anchored?.lastElementChild?.textContent).toBe("Anchor");
     popover.unmount();
     const inspector = await mountComponent(
       <Inspector open url="/i" detents={["large"]} onOpenChange={() => {}} />,
@@ -265,6 +283,40 @@ describe("usePresentedPage", () => {
       window.dispatchEvent(new Event("nativeislandspresented"));
     });
     expect(result.current.style).toBe("sheet");
+  });
+
+  it("knows the detent its sheet rests at, hears it change, and asks for another", () => {
+    const postMessage = vi.fn();
+    Object.assign(window, {
+      __NATIVE_ISLANDS_PRESENTED__: { style: "sheet", detent: "medium" },
+      webkit: { messageHandlers: { nativeIslandsPresentation: { postMessage } } },
+    });
+    const onMessage = vi.fn();
+    const { result } = renderHook(() => usePresentedPage(onMessage));
+    expect(result.current.detent).toBe("medium");
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("nativeislandspresentation", {
+          detail: { type: "detent", detent: "large" },
+        }),
+      );
+      // Not a detent: a number, or no detent at all, is a message.
+      window.dispatchEvent(
+        new CustomEvent("nativeislandspresentation", { detail: { type: "detent", detent: 3 } }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("nativeislandspresentation", { detail: { type: "detent" } }),
+      );
+    });
+    expect(result.current.detent).toBe("large");
+    expect(onMessage.mock.calls).toEqual([[null], [null]]);
+    result.current.setDetent("medium");
+    expect(postMessage).toHaveBeenCalledWith({
+      type: "detent",
+      result: null,
+      data: null,
+      detent: "medium",
+    });
   });
 
   it("talks to the page around its frame on the web", () => {

@@ -9,16 +9,17 @@ import {
   useSheet,
   type NativeJSON,
   type PresentationDismiss,
+  type PresentationHandle,
   type SheetDetent,
 } from "native-islands/components";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import { useAccent, useNativeEnabled } from "../../app/preferences";
+import { preferencesQuery, useAccent, useNativeEnabled } from "../../app/preferences";
 import { Readout, Row, Section } from "../../ui/List";
 import { Button, Segmented } from "../../ui/controls";
 
-/** The page a presentation shows: another load of this app, with `?page=`. */
+/** The page a presentation shows: another load of this app, with `?page=` and the app's settings. */
 export const presentedURL = (page: string, title: string) =>
-  `?page=${page}&title=${encodeURIComponent(title)}`;
+  `?page=${page}&title=${encodeURIComponent(title)}&${preferencesQuery()}`;
 
 const describe = (dismiss: PresentationDismiss) =>
   dismiss.reason === "page"
@@ -39,7 +40,17 @@ const Sheets = () => {
   const [detentIndex, setDetentIndex] = React.useState(0);
   const [heard, setHeard] = React.useState("nothing yet");
   const [detent, setDetent] = React.useState<string>("–");
-  const message = (data: NativeJSON) => setHeard(`message: ${JSON.stringify(data)}`);
+  const sheetPage = React.useRef<PresentationHandle>(null);
+  const coverPage = React.useRef<PresentationHandle>(null);
+  const inspectorPage = React.useRef<PresentationHandle>(null);
+  /** Shows a message from a presented page, and answers it. */
+  const answer = (page: React.RefObject<PresentationHandle | null>) => (data: NativeJSON) => {
+    setHeard(`message: ${JSON.stringify(data)}`);
+    page.current?.post({
+      reply: `got ${JSON.stringify(data)}`,
+      at: new Date().toLocaleTimeString(),
+    });
+  };
   return (
     <>
       <div className="nav-gap" />
@@ -72,27 +83,33 @@ const Sheets = () => {
         {...sheet.props}
         native={native}
         url={presentedURL("sheet", "Sheet")}
+        handle={sheetPage}
+        background="var(--bg)"
         title="Sheet"
         detents={DETENTS[detentIndex]?.detents}
         onDetentChange={setDetent}
         onDismiss={(dismiss) => setHeard(describe(dismiss))}
-        onMessage={message}
+        onMessage={answer(sheetPage)}
       />
       <FullScreenCover
         {...cover.props}
         native={native}
         url={presentedURL("cover", "Full Screen Cover")}
+        handle={coverPage}
+        background="var(--bg)"
         title="Full Screen Cover"
         onDismiss={(dismiss) => setHeard(describe(dismiss))}
-        onMessage={message}
+        onMessage={answer(coverPage)}
       />
       <Inspector
         {...inspector.props}
         native={native}
         url={presentedURL("inspector", "Inspector")}
+        handle={inspectorPage}
+        background="var(--bg)"
         title="Inspector"
         onDismiss={(dismiss) => setHeard(describe(dismiss))}
-        onMessage={message}
+        onMessage={answer(inspectorPage)}
       />
     </>
   );
@@ -111,6 +128,7 @@ const Popovers = () => {
             {...popover.props}
             native={native}
             url={presentedURL("popover", "Popover")}
+            background="var(--bg)"
             title="Popover"
             width={300}
             height={340}

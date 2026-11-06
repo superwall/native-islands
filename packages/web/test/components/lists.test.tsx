@@ -132,6 +132,10 @@ describe("List", () => {
     expect(screen.getByText("Page")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Collapse Docs" }));
     expect(screen.queryByText("CV")).toBeNull();
+    // A tap on the row itself opens it too, and still reports the press.
+    fireEvent.click(screen.getByRole("button", { name: /^Docs/ }));
+    expect(screen.getByText("CV")).toBeTruthy();
+    expect(onPress).toHaveBeenLastCalledWith("docs");
     expect(view.container.querySelector("[data-symbol=wifi]")).not.toBeNull();
   });
 

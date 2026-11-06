@@ -11,6 +11,8 @@ import {
   TabView,
   Toolbar,
   useNavigationPath,
+  NAVIGATION_MOUNT_WAIT_MS,
+  NAVIGATION_SLIDE_MS,
   type BarItem,
   type SearchFieldHandle,
 } from "../../src/components";
@@ -352,18 +354,45 @@ describe("TabView", () => {
 });
 
 describe("NavigationStack", () => {
-  it("shows the screen on top with the one below, pops on Back, and shows the large title until it scrolls", () => {
+  const screens = {
+    root: { title: "Root", largeTitle: true, render: () => <p>Root page</p> },
+    detail: {
+      title: "Detail",
+      trailing: [{ id: "x", title: "X" }],
+      render: () => <p>Detail page</p>,
+    },
+    deeper: { title: "Deeper", render: () => <p>Deeper page</p> },
+  };
+  const placeOf = (container: HTMLElement, text: string) =>
+    [...container.querySelectorAll<HTMLElement>(".ni-navigation-stack-screen")].find((section) =>
+      section.textContent?.includes(text),
+    );
+
+  it("shows the screen on top, and the large title until it scrolls", () => {
+    const view = renderWeb(
+      <NavigationStack path={["root"]} onPathChange={() => {}} screens={screens} />,
+    );
+    expect(screen.getByRole("heading", { name: "Root" })).toBeTruthy();
+    const title = () => view.container.querySelector(".ni-navbar-title");
+    expect(title()?.hasAttribute("data-shown")).toBe(false);
+    const scroll = view.container.querySelector(".ni-navigation-stack-scroll");
+    if (!scroll) throw new Error("No scrolling area.");
+    scroll.scrollTop = 100;
+    fireEvent.scroll(scroll);
+    expect(title()?.hasAttribute("data-shown")).toBe(true);
+    expect(placeOf(view.container, "Root page")?.hasAttribute("inert")).toBe(false);
+  });
+
+  it("parks a pushed screen until its islands are placed, then slides both with the island phase", () => {
+    vi.useFakeTimers();
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const onPathChange = vi.fn();
     const onSelect = vi.fn();
-    const screens = {
-      root: { title: "Root", largeTitle: true, render: () => <p>Root page</p> },
-      detail: {
-        title: "Detail",
-        trailing: [{ id: "x", title: "X" }],
-        render: () => <p>Detail page</p>,
-      },
-      deeper: { title: "Deeper", render: () => <p>Deeper page</p> },
-    };
     const view = renderWeb(
       <NavigationStack
         path={["root"]}
@@ -372,29 +401,6 @@ describe("NavigationStack", () => {
         onSelect={onSelect}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Root" })).toBeTruthy();
-    const title = () => view.container.querySelector(".ni-navbar-title");
-    expect(title()?.hasAttribute("data-shown")).toBe(false);
-    const top = view.container.querySelector("[data-place=top]");
-    if (!top) throw new Error("No screen.");
-    top.scrollTop = 100;
-    fireEvent.scroll(top);
-    expect(title()?.hasAttribute("data-shown")).toBe(true);
-    view.rerender(
-      <NavigationStack
-        path={["root", "detail", "deeper"]}
-        onPathChange={onPathChange}
-        screens={screens}
-        onSelect={onSelect}
-      />,
-    );
-    expect(screen.queryByText("Root page")).toBeNull();
-    expect(view.container.querySelector("[data-place=below]")?.textContent).toBe("Detail page");
-    expect(view.container.querySelector("[data-place=top]")?.getAttribute("data-motion")).toBe(
-      "push",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(onPathChange).toHaveBeenCalledWith(["root", "detail"]);
     view.rerender(
       <NavigationStack
         path={["root", "detail"]}
@@ -403,31 +409,110 @@ describe("NavigationStack", () => {
         onSelect={onSelect}
       />,
     );
-    expect(view.container.querySelector("[data-place=top]")?.getAttribute("data-motion")).toBe(
-      "pop",
-    );
+    const detail = () => placeOf(view.container, "Detail page");
+    const root = () => placeOf(view.container, "Root page");
+    expect(detail()?.dataset.place).toBe("parked");
+    // Off to the side, at a spot no other screen waits at.
+    expect(detail()?.style.left).toMatch(/^[1-9][0-9]*00%$/);
+    // Live while it waits, so its islands are measured where they will be.
+    expect(detail()?.hasAttribute("inert")).toBe(false);
+    expect(root()?.dataset.place).toBe("top");
+    // Three frames of the stack's own, among whatever else asks for frames.
+    act(() => {
+      for (let frame = 0; frame < 12 && detail()?.dataset.place === "parked"; frame += 1)
+        frames.shift()?.(0);
+    });
+    expect(detail()?.dataset.motion).toBe("push-in");
+    expect(detail()?.getAttribute("data-island-phase")).toBe("push-in");
+    expect(root()?.dataset.motion).toBe("push-under");
+    expect(detail()?.hasAttribute("inert")).toBe(true);
+    act(() => vi.advanceTimersByTime(NAVIGATION_SLIDE_MS));
+    expect(detail()?.dataset.place).toBe("top");
+    expect(detail()?.dataset.motion).toBeUndefined();
+    expect(root()?.dataset.place).toBe("below");
     fireEvent.click(screen.getByRole("button", { name: "X" }));
     expect(onSelect).toHaveBeenCalledWith("x", "detail");
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(onPathChange).toHaveBeenCalledWith(["root"]);
+
     view.rerender(
-      <NavigationStack path={["missing"]} onPathChange={onPathChange} screens={screens} />,
+      <NavigationStack
+        path={["root", "detail", "deeper"]}
+        onPathChange={onPathChange}
+        screens={screens}
+      />,
     );
-    fireEvent.click(view.container.querySelector("button") ?? document.body);
-    view.rerender(<NavigationStack path={[]} onPathChange={onPathChange} screens={screens} />);
-    expect(title()?.textContent).toBe("");
+    // No frames come: it slides in anyway once the wait runs out.
+    act(() => vi.advanceTimersByTime(NAVIGATION_MOUNT_WAIT_MS));
+    expect(placeOf(view.container, "Deeper page")?.dataset.motion).toBe("push-in");
+    // Frames that come late start nothing a second time.
+    act(() => {
+      while (frames.length > 0) frames.shift()?.(0);
+    });
+    expect(placeOf(view.container, "Deeper page")?.dataset.motion).toBe("push-in");
+    act(() => vi.advanceTimersByTime(NAVIGATION_SLIDE_MS));
+    expect(root()?.dataset.place).toBe("away");
+
+    // A pop to the root slides the top screen off and the root back in.
+    view.rerender(
+      <NavigationStack path={["root"]} onPathChange={onPathChange} screens={screens} />,
+    );
+    expect(placeOf(view.container, "Deeper page")?.dataset.motion).toBe("pop-out");
+    expect(root()?.dataset.motion).toBe("pop-under");
+    expect(placeOf(view.container, "Detail page")?.dataset.place).toBe("away");
+    expect(view.container.querySelector(".ni-navbar-title")?.textContent).toBe("Root");
+    act(() => vi.advanceTimersByTime(NAVIGATION_SLIDE_MS));
+    expect(placeOf(view.container, "Deeper page")).toBeUndefined();
+    expect(root()?.dataset.place).toBe("top");
+    vi.useRealTimers();
   });
 
-  it("keeps a path to push and pop", () => {
+  it("jumps without sliding to a path that is no push or pop, and with reduced motion", () => {
+    const view = renderWeb(
+      <NavigationStack path={["root", "detail"]} onPathChange={() => {}} screens={screens} />,
+    );
+    view.rerender(
+      <NavigationStack path={["root", "deeper"]} onPathChange={() => {}} screens={screens} />,
+    );
+    expect(placeOf(view.container, "Deeper page")?.dataset.place).toBe("top");
+    expect(placeOf(view.container, "Deeper page")?.dataset.motion).toBeUndefined();
+    view.rerender(<NavigationStack path={["missing"]} onPathChange={() => {}} screens={screens} />);
+    fireEvent.click(view.container.querySelector("button") ?? document.body);
+    view.rerender(<NavigationStack path={[]} onPathChange={() => {}} screens={screens} />);
+    expect(view.container.querySelector(".ni-navbar-title")?.textContent).toBe("");
+
+    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
+    view.rerender(
+      <NavigationStack path={["root", "detail"]} onPathChange={() => {}} screens={screens} />,
+    );
+    expect(placeOf(view.container, "Detail page")?.dataset.place).toBe("top");
+  });
+
+  it("keeps a path to push, pop, pop to a screen and go forward again", () => {
     const { result } = renderHook(() => useNavigationPath("root"));
     act(() => result.current.pop());
     expect(result.current.path).toEqual(["root"]);
+    act(() => result.current.forward());
+    expect(result.current.path).toEqual(["root"]);
     act(() => result.current.push("a"));
     act(() => result.current.push("b"));
-    expect(result.current.path).toEqual(["root", "a", "b"]);
+    act(() => result.current.push("c"));
+    expect(result.current.path).toEqual(["root", "a", "b", "c"]);
     act(() => result.current.pop());
+    expect(result.current.canGoForward).toBe(true);
+    act(() => result.current.popTo("a"));
     expect(result.current.path).toEqual(["root", "a"]);
+    act(() => result.current.popTo("missing"));
+    expect(result.current.path).toEqual(["root", "a"]);
+    act(() => result.current.forward());
+    expect(result.current.path).toEqual(["root", "a", "b"]);
+    act(() => result.current.forward());
+    expect(result.current.path).toEqual(["root", "a", "b", "c"]);
+    expect(result.current.canGoForward).toBe(false);
     act(() => result.current.popToRoot());
-    expect(result.current.path).toEqual(["root"]);
-    act(() => result.current.setPath(["root", "z"]));
-    expect(result.current.path).toEqual(["root", "z"]);
+    act(() => result.current.push("z"));
+    expect(result.current.canGoForward).toBe(false);
+    act(() => result.current.setPath(["root", "y"]));
+    expect(result.current.path).toEqual(["root", "y"]);
   });
 });

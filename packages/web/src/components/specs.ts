@@ -298,11 +298,13 @@ export const NativeTip = defineNativeComponent<{
     actions?: readonly TipAction[];
     arrowEdge?: TipArrowEdge;
     tint?: string;
+    /** The tip's fill; an opaque card colour by default. */
+    background?: string;
   };
   events: { action: { id: string }; dismiss: undefined };
   state: { shown: boolean };
   commands: { invalidate: { args: undefined; result: void } };
-}>("tip", { colorProps: ["tint"] });
+}>("tip", { colorProps: ["tint", "background"] });
 
 export type MapStyle = "standard" | "hybrid" | "imagery";
 
@@ -398,11 +400,17 @@ export const NativePresentation = defineNativeComponent<{
     height?: number;
     /** A popover on iPhone becomes a sheet when `sheet`. */
     compact?: "popover" | "sheet";
+    /** The title in the system navigation bar. */
+    title?: string;
+    /** False leaves out the system navigation bar with the title and Done. */
+    header?: boolean;
+    /** Shows behind the page while it loads. */
+    background?: string;
   };
   events: { dismiss: PresentationDismiss; message: { data: NativeJSON } };
   state: { open: boolean; selectedDetent: SheetDetent };
   commands: { post: { args: NativeJSON; result: void } };
-}>("presentation");
+}>("presentation", { colorProps: ["background"] });
 
 export type AlertButtonRole = "default" | "cancel" | "destructive";
 

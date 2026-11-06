@@ -242,10 +242,9 @@ const Materials = () => {
             native={native}
             material={material}
             cornerRadius={22}
+            title={material}
             className="material-tile"
-          >
-            <span className="material-name">{material}</span>
-          </MaterialBackground>
+          />
         ))}
       </div>
       <p className="list-footer">
