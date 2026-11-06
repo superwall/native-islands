@@ -4,6 +4,8 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { PreferencesProvider } from "./app/preferences";
 import { Shell } from "./app/Shell";
+import { DemoApp } from "./pages/DemoApp";
+import { PresentedPage } from "./pages/Presented";
 import { capabilityScreens } from "./tabs/capabilities";
 import { componentScreens } from "./tabs/components";
 import { searchScreen } from "./tabs/search";
@@ -46,6 +48,10 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
       permission: 1,
       hapticButton: 1,
       shareButton: 1,
+      tabAccessory: 1,
+      toolbar: 1,
+      list: 1,
+      material: 1,
     },
   });
 }
@@ -53,13 +59,25 @@ if (new URLSearchParams(window.location.search).get("native") === "simulate") {
 // WebKit only applies :active to elements while a touch listener is registered.
 document.addEventListener("touchstart", () => {}, { passive: true });
 
+const query = new URLSearchParams(window.location.search);
+const presented = query.get("page");
+
+/** `?page=` is a page a presentation shows; anything else is the app. */
+const App = () => {
+  if (presented === "app") return <DemoApp />;
+  if (presented) return <PresentedPage title={query.get("title") ?? "Page"} />;
+  return <Shell screens={SCREENS} />;
+};
+
+if (presented) document.documentElement.dataset.presented = presented;
+
 const root = document.getElementById("root");
 if (!root) throw new Error("The page has no #root element.");
 createRoot(root).render(
   <React.StrictMode>
     <PreferencesProvider>
       <NativeIslandsProvider>
-        <Shell screens={SCREENS} />
+        <App />
       </NativeIslandsProvider>
     </PreferencesProvider>
   </React.StrictMode>,

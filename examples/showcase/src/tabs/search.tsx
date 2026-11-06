@@ -3,7 +3,7 @@ import type { NativeHandle } from "native-islands/react";
 import { searchScreens, useNav, useScreenShowing, type ScreenSpec } from "../app/nav";
 import { BAR_TABS, type TabId } from "../app/navigation";
 import { useAccent, useNativeEnabled } from "../app/preferences";
-import { NativeSearchField } from "../islands/definitions";
+import { NativeSearchField } from "native-islands/components";
 import { WebSymbol } from "../ui/icons";
 import { Row, Section } from "../ui/List";
 

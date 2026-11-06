@@ -533,3 +533,81 @@ html[data-view-mode="outlines"] [data-island] > * {
   outline-offset: -2px;
   background-image: linear-gradient(rgb(214 58 249 / 18%), rgb(214 58 249 / 18%));
 }
+
+/* Pages a presentation shows (`?page=`), and the demo app. */
+
+.presented {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.presented-bar {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  padding: 12px 16px 4px;
+}
+
+.presented-body {
+  padding-bottom: 40px;
+}
+
+.demo-app {
+  position: absolute;
+  inset: 0;
+  --ni-page: var(--bg);
+}
+
+.demo-message {
+  display: grid;
+  gap: 24px;
+  padding: 16px 20px;
+  font: 400 17px / 24px var(--ni-font);
+}
+
+.demo-search {
+  display: grid;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 16px) 16px 0;
+}
+
+.bar-demo {
+  width: 100%;
+}
+
+.demo-card {
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 20px;
+  color: #fff;
+  font: 600 17px / 22px var(--ni-font);
+}
+
+.demo-card--sunset {
+  background: linear-gradient(160deg, #ff9f0a, #ff375f);
+}
+
+.demo-card--sea {
+  background: linear-gradient(160deg, #64d2ff, #0a84ff);
+}
+
+.material-stage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0 16px;
+  padding: 16px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 20% 20%, #ff9f0a 0 18%, transparent 19%),
+    radial-gradient(circle at 80% 40%, #30d158 0 16%, transparent 17%),
+    radial-gradient(circle at 40% 80%, #bf5af2 0 20%, transparent 21%),
+    linear-gradient(135deg, #0a84ff, #ff375f);
+}
+
+.material-tile {
+  height: 96px;
+}

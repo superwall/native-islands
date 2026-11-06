@@ -93,10 +93,10 @@ public struct MenuView: View {
   }
 }
 
-private extension View {
+extension View {
   /// Items in the page's order however the menu opens; iOS 15 has no choice.
   @ViewBuilder
-  func fixedMenuOrder() -> some View {
+  package func fixedMenuOrder() -> some View {
     if #available(iOS 16.0, *) {
       menuOrder(.fixed)
     } else {

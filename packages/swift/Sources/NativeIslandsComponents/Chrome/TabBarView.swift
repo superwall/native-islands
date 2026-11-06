@@ -5,8 +5,9 @@ import UIKit
 /// The floating tab bar of iOS 26, drawn by the system `UITabBar` so it has
 /// the Liquid Glass selection lens and hold-and-drag selection. Before iOS 26
 /// the same bar sits on a material capsule, without its own background. The
-/// page sets its tabs and selection; a pick selects at once, before the page
-/// hears of it.
+/// page sets its `tabs` (id, title, symbol, badge) and selection; a pick
+/// selects at once, before the page hears of it, and sends `select` with the
+/// tab's index and id. Pages can still pass `titles` and `symbols` instead.
 struct TabBarView: UIViewRepresentable {
   @ObservedObject var component: NativeComponentContext
 
@@ -23,20 +24,19 @@ struct TabBarView: UIViewRepresentable {
     let coordinator = context.coordinator
     coordinator.component = component
     let props = component.props
-    let titles = props.strings("titles") ?? []
-    let symbols = props.strings("symbols") ?? []
-    let tabs = titles.enumerated().map { index, title in
-      Tab(title: title, symbol: symbols.indices.contains(index) ? symbols[index] : "circle")
-    }
+    let tabs = Tab.list(props)
     let rebuilt = tabs != coordinator.tabs
     if rebuilt {
       coordinator.tabs = tabs
       bar.items = tabs.enumerated().map { index, tab in
-        UITabBarItem(title: tab.title, image: UIImage(systemName: tab.symbol), tag: index)
+        let item = UITabBarItem(title: tab.title, image: UIImage(systemName: tab.symbol), tag: index)
+        item.badgeValue = tab.badge
+        return item
       }
     }
     bar.tintColor = props.color("tint").map(UIColor.init)
-    let index = props.int("selectedIndex") ?? 0
+    let index = props.string("selectedId").flatMap { id in tabs.firstIndex { $0.id == id } }
+      ?? props.int("selectedIndex") ?? 0
     // A pick shows at once; props that still carry the old index until the
     // page answers must not move the selection back.
     if rebuilt || index != coordinator.pageIndex {
@@ -104,8 +104,30 @@ struct TabBarView: UIViewRepresentable {
   }
 
   struct Tab: Equatable {
+    let id: String
     let title: String
     let symbol: String
+    let badge: String?
+
+    static func list(_ props: NativeComponentProps) -> [Tab] {
+      if let tabs = props["tabs"] as? [Any] {
+        return tabs.compactMap { value in
+          guard let tab = value as? [String: Any], let title = tab["title"] as? String else { return nil }
+          let badge = tab["badge"].flatMap { $0 as? String ?? ($0 as? NSNumber)?.stringValue }
+          return Tab(
+            id: tab["id"] as? String ?? title,
+            title: title,
+            symbol: tab["systemImage"] as? String ?? "circle",
+            badge: badge?.isEmpty == false ? badge : nil
+          )
+        }
+      }
+      let titles = props.strings("titles") ?? []
+      let symbols = props.strings("symbols") ?? []
+      return titles.enumerated().map { index, title in
+        Tab(id: title, title: title, symbol: symbols.indices.contains(index) ? symbols[index] : "circle", badge: nil)
+      }
+    }
   }
 
   @MainActor
@@ -119,7 +141,8 @@ struct TabBarView: UIViewRepresentable {
     }
 
     func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
-      component.emit("select", payload: ["index": item.tag])
+      let id = tabs.indices.contains(item.tag) ? tabs[item.tag].id : String(item.tag)
+      component.emit("select", payload: ["index": item.tag, "id": id])
     }
   }
 }

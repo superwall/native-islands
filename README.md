@@ -251,14 +251,42 @@ import "native-islands/components.css";
 <Toggle label="Notifications" isOn={on} onChange={setOn} />
 ```
 
-There are 21 in that library:
+That one call registers 34 islands, enough to build a whole app with no Swift
+of your own:
 
 - **Controls:** `GlassButton`, `CloseButton`, `Menu`, `Toggle`,
   `SegmentedControl`, `Slider`, `Stepper`, `Picker`, `DatePicker`,
   `ColorPicker` and `TextField`.
+- **Presentations:** `Sheet` (detents, grabber, interactive dismiss),
+  `FullScreenCover`, `Popover`, `Inspector`, `Alert` and `ConfirmationDialog`.
+  A sheet, cover, popover or inspector holds another page in its own web view
+  with its own islands; that page closes itself and messages back with
+  `usePresentedPage()`.
+- **App chrome:** `TabView` with a bottom `TabAccessory` and a `SearchTab`,
+  `TabBar`, `NavigationStack` with large titles, `NavigationBar`, `Toolbar`
+  and `SearchField`.
+- **Lists:** `List`, with symbols, values, badges, swipe actions, selection,
+  drag to reorder and delete in edit mode, and rows with children as
+  disclosure groups nested into an outline. Rows hold text and symbols, not
+  web content.
 - **Indicators:** `SystemSymbol`, `SymbolEffect`, `Gauge` and `Tip` (TipKit).
 - **Media and system:** `Video` (AVKit, with Picture in Picture), `Camera`,
-  `PhotoPicker`, `HapticButton`, `ShareButton` and `Permission`.
+  `PhotoPicker`, `HapticButton`, `ShareButton`, `Permission`, `Haptics`
+  (Core Haptics patterns, through `useHaptics()`), `Notifications` (local
+  notifications, through `useNotifications()`), `ContextMenu` and
+  `LongPressGesture` over the page's own elements, and `MaterialBackground`
+  (system materials and Liquid Glass).
+
+Every tab, bar item, row and button is a prop, so a page adds one without an
+app update:
+
+```tsx
+const sheet = useSheet();
+
+<Toolbar items={[{ id: "share", systemImage: "square.and.arrow.up" }, { kind: "flexibleSpace" }, { id: "edit", title: "Edit", prominent: true }]} onSelect={act} />
+<Button onClick={sheet.present}>Settings</Button>
+<Sheet {...sheet.props} url="/settings" detents={["medium", "large"]} onDismiss={({ result }) => apply(result)} />
+```
 
 The map and the chart live in libraries of their own, so an app links MapKit
 and Swift Charts only when its pages use them. Register them the same way,
@@ -271,6 +299,12 @@ Some islands need Info.plist keys, but only when a page uses them:
 | `Camera`     | `NativeIslandsComponents` | `NSCameraUsageDescription`                                                                                          |
 | `Permission` | `NativeIslandsComponents` | the usage description of each kind a page asks for: camera, microphone, location or photos; notifications need none |
 | `MapView`    | `NativeIslandsMaps`       | `NSLocationWhenInUseUsageDescription`, only if a page sets `showsUser`                                              |
+
+`Notifications` needs no key; it asks for permission when the page calls
+`requestAuthorization()`. When the app has no notification delegate of its
+own, the library becomes it, to show banners while the app is open and tell
+the page which notification was tapped. Push notifications need a server and
+aren't included.
 
 Because `NativeIslandsComponents` links the camera, location and photo
 frameworks, App Store Connect may warn about a missing purpose string even when

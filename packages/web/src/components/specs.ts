@@ -354,3 +354,322 @@ export const NativePermission = defineNativeComponent<{
   props: { kind: PermissionKind; tint?: string };
   state: { status: PermissionStatus };
 }>("permission", { sizing: "native", colorProps: ["tint"] });
+
+// Presentations
+
+export type PresentationStyle = "sheet" | "fullScreenCover" | "popover" | "inspector";
+
+/** `medium`, `large`, or a height in points such as `"240"`. */
+export type SheetDetent = "medium" | "large" | `${number}`;
+
+export type PresentationDismiss = {
+  /** `user` swiped or tapped outside; `page` the presented page closed it. */
+  reason: "user" | "page";
+  /** What the presented page passed to `dismiss()`. */
+  result: NativeJSON;
+};
+
+/** A JSON value crossing to or from a presented page. */
+export type NativeJSON =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly NativeJSON[]
+  | { readonly [key: string]: NativeJSON };
+
+/** Another page, presented natively in its own web view with its own islands. */
+export const NativePresentation = defineNativeComponent<{
+  props: {
+    open: boolean;
+    /** Read relative to this page. */
+    url: string;
+    style?: PresentationStyle;
+    detents?: readonly SheetDetent[];
+    selectedDetent?: SheetDetent;
+    grabber?: boolean;
+    /** False keeps a swipe or a tap outside from closing it. */
+    dismissible?: boolean;
+    /** Leaves the page behind a medium sheet undimmed and usable. */
+    undimmed?: boolean;
+    cornerRadius?: number;
+    /** A popover's size in points. */
+    width?: number;
+    height?: number;
+    /** A popover on iPhone becomes a sheet when `sheet`. */
+    compact?: "popover" | "sheet";
+  };
+  events: { dismiss: PresentationDismiss; message: { data: NativeJSON } };
+  state: { open: boolean; selectedDetent: SheetDetent };
+  commands: { post: { args: NativeJSON; result: void } };
+}>("presentation");
+
+export type AlertButtonRole = "default" | "cancel" | "destructive";
+
+export type AlertButton = {
+  id: string;
+  title: string;
+  role?: AlertButtonRole;
+  /** The button Return chooses; bold in an alert. */
+  preferred?: boolean;
+};
+
+export type AlertTextField = { id: string; placeholder?: string; text?: string; secure?: boolean };
+
+export const NativeAlert = defineNativeComponent<{
+  props: {
+    open: boolean;
+    style?: "alert" | "confirmationDialog";
+    title?: string;
+    message?: string;
+    buttons: readonly AlertButton[];
+    textFields?: readonly AlertTextField[];
+    tint?: string;
+  };
+  events: { action: { id: string; values: Readonly<Record<string, string>> } };
+  state: { open: boolean };
+}>("alert", { colorProps: ["tint"] });
+
+// App chrome
+
+/** An item of a navigation bar or toolbar: a button, a menu of `items`, or room between groups. */
+export type BarItem =
+  | {
+      id: string;
+      kind?: "button" | "menu";
+      title?: string;
+      systemImage?: string;
+      /** Stands on its own, filled with `tint`. */
+      prominent?: boolean;
+      /** Hex or `rgb()`. */
+      tint?: string;
+      disabled?: boolean;
+      items?: readonly MenuItem[];
+    }
+  | { id?: string; kind: "spacer" | "flexibleSpace" };
+
+export type Tab = {
+  id: string;
+  title: string;
+  systemImage: string;
+  badge?: string | number;
+};
+
+export const NativeTabBar = defineNativeComponent<{
+  props: GlassGroup & {
+    tabs: readonly Tab[];
+    selectedId?: string;
+    selectedIndex?: number;
+    tint?: string;
+  };
+  events: { select: { index: number; id: string } };
+}>("tabBar", { colorProps: ["tint"] });
+
+export const NativeTabAccessory = defineNativeComponent<{
+  props: GlassGroup & {
+    title: string;
+    subtitle?: string;
+    systemImage?: string;
+    actions?: readonly BarItem[];
+    tint?: string;
+  };
+  events: { press: undefined; action: { id: string } };
+}>("tabAccessory", { colorProps: ["tint"] });
+
+export const NativeSearchTab = defineNativeComponent<{
+  props: GlassGroup & { selected: boolean; tint?: string };
+  events: { press: undefined };
+}>("searchTab", { colorProps: ["tint"] });
+
+export const NativeSearchField = defineNativeComponent<{
+  props: GlassGroup & { text: string; placeholder?: string; tint?: string };
+  events: { submit: { text: string } };
+  state: { text: string };
+  commands: TextFieldCommands;
+}>("searchField", { colorProps: ["tint"] });
+
+export const NativeNavigationBar = defineNativeComponent<{
+  props: {
+    title: string;
+    /** False hides the inline title, while a large title shows on the page. */
+    titleShown?: boolean;
+    showsBack?: boolean;
+    backTitle?: string;
+    leading?: readonly BarItem[];
+    trailing?: readonly BarItem[];
+    tint?: string;
+  };
+  events: { back: undefined; select: { id: string } };
+}>("navigationBar", { colorProps: ["tint"] });
+
+export const NativeToolbar = defineNativeComponent<{
+  props: { items: readonly BarItem[]; itemHeight?: number; tint?: string };
+  events: { select: { id: string } };
+}>("toolbar", { colorProps: ["tint"] });
+
+// Lists
+
+export type ListAction = {
+  id: string;
+  title: string;
+  systemImage?: string;
+  role?: "destructive";
+  /** Hex or `rgb()`. */
+  tint?: string;
+};
+
+export type ListRow = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  systemImage?: string;
+  /** Fills a rounded square behind `systemImage`, as Settings does. Hex or `rgb()`. */
+  iconTint?: string;
+  value?: string;
+  badge?: string | number;
+  accessory?: "none" | "chevron" | "info";
+  role?: "destructive";
+  disabled?: boolean;
+  leadingActions?: readonly ListAction[];
+  trailingActions?: readonly ListAction[];
+  /** Makes the row a disclosure group; nested children make an outline. */
+  children?: readonly ListRow[];
+};
+
+export type ListSection = {
+  id: string;
+  header?: string;
+  footer?: string;
+  rows: readonly ListRow[];
+};
+
+export type ListStyle = "insetGrouped" | "grouped" | "plain" | "sidebar";
+
+export type SelectionMode = "none" | "single" | "multiple";
+
+export const NativeList = defineNativeComponent<{
+  props: {
+    sections: readonly ListSection[];
+    style?: ListStyle;
+    selectionMode?: SelectionMode;
+    selected?: readonly string[];
+    expanded?: readonly string[];
+    editing?: boolean;
+    reorderable?: boolean;
+    deletable?: boolean;
+    tint?: string;
+  };
+  events: {
+    press: { id: string };
+    action: { row: string; id: string };
+    reorder: { section: string; ids: readonly string[] };
+    delete: { section: string; ids: readonly string[] };
+    expand: { id: string; expanded: boolean };
+  };
+  state: {
+    sections: readonly ListSection[];
+    selected: readonly string[];
+    expanded: readonly string[];
+    /** The height the native rows take, in points. */
+    contentHeight: number;
+  };
+}>("list", { colorProps: ["tint"] });
+
+// System
+
+export type HapticEvent = {
+  /** Seconds from the start. */
+  time: number;
+  kind?: "transient" | "continuous";
+  /** Seconds, for a continuous event. */
+  duration?: number;
+  /** 0 to 1. */
+  intensity?: number;
+  /** 0 to 1: dull to crisp. */
+  sharpness?: number;
+  attack?: number;
+  decay?: number;
+};
+
+export type HapticPattern = { events: readonly HapticEvent[]; loop?: boolean };
+
+export const NativeHaptics = defineNativeComponent<{
+  commands: {
+    play: { args: HapticPattern; result: { played: boolean } };
+    impact: { args: { style: HapticFeedback; intensity?: number }; result: { played: boolean } };
+    stop: { args: undefined; result: void };
+  };
+}>("haptics");
+
+export type NotificationStatus = "notDetermined" | "granted" | "limited" | "denied";
+
+export type LocalNotification = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  body?: string;
+  /** Seconds from now; at least 60 when it repeats. */
+  after?: number;
+  /** Local time as `yyyy-MM-ddTHH:mm`, instead of `after`. */
+  date?: string;
+  repeats?: boolean;
+  sound?: boolean;
+  badge?: number;
+  threadId?: string;
+  /** Comes back with `open` and `deliver`. */
+  data?: NativeJSON;
+};
+
+export const NativeNotifications = defineNativeComponent<{
+  events: {
+    open: { id: string; data: NativeJSON };
+    deliver: { id: string; data: NativeJSON };
+  };
+  state: { status: NotificationStatus };
+  commands: {
+    requestAuthorization: {
+      args: { provisional?: boolean } | undefined;
+      result: { status: NotificationStatus };
+    };
+    schedule: { args: LocalNotification; result: void };
+    cancel: { args: { ids: readonly string[] }; result: void };
+    cancelAll: { args: undefined; result: void };
+    pending: { args: undefined; result: { ids: readonly string[] } };
+    setBadge: { args: { count: number }; result: void };
+  };
+}>("notifications");
+
+export const NativeInteraction = defineNativeComponent<{
+  props: {
+    items?: readonly MenuItem[];
+    title?: string;
+    longPress?: boolean;
+    minimumDuration?: number;
+    haptic?: HapticFeedback | "none";
+    /** The corner radius of the lifted preview. */
+    cornerRadius?: number;
+  };
+  events: { press: undefined; longPress: undefined; select: { id: string } };
+}>("interaction");
+
+export type MaterialName =
+  | "ultraThin"
+  | "thin"
+  | "regular"
+  | "thick"
+  | "ultraThick"
+  | "bar"
+  | "glass"
+  | "clearGlass";
+
+export const NativeMaterial = defineNativeComponent<{
+  props: {
+    material: MaterialName;
+    cornerRadius?: number;
+    title?: string;
+    subtitle?: string;
+    systemImage?: string;
+    tint?: string;
+    glassTint?: string;
+  };
+}>("material", { colorProps: ["tint", "glassTint"] });

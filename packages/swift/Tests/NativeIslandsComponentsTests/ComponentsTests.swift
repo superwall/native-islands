@@ -34,7 +34,20 @@ struct RegistrationTests {
       "shareButton": 1,
       "hapticButton": 1,
       "permission": 1,
-      "tip": 1
+      "tip": 1,
+      "presentation": 1,
+      "alert": 1,
+      "tabBar": 1,
+      "tabAccessory": 1,
+      "searchTab": 1,
+      "searchField": 1,
+      "navigationBar": 1,
+      "toolbar": 1,
+      "list": 1,
+      "haptics": 1,
+      "notifications": 1,
+      "interaction": 1,
+      "material": 1
     ])
   }
 

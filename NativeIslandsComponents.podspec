@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   s.swift_versions = ['5.0']
 
   s.source_files = 'packages/swift/Sources/NativeIslandsComponents/**/*.swift'
-  s.frameworks = 'UIKit', 'SwiftUI', 'AVKit', 'AVFoundation', 'PhotosUI', 'Photos', 'CoreLocation', 'UserNotifications'
+  s.frameworks = 'UIKit', 'SwiftUI', 'WebKit', 'AVKit', 'AVFoundation', 'PhotosUI', 'Photos', 'CoreLocation', 'CoreHaptics', 'UserNotifications'
   s.weak_frameworks = 'TipKit'
   # Shares helpers with the other component pods through Swift's `package` access.
   s.pod_target_xcconfig = { 'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name NativeIslands' }

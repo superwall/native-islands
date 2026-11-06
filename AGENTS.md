@@ -60,9 +60,9 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Debug/              frame reporter and alignment
     Extensions/, Support/
   Sources/NativeIslandsComponents/
-                        the ready-made controls, media and system islands,
-                        their glass and the iOS 15–25 fallbacks;
-                        NativeIslandsComponents.register()
+                        the ready-made controls, presentations, app chrome,
+                        lists, media and system islands, their glass and the
+                        iOS 15–25 fallbacks; NativeIslandsComponents.register()
   Sources/NativeIslandsMaps/, NativeIslandsCharts/
                         the map and the chart, apart so an app links MapKit
                         and Swift Charts only when it uses them
@@ -97,9 +97,10 @@ before they slide in. `?native=simulate` installs the JS reference host.
 
 The showcase's `src/app/Shell.tsx` mounts a screen the first time it is pushed
 or opened, then keeps it parked the same way, so a demo that holds a device
-(camera, video) checks `useScreenShowing()` and lets go while hidden. A new island needs its name in both
-`src/islands/definitions.ts` and `ShowcaseComponents.swift`, a web version that
-behaves the same, and an entry in `main.tsx`'s simulator list. A new demo is a
+(camera, video) checks `useScreenShowing()` and lets go while hidden. The showcase has no islands of its own: every
+one comes from the package, so a new one goes in the package (see below) and,
+to show in the browser simulator, in `main.tsx`'s simulator list. `?page=` loads
+the pages that presentations show (`src/pages/`). A new demo is a
 row in its section's `demoScreens(...)` with `keywords` for Search, and its
 symbol needs a web drawing in `src/ui/icons.tsx` (a test checks).
 
@@ -109,7 +110,11 @@ A ready-made island lives in both halves at once: its view in
 `packages/web/src/components/`, under the same name. A test reads the Swift
 names and fails when the web names drift. Its web version must keep the
 native control's size and shape, so a change there is a change to TestHost's
-screenshot baselines too. An island that needs an Info.plist key notes it in
+screenshot baselines too. Every item an island draws (a tab, a bar item, a
+row, a button) is a prop, so a page adds one without an app update. Islands
+draw above the page, so nothing on the page can draw on one: what sits on an
+island is a prop the native view draws. Numbers from the page arrive as
+`Double`; read nested ones through `NSNumber`, never `as? Int`. An island that needs an Info.plist key notes it in
 the README's table. A large, rarely needed framework (MapKit, Swift Charts)
 goes in a library of its own, as `NativeIslandsMaps` does, with its podspec
 and its `public static let name` read by that test. Shared Swift helpers use

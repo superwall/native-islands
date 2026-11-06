@@ -1,4 +1,5 @@
 import NativeIslands
+import os
 import SwiftUI
 import TipKit
 
@@ -9,7 +10,7 @@ import TipKit
 ///
 /// Info.plist keys: `camera` needs `NSCameraUsageDescription`, and `permission`
 /// needs the usage description of every kind its pages ask for. The others
-/// need none.
+/// need none; `notifications` asks for permission at run time.
 public enum NativeIslandsComponents {
   public enum Component: String, CaseIterable, Sendable {
     case glassButton
@@ -33,6 +34,23 @@ public enum NativeIslandsComponents {
     case hapticButton
     case permission
     case tip
+    // Presentations
+    case presentation
+    case alert
+    // App chrome
+    case tabBar
+    case tabAccessory
+    case searchTab
+    case searchField
+    case navigationBar
+    case toolbar
+    // Lists
+    case list
+    // System
+    case haptics
+    case notifications
+    case interaction
+    case material
 
     /// The name pages mount it by.
     public var name: String { rawValue }
@@ -57,6 +75,9 @@ public enum NativeIslandsComponents {
       switch self {
       case .glassButton, .menu, .photoPicker, .shareButton, .hapticButton: NativeIslandsComponents.buttonGlass
       case .closeButton: NativeIslandsComponents.closeButtonGlass
+      case .searchTab: { _ in NativeGlass(shape: .circle) }
+      case .searchField, .tabAccessory: { _ in NativeGlass(shape: .capsule) }
+      case .material: MaterialView.glass
       default: nil
       }
     }
@@ -96,6 +117,19 @@ public enum NativeIslandsComponents {
         if #available(iOS 17.0, *) {
           TipIslandView(component: context)
         }
+      case .presentation: PresentationView(component: context)
+      case .alert: AlertView(component: context)
+      case .tabBar: TabBarView(component: context)
+      case .tabAccessory: TabAccessoryView(component: context)
+      case .searchTab: SearchTabView(component: context)
+      case .searchField: SearchFieldView(component: context)
+      case .navigationBar: NavigationBarView(component: context)
+      case .toolbar: ToolbarView(component: context)
+      case .list: ListView(component: context)
+      case .haptics: HapticEngineView(component: context)
+      case .notifications: NotificationsView(component: context)
+      case .interaction: InteractionView(component: context)
+      case .material: MaterialView(component: context)
       }
     }
   }
@@ -136,6 +170,12 @@ public enum NativeIslandsComponents {
   @MainActor
   public static func closeButtonGlass(_ props: NativeComponentProps) -> NativeGlass {
     NativeGlass(shape: .circle, tint: props.uiColor("tint")?.withAlphaComponent(0.3))
+  }
+
+  static let logger = Logger(subsystem: "com.superwall.native-islands", category: "components")
+
+  static func log(_ message: String) {
+    logger.warning("\(message, privacy: .public)")
   }
 
   static let weights: [String: Font.Weight] = [

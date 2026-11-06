@@ -244,6 +244,78 @@ const PATHS: Record<string, React.ReactNode> = {
       />
     </>
   ),
+  "rectangle.bottomhalf.inset.filled": (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="3" fill="none" strokeWidth="1.75" />
+      <path d="M6.5 12h11v5.5a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1Z" fill="currentColor" stroke="none" />
+    </>
+  ),
+  "bubble.middle.top.fill": (
+    <path
+      d="M12 3 9.5 6H6a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-3.5Z"
+      fill="currentColor"
+      stroke="none"
+    />
+  ),
+  "exclamationmark.bubble.fill": (
+    <>
+      <path
+        d="M12 3c5 0 9 3.4 9 7.6s-4 7.6-9 7.6c-.9 0-1.8-.1-2.6-.3L5 20l1-3.6C4.2 15 3 12.9 3 10.6 3 6.4 7 3 12 3Z"
+        fill="currentColor"
+        stroke="none"
+      />
+      <path d="M12 7v4.5M12 14.2v.1" stroke="var(--bg, #fff)" strokeWidth="2" />
+    </>
+  ),
+  "list.bullet.rectangle.fill": (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="3" fill="currentColor" stroke="none" />
+      <path
+        d="M7.5 9h.1M7.5 12h.1M7.5 15h.1M10.5 9H17M10.5 12H17M10.5 15H17"
+        stroke="var(--bg, #fff)"
+        strokeWidth="1.75"
+      />
+    </>
+  ),
+  "list.bullet.indent": (
+    <path d="M4 6h.1M7.5 6H20M7.5 12h.1M11 12h9M7.5 18h.1M11 18h9" fill="none" strokeWidth="1.75" />
+  ),
+  "menubar.rectangle": (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="3" fill="none" strokeWidth="1.75" />
+      <path d="M3 9h18" fill="none" strokeWidth="1.75" />
+    </>
+  ),
+  "platter.filled.bottom.iphone": (
+    <>
+      <rect x="6" y="2.5" width="12" height="19" rx="3" fill="none" strokeWidth="1.75" />
+      <rect x="8" y="15.5" width="8" height="3" rx="1.5" fill="currentColor" stroke="none" />
+    </>
+  ),
+  "waveform.path": <path d="M3 12h2l2-5 3 10 3-14 3 14 2-5h3" fill="none" strokeWidth="1.75" />,
+  "bell.badge.fill": (
+    <>
+      <path
+        d="M11 4a6 6 0 0 0-6 6v3l-2 3.5h16L17 13v-3a6 6 0 0 0-6-6Zm-2.5 14.5a2.5 2.5 0 0 0 5 0Z"
+        fill="currentColor"
+        stroke="none"
+      />
+      <circle cx="18.5" cy="5.5" r="3" fill="currentColor" stroke="none" />
+    </>
+  ),
+  "contextualmenu.and.cursorarrow": (
+    <>
+      <rect x="3" y="3" width="13" height="12" rx="2.5" fill="none" strokeWidth="1.75" />
+      <path d="M6 7h7M6 11h7" fill="none" strokeWidth="1.75" />
+      <path d="m14 13 7 2.5-3 1.2-1.2 3Z" fill="currentColor" strokeWidth="1" />
+    </>
+  ),
+  "square.on.square.squareshape.controlhandles": (
+    <>
+      <rect x="3" y="3" width="12" height="12" rx="2.5" fill="none" strokeWidth="1.75" />
+      <rect x="9" y="9" width="12" height="12" rx="2.5" fill="currentColor" stroke="none" />
+    </>
+  ),
   "bell.fill": (
     <path
       d="M12 3a6 6 0 0 0-6 6v4l-2 3.5h16L18 13V9a6 6 0 0 0-6-6Zm-2.5 15.5a2.5 2.5 0 0 0 5 0Z"

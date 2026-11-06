@@ -1,0 +1,131 @@
+import SwiftUI
+import Testing
+import UIKit
+import UserNotifications
+@testable import NativeIslands
+@testable import NativeIslandsComponents
+
+@MainActor
+@Suite
+struct AppComponentsTests {
+  @Test("Reads bar items, grouping runs of buttons between spaces")
+  func readsBarItems() throws {
+    let items = BarItem.list([
+      ["id": "share", "systemImage": "square.and.arrow.up"],
+      ["kind": "flexibleSpace"],
+      ["id": "more", "systemImage": "ellipsis", "items": [["id": "a", "title": "A"]]],
+      ["id": "edit", "title": "Edit", "prominent": true, "tint": "#ff0000", "disabled": true],
+      ["id": "nothing"],
+      "junk"
+    ])
+    #expect(items.map(\.id) == ["share", "flexibleSpace", "more", "edit"])
+    #expect(items.map(\.kind) == [.button, .flexibleSpace, .menu, .button])
+    let edit = try #require(items.last)
+    #expect(edit.prominent && edit.disabled && edit.tint != nil)
+    #expect(items[1].isSpace && !items[0].isSpace)
+  }
+
+  @Test("Reads tabs, or the titles and symbols of the first version")
+  func readsTabs() {
+    let tabs = TabBarView.Tab.list(NativeComponentProps([
+      "tabs": .array([
+        .object(["id": .string("inbox"), "title": .string("Inbox"), "systemImage": .string("tray"), "badge": .number(2)]),
+        .object(["title": .string("Files"), "badge": .string("")]),
+        .string("junk")
+      ])
+    ]))
+    #expect(tabs == [
+      .init(id: "inbox", title: "Inbox", symbol: "tray", badge: "2"),
+      .init(id: "Files", title: "Files", symbol: "circle", badge: nil)
+    ])
+    let legacy = TabBarView.Tab.list(NativeComponentProps([
+      "titles": .array([.string("A"), .string("B")]),
+      "symbols": .array([.string("a")])
+    ]))
+    #expect(legacy.map(\.symbol) == ["a", "circle"])
+  }
+
+  @Test("Reads sections of rows, nested children and swipe actions")
+  func readsLists() throws {
+    let props = NativeComponentProps([
+      "sections": .array([
+        .object([
+          "header": .string("Main"),
+          "rows": .array([
+            .object([
+              "id": .string("wifi"),
+              "title": .string("Wi-Fi"),
+              "iconTint": .string("#0a84ff"),
+              "badge": .number(3),
+              "trailingActions": .array([.object(["id": .string("delete"), "title": .string("Delete"), "role": .string("destructive")])]),
+              "children": .array([.object(["title": .string("Child")])])
+            ]),
+            .string("junk")
+          ])
+        ])
+      ])
+    ])
+    let sections = ListSection.list(props)
+    #expect(sections.map(\.id) == ["0"])
+    let row = try #require(sections.first?.rows.first)
+    #expect(row.badge == "3" && row.iconTint != nil)
+    #expect(row.trailing.map(\.role) == ["destructive"])
+    #expect(row.children.map(\.id) == ["Child"])
+    let flat = ListSection.list(NativeComponentProps(["rows": .array([.object(["title": .string("A")])])]))
+    #expect(flat.first?.rows.map(\.title) == ["A"])
+  }
+
+  @Test("Turns a page's haptic events into a Core Haptics pattern")
+  func buildsHapticPatterns() {
+    #expect(HapticPlayer.pattern(["events": []]) == nil)
+    let pattern = HapticPlayer.pattern([
+      "events": [
+        ["time": 0, "intensity": 2, "sharpness": -1],
+        ["time": 0.2, "kind": "continuous", "duration": 0.5, "attack": 0.1, "decay": 0.2],
+        "junk"
+      ]
+    ])
+    #expect(pattern != nil)
+    #expect(pattern?.duration ?? 0 >= 0.7)
+  }
+
+  @Test("Builds local notification requests from the page's fields")
+  func buildsNotifications() throws {
+    #expect(NotificationsView.request(["title": "No id"]) == nil)
+    let soon = try #require(NotificationsView.request([
+      "id": "a", "title": "Hi", "body": "There", "after": 5, "badge": 2, "threadId": "t", "data": ["x": 1]
+    ]))
+    #expect(soon.content.body == "There" && soon.content.badge == 2)
+    #expect((soon.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval == 5)
+    let repeating = try #require(NotificationsView.request(["id": "b", "title": "B", "repeats": true, "sound": false]))
+    #expect((repeating.trigger as? UNTimeIntervalNotificationTrigger)?.timeInterval == 60)
+    #expect(repeating.content.sound == nil)
+    let dated = try #require(NotificationsView.request(["id": "c", "title": "C", "date": "2030-01-02T09:30"]))
+    #expect((dated.trigger as? UNCalendarNotificationTrigger)?.dateComponents.hour == 9)
+  }
+
+  @Test("Reads sheet detents as medium, large or a height")
+  func readsDetents() {
+    #expect(PresentationView.Coordinator.detent("medium") != nil)
+    #expect(PresentationView.Coordinator.detent("large") != nil)
+    #expect(PresentationView.Coordinator.detent("240") != nil)
+    #expect(PresentationView.Coordinator.detent("tall") == nil)
+    #expect(PresentationView.Coordinator.identifier("240").rawValue == "240")
+  }
+
+  @Test("Draws glass for glass materials only")
+  func materialGlass() {
+    #expect(MaterialView.glass(NativeComponentProps(["material": .string("thin")])) == nil)
+    let glass = MaterialView.glass(NativeComponentProps(["material": .string("clearGlass"), "cornerRadius": .number(12)]))
+    #expect(glass?.style == .clear)
+    #expect(glass?.shape == .rounded(12))
+  }
+
+  @Test("Reads colours the page nested in an item as hex or rgb()")
+  func readsNestedColours() {
+    #expect(NativeComponentProps.color(css: "#ff000080") == Color(.sRGB, red: 1, green: 0, blue: 0, opacity: 128 / 255))
+    #expect(NativeComponentProps.color(css: "#0f0") == Color(.sRGB, red: 0, green: 1, blue: 0, opacity: 1))
+    #expect(NativeComponentProps.color(css: "#12345") == nil)
+    #expect(NativeComponentProps.color(css: "rgb(0, 0, 255)") == Color(.sRGB, red: 0, green: 0, blue: 1, opacity: 1))
+  }
+}

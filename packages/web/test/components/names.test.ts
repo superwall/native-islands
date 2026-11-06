@@ -28,7 +28,7 @@ const webNames = () =>
 
 describe("component names", () => {
   it("match the Swift library one for one", () => {
-    expect(swiftNames()).toHaveLength(23);
+    expect(swiftNames()).toHaveLength(36);
     expect(webNames()).toEqual(swiftNames());
   });
 });

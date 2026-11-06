@@ -68,6 +68,8 @@ describe("the app's screens", () => {
       ["Controls", ["buttons", "menus", "toggles", "segmented", "sliders", "steppers"]],
       ["Pickers & Input", ["pickers", "dates", "text-fields"]],
       ["Indicators", ["gauges", "symbols", "charts"]],
+      ["Presentations", ["sheets", "popovers", "alerts"]],
+      ["Layout", ["lists", "list-editing", "outlines", "bars", "app-chrome"]],
     ]);
   });
 
@@ -81,6 +83,7 @@ describe("the app's screens", () => {
       ["Location", ["maps"]],
       ["Media", ["video", "camera", "photos"]],
       ["System", ["permissions", "haptics", "tips", "share"]],
+      ["Primitives", ["haptic-patterns", "notifications", "context-menus", "materials"]],
     ]);
   });
 
@@ -100,7 +103,7 @@ describe("searchScreens", () => {
 
   it("finds every demo, and no tab root or settings page, for an empty query", () => {
     const all = ids("  ");
-    expect(all).toHaveLength(20);
+    expect(all).toHaveLength(32);
     expect(all).not.toContain("components");
     expect(all).not.toContain("search");
     expect(all).not.toContain("accent");
@@ -110,7 +113,7 @@ describe("searchScreens", () => {
     expect(ids("vid")).toEqual(["video"]);
     expect(ids("picture in")).toEqual(["video"]);
     expect(ids("pickers")).toEqual(["pickers", "dates", "text-fields"]);
-    expect(ids("glass")).toEqual(["buttons"]);
+    expect(ids("glass")).toEqual(["buttons", "materials"]);
     expect(ids("ideo")).toEqual([]);
   });
 

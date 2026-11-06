@@ -134,31 +134,51 @@ Swift component libraries, under the same name and props. The app registers
 `NativeIslandsComponents` for most of them, and `NativeIslandsMaps` or
 `NativeIslandsCharts` for the map and the chart:
 
-| Component          | Native name        | Main props                                                |
-| ------------------ | ------------------ | --------------------------------------------------------- |
-| `GlassButton`      | `glassButton`      | `title`, `systemImage`, `icon`, `prominence`, `onPress`   |
-| `CloseButton`      | `closeButton`      | `onPress`                                                 |
-| `Menu`             | `menu`             | `title`, `items`, `onSelect`                              |
-| `Toggle`           | `toggle`           | `isOn`, `onChange`, `label`                               |
-| `SegmentedControl` | `segmentedControl` | `segments`, `selectedIndex`, `onChange`, `label`          |
-| `Slider`           | `slider`           | `value`, `minimum`, `maximum`, `step`, `onChange`         |
-| `Stepper`          | `stepper`          | `value`, `minimum`, `maximum`, `step`, `onChange`         |
-| `Picker`           | `picker`           | `options`, `selectedIndex`, `style`, `onChange`           |
-| `DatePicker`       | `datePicker`       | `date` (`yyyy-MM-ddTHH:mm`), `components`, `onChange`     |
-| `ColorPicker`      | `colorPicker`      | `color`, `onChange`                                       |
-| `TextField`        | `textField`        | `text`, `placeholder`, `onChange`, `onSubmit`, `handle`   |
-| `SystemSymbol`     | `symbol`           | `name`; children are the web drawing                      |
-| `SymbolEffect`     | `symbolEffect`     | `name`, `effect`; children are the web drawing            |
-| `Gauge`            | `gauge`            | `value`, `style`, `valueLabel`                            |
-| `Chart`            | `chart`            | `series`, `kind`, `xAxis`, `yAxis`, `stacked`, `onSelect` |
-| `Tip`              | `tip`              | `id`, `title`, `message`, `actions`, `onAction`, `handle` |
-| `Video`            | `video`            | `url`, `webUrl`, `onStatus`, `handle`                     |
-| `PhotoPicker`      | `photoPicker`      | `title`, `limit`, `onPick`                                |
-| `HapticButton`     | `hapticButton`     | `title`, `feedback`, `onPress`                            |
-| `ShareButton`      | `shareButton`      | `title`, `text`, `url`, `onComplete`                      |
-| `MapView`          | `map`              | `places`, `style`, `selectedId`, `onSelect`, `pinIcon`    |
-| `Camera`           | `camera`           | `position`, `running`, `onStatus`, `handle`               |
-| `Permission`       | `permission`       | `kind`, `label`, `onStatus`                               |
+| Component            | Native name        | Main props                                                    |
+| -------------------- | ------------------ | ------------------------------------------------------------- |
+| `GlassButton`        | `glassButton`      | `title`, `systemImage`, `icon`, `prominence`, `onPress`       |
+| `CloseButton`        | `closeButton`      | `onPress`                                                     |
+| `Menu`               | `menu`             | `title`, `items`, `onSelect`                                  |
+| `Toggle`             | `toggle`           | `isOn`, `onChange`, `label`                                   |
+| `SegmentedControl`   | `segmentedControl` | `segments`, `selectedIndex`, `onChange`, `label`              |
+| `Slider`             | `slider`           | `value`, `minimum`, `maximum`, `step`, `onChange`             |
+| `Stepper`            | `stepper`          | `value`, `minimum`, `maximum`, `step`, `onChange`             |
+| `Picker`             | `picker`           | `options`, `selectedIndex`, `style`, `onChange`               |
+| `DatePicker`         | `datePicker`       | `date` (`yyyy-MM-ddTHH:mm`), `components`, `onChange`         |
+| `ColorPicker`        | `colorPicker`      | `color`, `onChange`                                           |
+| `TextField`          | `textField`        | `text`, `placeholder`, `onChange`, `onSubmit`, `handle`       |
+| `SystemSymbol`       | `symbol`           | `name`; children are the web drawing                          |
+| `SymbolEffect`       | `symbolEffect`     | `name`, `effect`; children are the web drawing                |
+| `Gauge`              | `gauge`            | `value`, `style`, `valueLabel`                                |
+| `Chart`              | `chart`            | `series`, `kind`, `xAxis`, `yAxis`, `stacked`, `onSelect`     |
+| `Tip`                | `tip`              | `id`, `title`, `message`, `actions`, `onAction`, `handle`     |
+| `Video`              | `video`            | `url`, `webUrl`, `onStatus`, `handle`                         |
+| `PhotoPicker`        | `photoPicker`      | `title`, `limit`, `onPick`                                    |
+| `HapticButton`       | `hapticButton`     | `title`, `feedback`, `onPress`                                |
+| `ShareButton`        | `shareButton`      | `title`, `text`, `url`, `onComplete`                          |
+| `MapView`            | `map`              | `places`, `style`, `selectedId`, `onSelect`, `pinIcon`        |
+| `Camera`             | `camera`           | `position`, `running`, `onStatus`, `handle`                   |
+| `Permission`         | `permission`       | `kind`, `label`, `onStatus`                                   |
+| `Sheet`              | `presentation`     | `open`, `url`, `detents`, `onOpenChange`, `onDismiss`         |
+| `FullScreenCover`    | `presentation`     | `open`, `url`, `onOpenChange`, `onDismiss`                    |
+| `Popover`            | `presentation`     | `open`, `url`, `width`, `height`; children are the anchor     |
+| `Inspector`          | `presentation`     | `open`, `url`, `onOpenChange`                                 |
+| `Alert`              | `alert`            | `open`, `title`, `message`, `buttons`, `textFields`           |
+| `ConfirmationDialog` | `alert`            | `open`, `title`, `buttons`; children are the anchor           |
+| `TabView`            | `tabBar` and more  | `tabs` with `content`, `selectedId`, `search`, `accessory`    |
+| `TabBar`             | `tabBar`           | `tabs`, `selectedId`, `onSelect`                              |
+| `TabAccessory`       | `tabAccessory`     | `title`, `subtitle`, `systemImage`, `actions`, `onPress`      |
+| `SearchTab`          | `searchTab`        | `selected`, `onPress`                                         |
+| `SearchField`        | `searchField`      | `text`, `onChange`, `onSubmit`, `handle`                      |
+| `NavigationStack`    | `navigationBar`    | `path`, `onPathChange`, `screens`                             |
+| `NavigationBar`      | `navigationBar`    | `title`, `showsBack`, `leading`, `trailing`, `onBack`         |
+| `Toolbar`            | `toolbar`          | `items`, `onSelect`                                           |
+| `List`               | `list`             | `sections`, `selectionMode`, `editing`, `onPress`, `onAction` |
+| `Haptics`            | `haptics`          | `handle` with `play(pattern)`, `impact`; or `useHaptics()`    |
+| `Notifications`      | `notifications`    | `handle` with `schedule`, `cancel`; or `useNotifications()`   |
+| `ContextMenu`        | `interaction`      | `items`, `onSelect`; children stay web                        |
+| `LongPressGesture`   | `interaction`      | `minimumDuration`, `onLongPress`; children stay web           |
+| `MaterialBackground` | `material`         | `material`, `cornerRadius`, `title`, `subtitle`               |
 
 ```tsx
 import { Slider } from "native-islands/components";
@@ -175,8 +195,28 @@ on a `date` axis an ISO 8601 date such as `2026-11-04`. `yAxis` takes a
 on release. Series colours are hex or `rgb()`; without one, a series takes the
 tint, then the `--ni-chart-1` to `--ni-chart-5` palette.
 
-`MapView`, `Video` and `Camera` fill the box their parent gives them, so set
-the parent's size, such as `aspect-ratio: 16 / 9`.
+`MapView`, `Video`, `Camera` and `MaterialBackground` fill the box their
+parent gives them, so set the parent's size, such as `aspect-ratio: 16 / 9`.
+
+A presentation's `url` is read relative to the page. The page it shows uses
+`usePresentedPage()` to know how it is presented, close itself with
+`dismiss(result)`, and `send(data)` up to the presenting page's `onMessage`;
+a `handle` on the presentation posts data down. In a browser, presentations and
+alerts are a `<dialog>`, with the page in an `<iframe>`.
+
+Bar items are buttons, menus (`kind: "menu"` with `items`) or `spacer` and
+`flexibleSpace` between groups. A `List` takes `sections` of rows; it reports
+the height its native rows take and its web version takes that height, so the
+page lays out around it on every iOS. After a drag or a delete in edit mode,
+`onSectionsChange` hands over the new sections to keep. Colours nested in
+items, such as a row's `iconTint`, are hex or `rgb()`.
+
+`ContextMenu` and `LongPressGesture` lay a clear native view over their
+children, which stay the page's own elements; taps on them arrive as
+`onPress`. Islands sit above the page, so nothing on the page can draw on a
+`MaterialBackground`: give it a `title`, `subtitle` and `systemImage` instead.
+`Haptics` and `Notifications` draw nothing; render them once and keep their
+handle.
 
 Each draws a default web version sized like the native control. Pass children
 to draw your own instead; they then set the island's size. The web versions
