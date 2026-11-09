@@ -181,6 +181,7 @@ struct VideoView: View {
           .symbolReplaceTransition()
           .frame(width: 22)
       }
+      .accessibilityLabel(playback.playing ? "Pause" : "Play")
       Text(Self.clock(playback.time))
         .monospacedDigit()
       Slider(
@@ -189,6 +190,8 @@ struct VideoView: View {
       ) { editing in
         playback.scrubbing = editing
       }
+      .accessibilityLabel("Position")
+      .accessibilityValue("\(Self.clock(playback.time)) of \(Self.clock(playback.duration))")
       Text(Self.clock(playback.duration))
         .monospacedDigit()
       if playback.canPictureInPicture {
@@ -197,6 +200,7 @@ struct VideoView: View {
         } label: {
           Image(systemName: playback.pictureInPicture ? "pip.exit" : "pip.enter")
         }
+        .accessibilityLabel(playback.pictureInPicture ? "Exit Picture in Picture" : "Picture in Picture")
       }
     }
     .font(.footnote.weight(.semibold))

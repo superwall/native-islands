@@ -184,7 +184,7 @@ struct ComponentAccessibilityTests {
     NativeIslandsCharts.register(in: registry)
     let containers: Set = [
       "segmentedControl", "picker", "datePicker", "tip", "tabBar", "tabAccessory", "searchField",
-      "navigationBar", "toolbar", "list", "presentation", "alert", "haptics", "notifications", "map", "chart"
+      "navigationBar", "toolbar", "list", "video", "presentation", "alert", "haptics", "notifications", "map", "chart"
     ]
     for (name, entry) in registry.entries {
       #expect(entry.accessibilityChildren == (containers.contains(name) ? .contain : .combine), "\(name)")
@@ -231,6 +231,20 @@ struct ComponentAccessibilityTests {
     let island = await spoken("toolbar", props: ["items": Self.objects(items)], accessibility: NativeAccessibility(label: "Edit"))
     #expect(island.elements.map(\.label) == ["Share", "Edit"], "\(island.elements)")
     #expect(island.elements.allSatisfy { $0.traits.contains(.button) })
+  }
+
+  @Test("Reads the video's play button and position slider on their own")
+  func video() async {
+    let island = await spoken(
+      "video",
+      accessibility: NativeAccessibility(label: "Trailer"),
+      size: CGSize(width: 360, height: 200)
+    ) { $0.view(UISlider.self) != nil && $0.elements.contains { $0.label == "Play" } }
+    expectGroup(island, named: "Trailer")
+    #expect(island.elements.first { $0.label == "Play" }?.traits.contains(.button) == true, "\(island.elements)")
+    let position = island.view(UISlider.self)
+    #expect(position?.accessibilityLabel == "Position")
+    #expect(position?.accessibilityValue == "0:00 of 0:00")
   }
 
   @Test("Reads an icon-only bar item by its label, or as SwiftUI names its symbol")

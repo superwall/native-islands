@@ -88,7 +88,7 @@ public enum NativeIslandsComponents {
     var accessibilityChildren: NativeAccessibilityChildren {
       switch self {
       case .segmentedControl, .picker, .datePicker, .tip: .contain
-      case .tabBar, .tabAccessory, .searchField, .navigationBar, .toolbar, .list: .contain
+      case .tabBar, .tabAccessory, .searchField, .navigationBar, .toolbar, .list, .video: .contain
       case .presentation, .alert, .haptics, .notifications: .contain
       default:
         .combine
