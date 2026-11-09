@@ -160,3 +160,15 @@ web versions. Run the app on a simulator or an iPhone and check each island
 is native, not its web version, before calling the work done. A synthetic
 simulator tap never reaches WebKit, so drive the web view with physical taps
 (XCUITest, `axe tap --tap-style physical`) or by hand.
+
+## Where to go next
+
+Read only the file the job needs.
+
+| Job                                                                           | Read                                                                                                              |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| The provider, defining a component, events, state, requests, commands, sizing | [Page side](references/page.md)                                                                                   |
+| Why an island stays web, or parking screens that are not showing yet          | [When an island stays web](references/page.md#when-an-island-stays-web)                                           |
+| A page without React, or testing in a browser with the simulator              | [Without React](references/page.md#without-react)                                                                 |
+| Adding the Swift package, registering, `IslandWebView`, your own web view     | [iOS host](references/host.md)                                                                                    |
+| The page shows late or flashes, Info.plist keys, debugging flags in the app   | [Revealing the page](references/host.md#revealing-the-page), [Debugging](references/host.md#debugging-in-the-app) |
