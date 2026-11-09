@@ -9,6 +9,7 @@ public final class NativeComponentRegistry {
   struct Entry {
     let version: Int
     let waitsUntilReady: Bool
+    let accessibilityChildren: NativeAccessibilityChildren
     let glass: (@MainActor (NativeComponentProps) -> NativeGlass?)?
     let make: @MainActor (NativeComponentContext) -> AnyView
   }
@@ -21,6 +22,7 @@ public final class NativeComponentRegistry {
     _ name: String,
     version: Int = 1,
     waitsUntilReady: Bool = false,
+    accessibilityChildren: NativeAccessibilityChildren = .combine,
     glass: (@MainActor (NativeComponentProps) -> NativeGlass?)? = nil,
     @ViewBuilder content: @escaping @MainActor (NativeComponentContext) -> Content
   ) {
@@ -42,6 +44,7 @@ public final class NativeComponentRegistry {
     entries[name] = Entry(
       version: version,
       waitsUntilReady: waitsUntilReady,
+      accessibilityChildren: accessibilityChildren,
       glass: glass
     ) { context in
       AnyView(content(context))
