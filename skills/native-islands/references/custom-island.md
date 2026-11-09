@@ -195,7 +195,11 @@ Task {
 ```
 
 Set the command handler once, in `onAppear`, and throw for a name you do not
-know; the page's promise then rejects with `reason: "rejected"`:
+know; the page's promise then rejects with `reason: "rejected"`. The handler
+runs on the main actor, so it can set the view's `@State` (here `focused`
+and `flashing`) directly. The page
+waits for its answer (5 seconds by default), so for an effect that lasts,
+such as a flash, start it and return at once rather than awaiting it:
 
 ```swift
 .onAppear {
@@ -203,6 +207,13 @@ know; the page's promise then rejects with `reason: "rejected"`:
     switch name {
     case "focus":
       focused = true
+      return nil
+    case "flash":
+      flashing = true
+      Task {
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        flashing = false
+      }
       return nil
     default:
       throw NativeComponentError.refused("Unknown command \(name).")
@@ -271,6 +282,10 @@ inside the SwiftUI view are merged away. So:
   web version.
 - An island whose controls must each be reached on their own (a toolbar of
   buttons) is better split into one island per control.
+- `traits` takes only `button`, `link`, `image` and `header`; others are
+  ignored. There is no adjustable trait, so VoiceOver cannot step a control
+  of your own that holds − and + buttons: say so in its `hint`, and prefer a
+  ready-made `Stepper` or `Slider` when one fits.
 
 ## The view's lifetime
 

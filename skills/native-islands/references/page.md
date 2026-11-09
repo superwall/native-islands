@@ -290,36 +290,94 @@ while it is not showing.
 
 ## Without React
 
+`connectNativeIslands()` gives the controller the React bindings sit on.
+Without them the page does their work itself: it measures each element,
+mounts it, moves it with `islands.update(id, { frame })` when the layout
+changes, hides the web version while the native one shows, and passes state
+both ways. Nothing follows scrolling areas, transforms or transitions for it,
+so use the React bindings for anything beyond a few fixed islands.
+
+A ready-made island takes the props of its spec (the `Native…` names in
+[the specs underneath](components.md#the-specs-underneath)), not the React
+component's: the native `toggle` takes `isOn`, `tint?` and `disabled?`, sends
+`isOn` as state and is sized by the native switch (`sizing: "native"`). Its
+`label` is the island's `accessibility.label`. Every ready-made island is
+version 1. `islands.supports()` is right as soon as `connectNativeIslands()`
+returns: the app puts what it offers on the page before any script runs.
+
+| Listener                            | When                                                    | What the page does                                      |
+| ----------------------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
+| `onReady()`                         | The native view is drawn                                | Hide the web version with `opacity: 0`, never `display` |
+| `onPending()`, `onStall()`          | It is being drawn again, or the app is slow to answer   | Show the web version                                    |
+| `onFallback(reason, message?)`      | The island is web for good                              | Show the web version; the island is gone                |
+| `onState(state, changed, revision)` | The user changed state natively                         | Store it, like a web control's change                   |
+| `onEvent(name, payload)`            | An event, such as `press`                               | Act on it                                               |
+| `onSize({ width, height })`         | `sizing: "native"` or `"nativeHeight"`: the native size | Size the web element to it, so the page lays out        |
+| `onRequest(name, payload)`          | A request; return the answer or a promise of it         | Answer it                                               |
+
 ```ts
 import { connectNativeIslands } from "native-islands";
 
-const { islands, disconnect } = connectNativeIslands();
-const button = document.querySelector<HTMLElement>("#buy");
-if (button && islands.supports("glassButton", 1) === "supported") {
-  const rect = button.getBoundingClientRect();
-  islands.mount(
-    "buy",
-    {
-      component: "glassButton",
-      version: 1,
-      props: { title: "Buy" },
-      frame: { x: rect.x + scrollX, y: rect.y + scrollY, width: rect.width, height: rect.height },
-      anchor: { type: "page" },
-      visible: true,
-      order: 0,
-      sizing: "web",
-    },
-    { onEvent: (name) => name === "press" && buy() },
-  );
+const { islands } = connectNativeIslands();
+let wifiOn = true;
+
+const wifi = document.querySelector<HTMLInputElement>("#wifi");
+const frameOf = (element: HTMLElement) => {
+  const rect = element.getBoundingClientRect();
+  return { x: rect.x + scrollX, y: rect.y + scrollY, width: rect.width, height: rect.height };
+};
+
+if (wifi) {
+  wifi.checked = wifiOn;
+  const setWifi = (next: boolean) => {
+    wifiOn = next;
+    wifi.checked = next;
+    islands.update("wifi", { props: { isOn: next } });
+  };
+  wifi.addEventListener("change", () => setWifi(wifi.checked));
+
+  if (islands.supports("toggle", 1) === "supported") {
+    islands.mount(
+      "wifi",
+      {
+        component: "toggle",
+        version: 1,
+        props: { isOn: wifiOn },
+        frame: frameOf(wifi),
+        anchor: { type: "page" },
+        visible: true,
+        order: 0,
+        sizing: "native",
+        accessibility: { label: "Wi-Fi" },
+      },
+      {
+        onReady: () => (wifi.style.opacity = "0"),
+        onPending: () => (wifi.style.opacity = ""),
+        onStall: () => (wifi.style.opacity = ""),
+        onFallback: () => (wifi.style.opacity = ""),
+        onState: (state) => {
+          if (typeof state.isOn === "boolean") setWifi(state.isOn);
+        },
+        onSize: ({ width, height }) => {
+          wifi.style.width = `${width}px`;
+          wifi.style.height = `${height}px`;
+          islands.update("wifi", { frame: frameOf(wifi) });
+        },
+      },
+    );
+  }
+  addEventListener("resize", () => islands.update("wifi", { frame: frameOf(wifi) }));
 }
+
 islands.announceReady();
 ```
 
-Without React the page measures, moves (`islands.update(id, { frame })`) and
-hides its own web versions; nothing follows scrolling areas or transitions for
-it. Use the React bindings for anything beyond a few fixed islands. Always
-call `islands.announceReady()` once the first islands are mounted, or the app
-reveals the page only after its timeout.
+`islands.update` for an id that is not mounted does nothing, so the web path
+needs no checks. The frame is in page coordinates with `anchor: { type:
+"page" }`, so the page's own scrolling needs no updates; a scrolling area
+inside the page does. Always call `islands.announceReady()` once the first
+islands are mounted, native or not, or the app reveals the page only after
+its timeout.
 
 ## In a browser: the simulator
 

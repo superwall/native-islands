@@ -63,7 +63,7 @@ native view in the wrong place.
 | A web view of your own that does not forward `hitTest` and `didMoveToWindow` | Forward both, as `IslandWebView` does                                                                   |
 | A web view straight in a window                                              | Inside a view controller's view, so sheets and menus can present                                        |
 | Creating the web view in a SwiftUI `body` or `updateUIView`                  | Create it once in `makeUIView` or a view controller                                                     |
-| A clear or default background on the web view                                | The page's background colour, in light and dark: the cover uses it                                      |
+| A cover colour that is not the page's                                        | Give the web view, or the view behind a clear one, the page's background in light and dark              |
 | `reveal: .immediately` for pages that use the library                        | `.whenIslandsReady(timeout:)`, the default, so web versions never show turning native                   |
 | Pages loaded from `file://`                                                  | A `WKURLSchemeHandler` on a scheme of your own, or `https`, so sheets can load pages of the same origin |
 | A sheet whose `url` is on another origin                                     | The same origin as the presenting page; others are refused                                              |

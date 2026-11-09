@@ -106,7 +106,10 @@ see [registering](host.md#register-components).
 | `Menu`        | `menu`        | `items`, `title?`, `systemImage?`, `icon?`, `prominence?`, `tint?`, `glassGroup?`, `label?`     | `onSelect(id)` |
 
 A `GlassButton` with a `title` is a capsule; with only `systemImage` it is a
-circle. `prominence="prominent"` fills it with `tint`. A `MenuItem` is
+circle; a `title` with a `systemImage` shows both. `prominence="prominent"`
+fills it with `tint`; without it the button is clear glass with a label in
+the primary colour, and `tint` changes nothing, so a red Delete is
+`prominence="prominent" tint="#ff3b30"`. A `MenuItem` is
 `{ id, title, systemImage?, destructive?, checked?, children? }`; an item with
 `children` opens a submenu, and `checked` draws a checkmark.
 
@@ -251,7 +254,17 @@ iOS 15 and 16 show the still symbol. `Gauge`'s `style` is `circular`,
 (`url`, read relative to this one and of the same origin) in a native sheet,
 cover, popover or inspector with its own web view and its own islands. They
 are one island, `presentation`, in different styles. In a browser, or without
-the island, the web version shows the page in a frame.
+the island, the web version is a modal `<dialog>` showing the page in an
+`<iframe>`, rendered only while `open` and closed by Escape or its Done
+button. A `Sheet`, `FullScreenCover` or `Inspector` takes no children: put it
+anywhere in the page.
+
+`url` is read like a link on the presenting page: from
+`https://example.com/settings`, `./help` and `help` both mean
+`https://example.com/help`. Give a path from the root (`/settings/help`)
+unless the page sits in a folder. Each presented page is a page of its own
+that the server answers at that URL, such as a second HTML entry in the
+bundler or a route of the app's router.
 
 | Prop                                             | Applies to                       | Meaning                                                                |
 | ------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------- |
@@ -268,7 +281,8 @@ the island, the web version shows the page in a frame.
 | `grabber?`, `undimmed?`, `cornerRadius?`         | `Sheet`                          | `undimmed` leaves the page behind a medium sheet usable                |
 | `width?`, `height?`, `compact?`                  | `Popover`                        | Popover size; `compact="sheet"` makes it a sheet on iPhone             |
 
-`usePresentation()` (also exported as `useSheet()`) gives `open`, `present()`,
+`usePresentation()` (also exported as `useSheet()`), from
+`native-islands/components` like everything here, gives `open`, `present()`,
 `dismiss()` and `props` to spread. A `Popover` and a `ConfirmationDialog`
 point at their `children`, which stay this page's own element.
 
@@ -290,8 +304,10 @@ const sheet = useSheet();
 </>;
 ```
 
-The presented page is a page of its own: it renders its own
-`NativeIslandsProvider`, and talks back with `usePresentedPage()`:
+The presented page renders its own `NativeIslandsProvider`, and talks back
+with `usePresentedPage()` from `native-islands/components`. `dismiss(result)`
+closes it and hands `result` (default `null`) to the presenting page's
+`onDismiss`:
 
 ```tsx
 const { presented, dismiss, send, detent, setDetent } = usePresentedPage((data) =>
@@ -311,7 +327,11 @@ layout then. Values that cross (`result`, `send`, `post`) are `NativeJSON`.
 `destructive`. `Alert` also takes `textFields`
 (`{ id, placeholder?, text?, secure? }`), whose values come back in `values`
 by id. A `ConfirmationDialog` is an action sheet on iPhone and a popover at
-its children on iPad.
+its children on iPad. An `Alert` takes no children; its web version is a
+modal `<dialog>` of the same buttons, rendered only while `open`. A button
+closes the alert itself: `onOpenChange(false)` fires and then
+`onAction(id, values)`, so never close it again in `onAction`. Escape, or a
+swipe on the native dialog, closes it through `onOpenChange(false)` alone.
 
 ```tsx
 <Alert
@@ -337,7 +357,12 @@ Prefer the two containers, which handle parking for you:
   `onSelect(id)`, `search?: { content }` for the iOS 26 Search tab (selected
   as `"search"`), `accessory?` (such as a `TabAccessory`), `tint?`, `icon?`.
   Every tab stays mounted and parked below, so switching back is instant and
-  already native.
+  already native. A tab's `content` is a React node (`content: <Cart />`),
+  not a function. The tab view fills its parent's height (`height: 100%`, so
+  give the parent one, such as `100dvh`) and each tab scrolls on its own. The
+  bar floats over the content, 62 px tall and `max(16px, safe area)` above
+  the bottom, so pad each tab's content to clear it, such as
+  `padding-bottom: calc(94px + env(safe-area-inset-bottom))`.
 - **`NavigationStack`**: `path`, `onPathChange`, `screens` (a record of
   `NavigationScreen`: `{ title, largeTitle?, leading?, trailing?, render }`),
   `onSelect?(id, screen)`, `tint?`, `icon?`. Pair it with
@@ -520,6 +545,14 @@ Each island above wraps a spec made with `defineNativeComponent`. Use a spec
 directly only to give an island an entirely different web version and props
 API; it takes the raw props, `on<Event>` and `on<Key>Change` callbacks, and
 your children as the web version.
+
+A spec's props are its island's props above, less the callbacks and with
+the defaults filled in (a spec's `minimum` is required). `label` is not one of
+them, except on `NativeGauge`, which draws it: the island sends it as
+`accessibility.label` instead. A spec is sized `"web"` (it fills its box)
+except `NativeToggle`, `NativeMenuPicker` and `NativePermission` (`"native"`)
+and `NativeTip` (`"nativeHeight"`). A page without React mounts these names
+with these props; see [without React](page.md#without-react).
 
 | Spec                                                                                          | Native name                                                     |
 | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |

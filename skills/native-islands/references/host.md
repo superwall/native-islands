@@ -73,6 +73,23 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
 In a SwiftUI `App`, register in its `init()`.
 
+The registry and every `register` are `@MainActor`. An app delegate, a
+SwiftUI `App` and a view controller already run on the main actor; a helper
+of your own that registers needs `@MainActor` too, or Swift 6 refuses to
+build it:
+
+```swift
+@MainActor
+enum AppIslands {
+  static func register() {
+    NativeIslandsComponents.register()
+    NativeComponentRegistry.shared.register("rating", version: 1) { component in
+      RatingView(component: component)
+    }
+  }
+}
+```
+
 - `NativeIslandsComponents.register(only: [.glassButton, .toggle])` registers
   some. The names are the cases of `NativeIslandsComponents.Component`, the
   same names the page uses.
@@ -124,6 +141,7 @@ final class PageViewController: UIViewController, WKNavigationDelegate {
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    // The page's background colour, in light and dark: the cover shows it.
     view.backgroundColor = .systemBackground
     let configuration = WKWebViewConfiguration()
     configuration.allowsInlineMediaPlayback = true
