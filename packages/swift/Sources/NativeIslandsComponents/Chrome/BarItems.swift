@@ -16,6 +16,7 @@ struct BarItem: Identifiable {
   let kind: Kind
   let title: String?
   let systemImage: String?
+  let accessibilityLabel: String?
   let prominent: Bool
   let tint: Color?
   let disabled: Bool
@@ -28,6 +29,7 @@ struct BarItem: Identifiable {
     self.kind = kind ?? (items.isEmpty ? .button : .menu)
     title = value["title"] as? String
     systemImage = value["systemImage"] as? String
+    accessibilityLabel = [value["accessibilityLabel"] as? String, title].lazy.compactMap { $0 }.first { !$0.isEmpty }
     guard self.kind == .spacer || self.kind == .flexibleSpace || title != nil || systemImage != nil else { return nil }
     id = value["id"] as? String ?? title ?? systemImage ?? self.kind.rawValue
     prominent = value["prominent"] as? Bool ?? false
@@ -146,7 +148,21 @@ struct BarItemButton: View {
     .buttonStyle(.plain)
     .disabled(item.disabled)
     .opacity(item.disabled ? 0.4 : 1)
-    .accessibilityLabel(item.title ?? item.systemImage ?? item.id)
+    .modifier(SpokenLabel(label: item.accessibilityLabel))
+  }
+
+  // Without a label of its own, an icon reads as SwiftUI names its symbol,
+  // such as Share for `square.and.arrow.up`, never as the symbol's name.
+  private struct SpokenLabel: ViewModifier {
+    let label: String?
+
+    func body(content: Content) -> some View {
+      if let label {
+        content.accessibilityLabel(Text(label))
+      } else {
+        content
+      }
+    }
   }
 
   private var label: some View {

@@ -233,6 +233,29 @@ struct ComponentAccessibilityTests {
     #expect(island.elements.allSatisfy { $0.traits.contains(.button) })
   }
 
+  @Test("Reads an icon-only bar item by its label, or as SwiftUI names its symbol")
+  func iconOnlyItems() async {
+    let items: [[String: NativeValue]] = [
+      ["id": .string("share"), "systemImage": .string("square.and.arrow.up")],
+      ["id": .string("like"), "systemImage": .string("heart"), "accessibilityLabel": .string("Favourite")],
+      [
+        "id": .string("more"),
+        "kind": .string("menu"),
+        "title": .string(""),
+        "systemImage": .string("ellipsis"),
+        "items": Self.objects([["id": .string("rename"), "title": .string("Rename")]])
+      ]
+    ]
+    let island = await spoken("toolbar", props: ["items": Self.objects(items)]) { $0.elements.count == 3 }
+    let labels = island.elements.map(\.label)
+    #expect(labels.count == 3, "\(island.elements)")
+    guard labels.count == 3 else { return }
+    #expect(labels[1] == "Favourite")
+    for (label, symbol) in zip(labels, ["square.and.arrow.up", "heart", "ellipsis"]) {
+      #expect(!label.isEmpty && label != symbol, "\(label)")
+    }
+  }
+
   @Test("Reads the back button, the title and the trailing button of a navigation bar")
   func navigationBar() async {
     let island = await spoken(

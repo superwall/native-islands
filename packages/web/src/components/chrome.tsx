@@ -49,10 +49,12 @@ const isButton = (item: BarItem): item is Button =>
 /** A web menu of `items`, opened by its label. */
 const WebItemMenu = ({
   label,
+  name,
   items,
   onSelect,
 }: {
   label: React.ReactNode;
+  name: string | undefined;
   items: readonly MenuItem[];
   onSelect: (id: string) => void;
 }) => {
@@ -64,6 +66,7 @@ const WebItemMenu = ({
       <button
         type="button"
         className="ni-bar-button"
+        aria-label={name}
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
@@ -111,6 +114,7 @@ export const WebBarItems = ({
         );
       }
       const symbol = symbolOf(item.systemImage, icon);
+      const name = item.accessibilityLabel || item.title || item.systemImage;
       const label = (
         <>
           {symbol && <span className="ni-icon">{symbol}</span>}
@@ -125,12 +129,12 @@ export const WebBarItems = ({
           style={cssVariables({ "--ni-tint": item.tint })}
         >
           {item.kind === "menu" || item.items ? (
-            <WebItemMenu label={label} items={item.items ?? []} onSelect={onSelect} />
+            <WebItemMenu label={label} name={name} items={item.items ?? []} onSelect={onSelect} />
           ) : (
             <button
               type="button"
               className="ni-bar-button"
-              aria-label={item.title ?? item.systemImage}
+              aria-label={name}
               disabled={item.disabled}
               onClick={() => onSelect(item.id)}
             >
@@ -266,7 +270,6 @@ export const TabBar = ({
     tint={tint}
     glassGroup={glassGroup}
     onSelect={({ id }) => onSelect(id)}
-    accessibility={{ label: "Tab Bar" }}
     {...common}
   >
     {children ?? (

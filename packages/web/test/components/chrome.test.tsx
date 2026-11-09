@@ -77,6 +77,23 @@ describe("Toolbar", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
+  it("names an icon-only item by its accessibilityLabel on the web", () => {
+    renderWeb(
+      <Toolbar
+        items={[
+          { id: "like", systemImage: "heart", accessibilityLabel: "Favourite" },
+          { id: "more", systemImage: "ellipsis", accessibilityLabel: "More", items: [] },
+          { id: "edit", title: "Edit", accessibilityLabel: "" },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Favourite" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "More" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+  });
+
   it("falls back to its own glyphs, or the symbol's name, and takes its own web version", () => {
     renderWeb(
       <Toolbar
@@ -173,7 +190,7 @@ describe("TabBar", () => {
     expect(view.mount).toMatchObject({
       component: "tabBar",
       props: { tabs: TABS, selectedId: "files", selectedIndex: 1 },
-      accessibility: { label: "Tab Bar" },
+      accessibility: {},
     });
     view.event("select", { index: 0, id: "inbox" });
     expect(onSelect).toHaveBeenCalledWith("inbox");

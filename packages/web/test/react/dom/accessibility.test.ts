@@ -46,6 +46,29 @@ describe("accessibilityOf", () => {
     expect(accessibilityOf([])).toBeUndefined();
   });
 
+  it("never names a composite widget from its text, so its controls are not run together", () => {
+    expect(
+      accessibilityOf(
+        html(
+          `<div role="tablist"><button role="tab">Inbox</button><button role="tab">Files</button></div>`,
+        ),
+      ),
+    ).toBeUndefined();
+    expect(
+      accessibilityOf(
+        html(`<div role="toolbar"><button>Share</button><button>Edit</button></div>`),
+      ),
+    ).toBeUndefined();
+    expect(accessibilityOf(html(`<ul role="list"><li>Lena</li><li>Sam</li></ul>`))).toBeUndefined();
+    expect(
+      accessibilityOf(
+        html(`<div role="toolbar" aria-label="Formatting"><button>Bold</button></div>`),
+      ),
+    ).toEqual({
+      label: "Formatting",
+    });
+  });
+
   it("skips blank aria-labels", () => {
     expect(accessibilityOf(html(`<span aria-label="  " alt="">Text</span>`))).toEqual({
       label: "Text",
