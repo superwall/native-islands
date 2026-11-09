@@ -206,8 +206,11 @@ describe("SearchTab", () => {
     view.event("press");
     expect(onPress).toHaveBeenCalledTimes(1);
     view.unmount();
-    renderWeb(<SearchTab selected={false} icon={<i />} onPress={onPress} />);
-    fireEvent.click(screen.getByRole("tab", { name: "Search" }));
+    const web = renderWeb(<SearchTab selected={false} icon={<i />} onPress={onPress} />);
+    expect(screen.getByRole("button", { name: "Search" }).hasAttribute("aria-current")).toBe(false);
+    web.rerender(<SearchTab selected icon={<i />} onPress={onPress} />);
+    expect(screen.getByRole("button", { name: "Search", current: "page" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
     expect(onPress).toHaveBeenCalledTimes(2);
     const own = renderWeb(
       <SearchTab selected={false} onPress={onPress}>
@@ -342,7 +345,7 @@ describe("TabView", () => {
     expect(pages.map((section) => section.style.top)).toEqual(["200%", "400%", ""]);
     expect(pages.map((section) => section.hasAttribute("inert"))).toEqual([true, true, false]);
     fireEvent.click(screen.getByRole("tab", { name: "Files" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
     expect(onSelect.mock.calls).toEqual([["files"], ["search"]]);
     expect(screen.getByText("Accessory")).toBeTruthy();
     const plain = renderWeb(

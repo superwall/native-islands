@@ -245,7 +245,7 @@
   font: 500 13px / 18px var(--ni-font);
 }
 
-.ni-segmented button[aria-pressed="true"] {
+.ni-segmented button[aria-checked="true"] {
   background: var(--ni-cell);
   box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
   font-weight: 600;

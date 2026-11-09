@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as React from "react";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { List, deleteRows, moveRow, type ListSection } from "../../src/components";
 import { removeCapability, renderNative } from "../support/react";
 import { installComponents, mountComponent } from "./support";
@@ -120,6 +120,11 @@ describe("List", () => {
     );
     expect(screen.getByRole("heading", { name: "Main" })).toBeTruthy();
     expect(screen.getByText("The end")).toBeTruthy();
+    const main = screen.getByRole("list", { name: "Main" });
+    expect(within(main).getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getAllByRole("list")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Info", pressed: true })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Docs/, expanded: false })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Wi-Fi/ }));
     expect(onSelectedChange).toHaveBeenLastCalledWith(["info", "wifi"]);
     expect(onPress).toHaveBeenCalledWith("wifi");
