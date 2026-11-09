@@ -35,3 +35,21 @@ jobs:
       - run: bun run --cwd tests/pages build
       - run: cd examples/showcase && bun test --conditions source test
       - run: bun run --cwd examples/showcase build
+
+  # Xcode 27 accepts some type conversions that Xcode 26 rejects, so the package
+  # and its tests are built with the oldest and newest Xcode 26 as well. Intel
+  # runners start at once; building needs no simulator, so their speed is fine.
+  swift-xcode26:
+    runs-on: macos-26-intel
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode: ["26.0.1", "26.6"]
+    name: swift (Xcode ${{ matrix.xcode }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ matrix.xcode }}
+      - run: xcodebuild build-for-testing -scheme NativeIslands-Package -destination 'generic/platform=iOS Simulator' -quiet
