@@ -105,6 +105,8 @@ on your own phone.
   The host waits up to a second; if it never shows, the island stays web.
 - After a fast fling, a carousel nested in a list can be about 0.5 pt off
   until the next layout pass.
+- VoiceOver can't reach an island inside an inner scrolling area yet, only
+  ones in the page's own scroll or in fixed chrome.
 - iOS only for now. No Android host yet.
 
 Some of this has been done before: Cordova and Capacitor map plugins draw a
@@ -241,6 +243,18 @@ load and forward two calls to it, as `IslandWebView` does:
 override func didMoveToWindow() {
   super.didMoveToWindow()
   islands.webViewDidMoveToWindow()
+}
+```
+
+VoiceOver reads an island as one element, named by the label the page gives
+it (its text or `aria-label`), with the control's own value and traits. An
+island that holds several controls, such as a row of buttons, registers with
+`accessibilityChildren: .contain`, so VoiceOver reaches each control on its own
+and the page's label only names the group:
+
+```swift
+NativeComponentRegistry.shared.register("playerControls", accessibilityChildren: .contain) { component in
+  PlayerControls(component: component)
 }
 ```
 

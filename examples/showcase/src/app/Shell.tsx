@@ -126,6 +126,7 @@ const NavigationBar = ({
             kind: "menu",
             title: "",
             systemImage: "square.stack.3d.up.fill",
+            accessibilityLabel: "View Mode",
             items,
           },
         ]}
