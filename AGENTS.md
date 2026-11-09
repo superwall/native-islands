@@ -86,6 +86,9 @@ docs/                   compatibility.md, what each iOS was proven on;
                         them; host-features.md, the feature names, reuse
                         limits and test thresholds; assets/ the images
                         the README shows
+skills/native-islands/  the agent skill for people using the library:
+                        SKILL.md, references/ and workflows/; check.ts and
+                        skills.test.ts keep it in step with the code
 LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
@@ -121,6 +124,13 @@ and its `public static let name` read by that test. Shared Swift helpers use
 `package` access; every component podspec passes `-package-name NativeIslands`.
 App chrome (tab bar, navigation bar, search) stays in the showcase.
 
+`skills/native-islands/` teaches agents to use the library, so a change to
+what people use (a prop, an export, a Swift API, a behaviour the rules
+describe) updates the skill in the same change. `bun test skills` fails when a
+name it uses no longer exists or a ready-made island is missing from
+`references/components.md`, but only you can tell when its prose is wrong.
+Every example in it must obey every rule in it: agents copy examples.
+
 ## Commands
 
 Run only what your change touches; never a whole suite by hand.
@@ -140,6 +150,7 @@ Run only what your change touches; never a whole suite by hand.
 - UI tests on several simulators: `scripts/ui-tests.sh`, on every iOS major with `--runtimes 17.5,18.6,26.5,27.2`; record screenshots with `--record` only after a deliberate visual change (baselines are per iOS major)
 - Every installed iOS runtime: `scripts/compat-matrix.sh` (`--list` shows them); it runs `WebKitLayoutTests` on each and diffs WebKit's view trees with `scripts/webkit-tree-diff.ts`, tested by `bun test scripts`. What each iOS was proven on, and how versions differ, is in `docs/compatibility.md`
 - Performance: `performance/run.sh`; its comparison: `bun test performance`. Numbers for people come from a device, as `docs/performance.md` describes, never a simulator
+- Skill: `bun test skills`, `bunx oxlint --deny-warnings skills`, `bunx oxfmt --check skills`
 - On a simulator, drive the web view with real touches (`axe tap --tap-style physical`): a synthetic simulator tap never reaches WebKit.
 
 ## Conventions

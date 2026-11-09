@@ -146,6 +146,20 @@ pod 'NativeIslands'
 
 A pod of your own depends on it with `s.dependency 'NativeIslands'`.
 
+### With a coding agent
+
+The repository ships an [agent skill](https://agentskills.io) that teaches
+Claude Code, Codex, Cursor and other coding agents to use both sides
+correctly: the hard rules, every ready-made island, writing your own, and
+playbooks for integrating and debugging. Install it into your project with:
+
+```bash
+npx skills add superwall/native-islands
+```
+
+It lives in [`skills/native-islands/`](skills/native-islands/SKILL.md), so
+you can also read it as a guide.
+
 ### On the page
 
 ```tsx
