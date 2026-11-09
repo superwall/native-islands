@@ -9,6 +9,44 @@ import WebKit
 @MainActor
 @Suite
 struct AppComponentsTests {
+  @Test("Keeps the tap that launched the app for the first notifications island")
+  func keepsLaunchTap() {
+    let relay = NotificationRelay { nil }
+    relay.send("open", payload: ["id": "welcome", "data": NSNull()])
+    relay.send("deliver", payload: ["id": "other", "data": NSNull()])
+    #expect(relay.pendingOpen?["id"] as? String == "welcome")
+    let mount = NativeMount(
+      id: "notifications",
+      component: "notifications",
+      version: 1,
+      props: [:],
+      frame: NativeFrame(x: 0, y: 0, width: 1, height: 1),
+      anchor: .page,
+      visible: true,
+      order: 0,
+      sizing: .web,
+      accessibility: nil,
+      stateRevision: nil,
+      reuse: nil
+    )
+    relay.add(NativeComponentContext(mount: mount, sequence: 1, waitsUntilReady: false, host: nil))
+    #expect(relay.pendingOpen == nil)
+  }
+
+  @Test("Presents only pages from the presenting page's origin")
+  func presentsSameOriginOnly() throws {
+    let page = try #require(URL(string: "https://app.example.com/screens/sheets"))
+    #expect(PresentationURL.resolve("detail?id=1", from: page)?.absoluteString == "https://app.example.com/screens/detail?id=1")
+    #expect(PresentationURL.resolve("/sheet", from: page)?.absoluteString == "https://app.example.com/sheet")
+    #expect(PresentationURL.resolve("https://evil.example.org/", from: page) == nil)
+    #expect(PresentationURL.resolve("http://app.example.com/sheet", from: page) == nil)
+    #expect(PresentationURL.resolve("https://app.example.com:8443/sheet", from: page) == nil)
+    #expect(PresentationURL.resolve("sheet", from: nil) == nil)
+    #expect(PresentationURL.resolve(nil, from: page) == nil)
+    let bundled = try #require(URL(string: "file:///app/pages/index.html"))
+    #expect(PresentationURL.resolve("sheet.html", from: bundled)?.absoluteString == "file:///app/pages/sheet.html")
+  }
+
   @Test("Reads bar items, grouping runs of buttons between spaces")
   func readsBarItems() throws {
     let items = BarItem.list([

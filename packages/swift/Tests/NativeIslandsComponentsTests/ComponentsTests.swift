@@ -310,13 +310,13 @@ struct ChartDataTests {
 
   @Test("Reads hex and rgb() colours, and nothing else")
   func colors() {
-    #expect(ChartData.color("#f00") == Color(.sRGB, red: 1, green: 0, blue: 0, opacity: 1))
-    #expect(ChartData.color("#ff000080") == Color(.sRGB, red: 1, green: 0, blue: 0, opacity: 128 / 255))
-    #expect(ChartData.color("rgb(0 0 255 / 0.5)") == Color(.sRGB, red: 0, green: 0, blue: 1, opacity: 0.5))
-    #expect(ChartData.color("rgb(0, 255, 0)") == Color(.sRGB, red: 0, green: 1, blue: 0, opacity: 1))
-    #expect(ChartData.color("#12") == nil)
-    #expect(ChartData.color("rgb(1 2)") == nil)
-    #expect(ChartData.color("red") == nil)
+    #expect(NativeComponentProps.color(css: "#f00") == Color(.sRGB, red: 1, green: 0, blue: 0, opacity: 1))
+    #expect(NativeComponentProps.color(css: "#ff000080") == Color(.sRGB, red: 1, green: 0, blue: 0, opacity: 128 / 255))
+    #expect(NativeComponentProps.color(css: "rgb(0 0 255 / 0.5)") == Color(.sRGB, red: 0, green: 0, blue: 1, opacity: 0.5))
+    #expect(NativeComponentProps.color(css: "rgb(0, 255, 0)") == Color(.sRGB, red: 0, green: 1, blue: 0, opacity: 1))
+    #expect(NativeComponentProps.color(css: "#12") == nil)
+    #expect(NativeComponentProps.color(css: "rgb(1 2)") == nil)
+    #expect(NativeComponentProps.color(css: "red") == nil)
   }
 }
 

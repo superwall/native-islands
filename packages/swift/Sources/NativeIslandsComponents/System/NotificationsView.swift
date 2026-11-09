@@ -97,18 +97,40 @@ struct NotificationsView: View {
 
 /// Becomes the notification centre's delegate when the app has none, to show
 /// banners while the app is open and tell pages which notification was tapped.
+/// `register()` installs it, so it is the delegate before launch finishes and
+/// receives the tap that launched the app; a tap that arrives before any page
+/// mounts the notifications island waits for the first one.
 @MainActor
 final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate {
   static let shared = NotificationRelay()
   private var components: [WeakComponent] = []
+  private(set) var pendingOpen: [String: Any]?
+
+  private let center: @MainActor () -> UNUserNotificationCenter?
 
   private struct WeakComponent { weak var component: NativeComponentContext? }
+
+  /// The notification centre exists only in an app bundle; outside one, such
+  /// as a test runner, `current()` traps.
+  init(center: @escaping @MainActor () -> UNUserNotificationCenter? = {
+    Bundle.main.bundleURL.pathExtension == "app" ? .current() : nil
+  }) {
+    self.center = center
+  }
+
+  func install() {
+    guard let center = center(), center.delegate == nil else { return }
+    center.delegate = self
+  }
 
   func add(_ component: NativeComponentContext) {
     components.removeAll { $0.component == nil || $0.component === component }
     components.append(WeakComponent(component: component))
-    let center = UNUserNotificationCenter.current()
-    if center.delegate == nil { center.delegate = self }
+    install()
+    if let pendingOpen {
+      self.pendingOpen = nil
+      component.emit("open", payload: pendingOpen)
+    }
   }
 
   func remove(_ component: NativeComponentContext) {
@@ -116,11 +138,19 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate {
   }
 
   private func send(_ event: String, _ notification: UNNotification) {
-    let payload: [String: Any] = [
+    send(event, payload: [
       "id": notification.request.identifier,
       "data": notification.request.content.userInfo["nativeIslands"] ?? NSNull()
-    ]
-    for entry in components { entry.component?.emit(event, payload: payload) }
+    ])
+  }
+
+  func send(_ event: String, payload: [String: Any]) {
+    let live = components.compactMap(\.component)
+    if live.isEmpty {
+      if event == "open" { pendingOpen = payload }
+      return
+    }
+    for component in live { component.emit(event, payload: payload) }
   }
 
   nonisolated func userNotificationCenter(

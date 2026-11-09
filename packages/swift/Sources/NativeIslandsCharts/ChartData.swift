@@ -95,7 +95,7 @@ struct ChartData: Equatable {
         id: id,
         name: value["name"] as? String ?? id,
         kind: (value["kind"] as? String).flatMap(Kind.init(rawValue:)) ?? defaultKind,
-        color: (value["color"] as? String).flatMap(Self.color),
+        color: (value["color"] as? String).flatMap(NativeComponentProps.color(css:)),
         points: points
       )
     }
@@ -162,30 +162,5 @@ struct ChartData: Equatable {
     case .percent: value.formatted(.percent)
     case .currency: value.formatted(.currency(code: currency))
     }
-  }
-
-  /// A colour from `#rgb`, `#rrggbb`, `#rrggbbaa` or `rgb(r g b / a)` with 0–255 channels.
-  static func color(_ text: String) -> Color? {
-    let value = text.trimmingCharacters(in: .whitespaces).lowercased()
-    var channels: [Double]
-    if value.hasPrefix("#") {
-      var hex = String(value.dropFirst())
-      if hex.count == 3 || hex.count == 4 { hex = hex.map { "\($0)\($0)" }.joined() }
-      guard hex.count == 6 || hex.count == 8, let number = UInt64(hex, radix: 16) else { return nil }
-      let bytes = hex.count == 8 ? number : number << 8 | 0xff
-      channels = [24, 16, 8, 0].map { Double((bytes >> UInt64($0)) & 0xff) }
-      channels[3] /= 255
-    } else if value.hasPrefix("rgb"), let open = value.firstIndex(of: "("), value.hasSuffix(")") {
-      let inner = value[value.index(after: open)..<value.index(before: value.endIndex)]
-      let spaced = inner.replacingOccurrences(of: "/", with: " ").replacingOccurrences(of: ",", with: " ")
-      let parts = spaced.split(separator: " ").compactMap { part -> Double? in
-        part.hasSuffix("%") ? Double(part.dropLast()).map { $0 / 100 } : Double(part)
-      }
-      guard parts.count == 3 || parts.count == 4 else { return nil }
-      channels = parts.count == 4 ? parts : parts + [1]
-    } else {
-      return nil
-    }
-    return Color(.sRGB, red: channels[0] / 255, green: channels[1] / 255, blue: channels[2] / 255, opacity: channels[3])
   }
 }

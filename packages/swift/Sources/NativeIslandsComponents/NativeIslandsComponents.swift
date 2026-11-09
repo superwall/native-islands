@@ -137,7 +137,9 @@ public enum NativeIslandsComponents {
   /// Registers `components`, all of them by default. Register before attaching
   /// a host; a component the app registers under the same name afterwards
   /// replaces the built-in one. With `tip`, it also calls `Tips.configure()`
-  /// unless the app configured TipKit already.
+  /// unless the app configured TipKit already. With `notifications`, it makes
+  /// the notification centre's delegate this library's unless the app set one,
+  /// so call it before launch finishes to hear about the tap that opened the app.
   @MainActor
   public static func register(
     in registry: NativeComponentRegistry? = nil,
@@ -147,6 +149,7 @@ public enum NativeIslandsComponents {
     if components.contains(.tip), #available(iOS 17.0, *) {
       try? Tips.configure()
     }
+    if components.contains(.notifications) { NotificationRelay.shared.install() }
     for component in Component.allCases where components.contains(component) && component.isAvailable {
       registry.register(component.name, glass: component.glass) { context in
         ComponentView(component: component, context: context)

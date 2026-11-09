@@ -30,7 +30,7 @@ export type PresentationHandle = { post: (data: NativeJSON) => void };
 
 export type PresentationProps = NativeCommonProps & {
   open: boolean;
-  /** The page to present, read relative to this one. */
+  /** The page to present, read relative to this one. The app only presents a page from this page's origin. */
   url: string;
   onOpenChange: (open: boolean) => void;
   /** Called once it closed, with why and the presented page's `dismiss()` result. */

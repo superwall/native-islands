@@ -86,8 +86,7 @@ struct PresentationView: UIViewRepresentable {
     }
 
     private func resolvedURL() -> URL? {
-      guard let string = props.string("url") else { return nil }
-      return URL(string: string, relativeTo: anchor?.enclosingWebView?.url)?.absoluteURL
+      PresentationURL.resolve(props.string("url"), from: anchor?.enclosingWebView?.url)
     }
 
     private var presenterHost: NativeIslandsHost? {
