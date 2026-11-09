@@ -54,4 +54,7 @@ jobs:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ matrix.xcode }}
-      - run: xcodebuild build-for-testing -scheme NativeIslands-Package -destination 'generic/platform=iOS Simulator' -quiet
+      # The build takes 2 to 4 minutes. A hung xcodebuild fails here, which
+      # keeps its log; the job's own timeout cancels it and loses the log.
+      - timeout-minutes: 10
+        run: xcodebuild build-for-testing -scheme NativeIslands-Package -destination 'generic/platform=iOS Simulator' -quiet
