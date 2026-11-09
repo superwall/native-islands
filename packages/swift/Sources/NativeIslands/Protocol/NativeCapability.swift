@@ -41,6 +41,7 @@ enum NativeFeature: String, Codable, CaseIterable, Sendable {
   case transform
   case motion
   case reuse
+  case nativeHeight
 }
 
 extension NativeCapability {

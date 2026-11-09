@@ -122,9 +122,10 @@ describe("forward compatibility", () => {
     const result = readNativeCapability({
       protocol: 1,
       components: {},
-      features: ["state", "teleport"],
+      features: ["state", "nativeHeight", "teleport"],
     });
     expect(supportsFeature(result, "state")).toBe(true);
+    expect(supportsFeature(result, "nativeHeight")).toBe(true);
     expect(supportsFeature(result, "commands")).toBe(false);
     expect(supportsFeature(readNativeCapability(undefined), "state")).toBe(false);
     expect(result.status === "available" && result.ignored).toEqual(['feature "teleport"']);

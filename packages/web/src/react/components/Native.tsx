@@ -8,7 +8,7 @@ import {
   ISLAND_REUSING_ATTRIBUTE,
   ISLAND_SHOWN_ATTRIBUTE,
 } from "../../layout/attributes";
-import type { TNativeAccessibility } from "../../protocol/schemas";
+import type { TNativeAccessibility, TNativeSize } from "../../protocol/schemas";
 import { useNativeIsland, type NativeSizing } from "../hooks/useNativeIsland";
 
 export type NativeValue =
@@ -78,9 +78,17 @@ const EMPTY: Readonly<Record<string, never>> = {};
 
 const NONE: readonly string[] = [];
 
-const styleFor = (size: { width: number; height: number } | undefined) => {
+const styleFor = (sizing: NativeSizing, size: TNativeSize | undefined) => {
   const style: React.CSSProperties = { display: "contents" };
-  if (size) {
+  // The page's box sets the width the host measures at, so it is a block from
+  // the start; the web version sets its height until the host reports one.
+  if (sizing === "nativeHeight") {
+    style.display = "block";
+    if (size) {
+      style.height = size.height;
+      style.overflow = "hidden";
+    }
+  } else if (sizing === "native" && size) {
     style.display = "inline-block";
     style.width = size.width;
     style.height = size.height;
@@ -110,7 +118,7 @@ export const Native = ({
     (name: string, payload: unknown) => onEvent?.(name, payload),
     [onEvent],
   );
-  const { id, mode, size, handoff, anchorType, reusing, command, state } = useNativeIsland(
+  const { id, mode, size, handoff, anchorType, reusing, command, state, ...sent } = useNativeIsland(
     wrapper,
     {
       component,
@@ -127,7 +135,7 @@ export const Native = ({
     },
   );
   React.useImperativeHandle(ref, () => ({ command, state }), [command, state]);
-  const nativeSize = sizing === "native" && mode !== "web" ? size : undefined;
+  const nativeSizing = mode === "web" ? "web" : sent.sizing;
   const shown = mode === "native" && handoff === undefined;
   const concealed = useConcealed(shown);
   const hidden = shown && anchorType === "screen";
@@ -145,7 +153,7 @@ export const Native = ({
         [ISLAND_CONCEALED_ATTRIBUTE]: concealed ? "" : undefined,
       }}
       aria-hidden={hidden ? true : undefined}
-      style={styleFor(nativeSize)}
+      style={styleFor(nativeSizing, nativeSizing === "web" ? undefined : size)}
     >
       {children}
     </span>

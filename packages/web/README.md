@@ -92,11 +92,11 @@ const form = useRef<NativeHandle<...>>(null);
 await form.current?.command("focus", { field: "email" });
 ```
 
-| Option       | Type                | Default                                            |
-| ------------ | ------------------- | -------------------------------------------------- |
-| `version`    | `number`            | `1`: the lowest registered version this works with |
-| `sizing`     | `"web" \| "native"` | `"web"`: who sets the size                         |
-| `colorProps` | prop names          | none: props resolved to `rgb()`/`rgba()`           |
+| Option       | Type                                  | Default                                                                                                                                                                            |
+| ------------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`    | `number`                              | `1`: the lowest registered version this works with                                                                                                                                 |
+| `sizing`     | `"web" \| "native" \| "nativeHeight"` | `"web"`: who sets the size; `"nativeHeight"` takes the width from the page and the height from the native view, or sizes like `"web"` on a host without the `nativeHeight` feature |
+| `colorProps` | prop names                            | none: props resolved to `rgb()`/`rgba()`                                                                                                                                           |
 
 Every defined component also takes:
 

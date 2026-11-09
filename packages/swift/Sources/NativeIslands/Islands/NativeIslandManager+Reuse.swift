@@ -79,7 +79,7 @@ extension NativeIslandManager {
     }
     island.applyVisibility(animated: false)
     island.applyAccessibility()
-    if mount.sizing == .native {
+    if mount.sizing.isNative {
       island.watchSize { [weak self, weak island] in
         guard let self, let island else { return }
         contentSizeChanged(island)

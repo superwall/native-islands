@@ -11,14 +11,15 @@ sends what a feature describes when the host offers it
 (`packages/web/src/protocol/schemas.ts`). A host that offers none of them still
 draws islands; elements that need a missing feature show their web version.
 
-| Feature     | What the page sends                                                                                                 | What the host does                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `layered`   | Islands of pages that are rendered but not on screen, such as the next step of a flow                               | Places them inside those pages' scrolling areas, so they slide in already native         |
-| `sticky`    | A `position: sticky` element's box where it sits unstuck, its inset and how far it may travel                       | Runs the same sticky rule on every scroll, in the same frame as the content              |
-| `clip`      | The part of an island a clipping box shows, such as an accordion while it opens                                     | Cuts the native view to that part, so it is revealed as the box opens                    |
-| `transform` | The 2D transform and opacity of a rotated, scaled or translucent box around the element                             | Draws the native view turned, scaled and faded the same way                              |
-| `motion`    | The CSS slide of an island outside any scrolling area: translate-only keyframes, Bézier easing and how far in it is | Runs the same slide in Core Animation, and hides the view where the next page covers it  |
-| `reuse`     | The id of an island that went away, named in a new island's mount                                                   | Shows the kept native view in the new island's place instead of creating one (see below) |
+| Feature        | What the page sends                                                                                                 | What the host does                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `layered`      | Islands of pages that are rendered but not on screen, such as the next step of a flow                               | Places them inside those pages' scrolling areas, so they slide in already native         |
+| `sticky`       | A `position: sticky` element's box where it sits unstuck, its inset and how far it may travel                       | Runs the same sticky rule on every scroll, in the same frame as the content              |
+| `clip`         | The part of an island a clipping box shows, such as an accordion while it opens                                     | Cuts the native view to that part, so it is revealed as the box opens                    |
+| `transform`    | The 2D transform and opacity of a rotated, scaled or translucent box around the element                             | Draws the native view turned, scaled and faded the same way                              |
+| `motion`       | The CSS slide of an island outside any scrolling area: translate-only keyframes, Bézier easing and how far in it is | Runs the same slide in Core Animation, and hides the view where the next page covers it  |
+| `reuse`        | The id of an island that went away, named in a new island's mount                                                   | Shows the kept native view in the new island's place instead of creating one (see below) |
+| `nativeHeight` | Islands sized `nativeHeight`: the element's width, with a height the host fills in                                  | Measures the view at that width and reports back only its height                         |
 
 A 3D transform, a filter or a clip path can't be described this way, so an
 island inside one shows its web version on every host.
