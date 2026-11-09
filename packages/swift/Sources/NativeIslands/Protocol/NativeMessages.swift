@@ -229,4 +229,5 @@ struct NativeAccessibility: Codable, Equatable, Sendable {
 enum NativeSizing: String, Codable, Sendable {
   case web
   case native
+  case nativeHeight
 }

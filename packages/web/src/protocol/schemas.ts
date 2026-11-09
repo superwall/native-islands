@@ -158,7 +158,7 @@ export const NativeMountOperationSchema = z.object({
   motion: NativeMotionSchema.optional(),
   visible: z.boolean(),
   order: z.number().int().nonnegative(),
-  sizing: z.enum(["web", "native"]),
+  sizing: z.enum(["web", "native", "nativeHeight"]),
   accessibility: NativeAccessibilitySchema.optional(),
   state_revision: z.number().int().nonnegative().optional(),
   reuse: componentId.optional(),
@@ -221,6 +221,7 @@ export const NATIVE_FEATURES = [
   "transform",
   "motion",
   "reuse",
+  "nativeHeight",
 ] as const;
 
 export const NativeStateValuesSchema = z.record(z.string(), z.unknown());

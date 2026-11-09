@@ -62,6 +62,8 @@ describe("the shared contract", () => {
 describe("native_component_batch", () => {
   it("accepts mount, update and unmount, alone and together", () => {
     outgoingOk(batch([mount]));
+    outgoingOk(batch([{ ...mount, sizing: "native" }]));
+    outgoingOk(batch([{ ...mount, sizing: "nativeHeight" }]));
     outgoingOk(batch([{ op: "update", id: "cta" }]));
     outgoingOk(batch([{ op: "update", id: "cta", order: 3, accessibility: { hidden: true } }]));
     outgoingOk(batch([{ op: "unmount", id: "cta" }]));

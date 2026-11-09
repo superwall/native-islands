@@ -18,7 +18,8 @@
       "clip",
       "transform",
       "motion",
-      "reuse"
+      "reuse",
+      "nativeHeight"
     ]
   },
   "toHost": [
@@ -111,6 +112,27 @@
           "visible": true,
           "order": 2,
           "sizing": "web"
+        },
+        {
+          "op": "mount",
+          "id": "tip",
+          "component": "tip",
+          "version": 1,
+          "props": {
+            "title": "Save your plan"
+          },
+          "frame": {
+            "x": 24,
+            "y": 540,
+            "width": 354,
+            "height": 0
+          },
+          "anchor": {
+            "type": "page"
+          },
+          "visible": true,
+          "order": 3,
+          "sizing": "nativeHeight"
         }
       ]
     },
