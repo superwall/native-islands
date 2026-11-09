@@ -1,7 +1,7 @@
 import * as React from "react";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
 import { Button } from "../../ui/controls";
-import { formatLocal, localOf } from "../../ui/dates";
+import { formatLocal } from "../../ui/dates";
 import {
   ColorWell,
   DatePicker,
@@ -74,7 +74,7 @@ const Pickers = () => {
 const nextHalfHour = () => {
   const date = new Date();
   date.setMinutes(date.getMinutes() < 30 ? 30 : 60, 0, 0);
-  return formatLocal(localOf(date));
+  return formatLocal(date);
 };
 
 const Dates = () => {

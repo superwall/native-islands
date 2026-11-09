@@ -1,6 +1,6 @@
 import { useAccent, useNativeEnabled } from "../app/preferences";
 import { BAR_TABS, type TabId } from "../app/navigation";
-import { NativeSearchTab, NativeTabBar } from "../islands/definitions";
+import { NativeSearchTab, NativeTabBar } from "native-islands/components";
 import { WebSymbol } from "./icons";
 
 type BarTab = (typeof BAR_TABS)[number];
@@ -41,8 +41,7 @@ export const TabBar = ({
         <NativeTabBar
           islandId="tab-bar"
           glassGroup="tab-bar"
-          titles={BAR_TABS.map((tab) => TITLES[tab])}
-          symbols={BAR_TABS.map((tab) => SYMBOLS[tab])}
+          tabs={BAR_TABS.map((tab) => ({ id: tab, title: TITLES[tab], systemImage: SYMBOLS[tab] }))}
           selectedIndex={searching ? -1 : BAR_TABS.indexOf(selected)}
           tint={accent}
           native={native}

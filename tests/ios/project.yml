@@ -12,10 +12,11 @@ targets:
     platform: iOS
     sources:
       - TestHost
-      - path: ../../examples/ios/Islands/Components/Defaults
-        group: TestHost/Components
     dependencies:
       - package: NativeIslands
+        product: NativeIslands
+      - package: NativeIslands
+        product: NativeIslandsComponents
     preBuildScripts:
       - name: Bundle the test pages
         basedOnDependencyAnalysis: false

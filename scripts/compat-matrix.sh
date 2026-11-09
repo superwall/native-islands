@@ -84,7 +84,7 @@ mkdir -p "$OUT/trees" "$OUT/logs"
 OUT="$(cd "$OUT" && pwd)"
 DERIVED="$ROOT/build/DerivedData"
 
-xcodebuild build-for-testing -scheme NativeIslands \
+xcodebuild build-for-testing -scheme NativeIslands-Package \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$DERIVED" -quiet
 
@@ -112,7 +112,7 @@ while read -r key version udid name; do
       continue
     fi
     if TEST_RUNNER_WEBKIT_TREE_DIR="$OUT/trees" xcodebuild test-without-building \
-      -scheme NativeIslands -destination "id=$udid" -derivedDataPath "$DERIVED" \
+      -scheme NativeIslands-Package -destination "id=$udid" -derivedDataPath "$DERIVED" \
       ${only[@]+"${only[@]}"} -resultBundlePath "$OUT/$key-$step.xcresult" \
       >"$log" 2>&1; then
       row="$row $step pass"

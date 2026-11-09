@@ -27,12 +27,12 @@ export const PlanPicker = defineNativeComponent<{
 export const DatePicker = defineNativeComponent<{
   props: { date: string; minimum?: string };
   state: { date: string };
-}>("datePicker");
+}>("dayPicker");
 
 export const Slider = defineNativeComponent<{
   props: { value: number; minimum: number; maximum: number; step: number };
   state: { value: number };
-}>("slider");
+}>("rangeSlider");
 
 export const Tabs = defineNativeComponent<{
   props: { tabs: readonly string[]; selected: number };

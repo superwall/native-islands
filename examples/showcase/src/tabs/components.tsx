@@ -2,7 +2,9 @@ import type { ScreenSpec } from "../app/nav";
 import { TabRoot } from "../ui/TabRoot";
 import { controlScreens } from "./components/controls";
 import { indicatorScreens } from "./components/indicators";
+import { layoutScreens } from "./components/layout";
 import { pickerScreens } from "./components/pickers";
+import { presentationScreens } from "./components/presentations";
 
 const Root = () => (
   <TabRoot
@@ -24,4 +26,6 @@ export const componentScreens: readonly ScreenSpec[] = [
   ...controlScreens,
   ...pickerScreens,
   ...indicatorScreens,
+  ...presentationScreens,
+  ...layoutScreens,
 ];

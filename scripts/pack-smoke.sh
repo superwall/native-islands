@@ -18,20 +18,23 @@ if [ -n "$unexpected" ]; then
   echo "$unexpected"
   exit 1
 fi
-for file in LICENSE README.md dist/index.js dist/index.d.ts dist/react.js dist/react.d.ts dist/simulator.js dist/simulator.d.ts dist/protocol.js dist/protocol.d.ts; do
+for file in LICENSE README.md dist/index.js dist/index.d.ts dist/react.js dist/react.d.ts dist/simulator.js dist/simulator.d.ts dist/protocol.js dist/protocol.d.ts dist/components.js dist/components.d.ts dist/components.css; do
   echo "$contents" | grep -qx "$file" || { echo "error: the tarball is missing $file"; exit 1; }
 done
-head -c 13 <(tar -xzOf "$tarball" package/dist/react.js) | grep -q '"use client"' || {
-  echo "error: dist/react.js does not start with \"use client\""
-  exit 1
-}
+for entry in react components; do
+  head -c 13 <(tar -xzOf "$tarball" "package/dist/$entry.js") | grep -q '"use client"' || {
+    echo "error: dist/$entry.js does not start with \"use client\""
+    exit 1
+  }
+done
 
 install() {
   npm install --silent --no-audit --no-fund "$@"
 }
 
-# A page that touches all three entry points, shared by both apps. The Vite app type-checks our `.d.ts` files too
-# (`skipLibCheck: false`); the Next.js app keeps the tsconfig `create-next-app` writes.
+# A page that touches every entry point and the components stylesheet, shared by both apps. The Vite app
+# type-checks our `.d.ts` files too (`skipLibCheck: false`); the Next.js app keeps the tsconfig `create-next-app`
+# writes.
 write_islands() {
   cat >"$1" <<'TSX'
 "use client";
@@ -39,6 +42,8 @@ import { nativeSupport } from "native-islands";
 import { NATIVE_PROTOCOL_VERSION } from "native-islands/protocol";
 import { defineNativeComponent, NativeIslandsProvider, useNativeSupport } from "native-islands/react";
 import { installNativeSimulator, type NativeSimulator } from "native-islands/simulator";
+import { Toggle } from "native-islands/components";
+import "native-islands/components.css";
 import { useEffect, useState } from "react";
 
 const Rating = defineNativeComponent<{
@@ -53,6 +58,7 @@ const Support = () => {
 
 export const Islands = () => {
   const [value, setValue] = useState(3);
+  const [isOn, setIsOn] = useState(true);
   useEffect(() => {
     const simulator: NativeSimulator = installNativeSimulator({ components: { rating: 1 } });
     return () => simulator.uninstall();
@@ -65,6 +71,7 @@ export const Islands = () => {
       <Rating value={value} onChange={({ value: next }) => setValue(next)}>
         <span>{value} of 5</span>
       </Rating>
+      <Toggle label="Wi-Fi" isOn={isOn} onChange={setIsOn} />
     </NativeIslandsProvider>
   );
 };
@@ -171,7 +178,7 @@ TSX
 check_prerendered() {
   html=".next/server/app/index.html"
   [ -f "$html" ] || { echo "error: next build did not prerender the page ($html is missing)"; exit 1; }
-  for expected in 'data-island-mode="web"' ' of 5<' '>unavailable<'; do
+  for expected in 'data-island-mode="web"' ' of 5<' '>unavailable<' 'role="switch"'; do
     grep -qF "$expected" "$html" || { echo "error: the prerendered page lacks $expected"; exit 1; }
   done
 }

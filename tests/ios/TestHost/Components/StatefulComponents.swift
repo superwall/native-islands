@@ -1,4 +1,5 @@
 import NativeIslands
+import NativeIslandsComponents
 import SwiftUI
 
 /// A native form whose values live in the view and flow to the page as
@@ -128,7 +129,7 @@ struct PlanPickerView: View {
 }
 
 /// A date, as `YYYY-MM-DD` state.
-struct DatePickerView: View {
+struct DayPickerView: View {
   @ObservedObject var component: NativeComponentContext
 
   private static let format: DateFormatter = {
@@ -158,7 +159,7 @@ struct DatePickerView: View {
 }
 
 /// A value scrubbed natively; every step is state.
-struct SliderView: View {
+struct RangeSliderView: View {
   @ObservedObject var component: NativeComponentContext
 
   var body: some View {

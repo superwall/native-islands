@@ -1,49 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  describeActivity,
-  formatCentre,
-  formatClock,
-  fromBrowser,
-  projectPlaces,
-} from "../src/ui/capabilities";
-import { PLACES } from "../src/tabs/capabilities/location";
-
-const place = (id: string, latitude: number, longitude: number) => ({
-  id,
-  title: id,
-  latitude,
-  longitude,
-});
-
-describe("projectPlaces", () => {
-  it("fits the places inside the margin, north up and west left", () => {
-    const spots = projectPlaces([place("nw", 10, -20), place("se", 0, 0)], 10);
-    expect(spots).toEqual([
-      { id: "nw", x: 10, y: 10 },
-      { id: "se", x: 90, y: 90 },
-    ]);
-  });
-
-  it("centres a place on an axis the places do not span", () => {
-    expect(projectPlaces([place("a", 5, 5), place("b", 5, 6)], 10)).toEqual([
-      { id: "a", x: 10, y: 50 },
-      { id: "b", x: 90, y: 50 },
-    ]);
-  });
-
-  it("returns nothing for no places", () => {
-    expect(projectPlaces([])).toEqual([]);
-  });
-
-  it("keeps every place of the Maps demo inside the map", () => {
-    for (const spot of projectPlaces(PLACES)) {
-      expect(spot.x).toBeGreaterThanOrEqual(15);
-      expect(spot.x).toBeLessThanOrEqual(85);
-      expect(spot.y).toBeGreaterThanOrEqual(15);
-      expect(spot.y).toBeLessThanOrEqual(85);
-    }
-  });
-});
+import { describeActivity, formatCentre, formatClock } from "../src/ui/capabilities";
 
 describe("formatCentre", () => {
   it("writes hemispheres instead of signs", () => {
@@ -67,15 +23,6 @@ describe("formatClock", () => {
     expect(formatClock(Number.NaN)).toBe("0:00");
     expect(formatClock(Number.POSITIVE_INFINITY)).toBe("0:00");
     expect(formatClock(-3)).toBe("0:00");
-  });
-});
-
-describe("fromBrowser", () => {
-  it("maps permission and notification states to the app's statuses", () => {
-    expect(fromBrowser("granted")).toBe("granted");
-    expect(fromBrowser("denied")).toBe("denied");
-    expect(fromBrowser("prompt")).toBe("notDetermined");
-    expect(fromBrowser("default")).toBe("notDetermined");
   });
 });
 

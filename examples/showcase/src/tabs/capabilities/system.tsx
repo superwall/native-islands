@@ -1,9 +1,10 @@
 import * as React from "react";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { HapticFeedback, PermissionKind, PermissionStatus } from "../../islands/definitions";
+import type { HapticFeedback, PermissionKind, PermissionStatus } from "native-islands/components";
 import { STATUS_TITLES, describeActivity } from "../../ui/capabilities";
 import { Readout, Row, Section } from "../../ui/List";
-import { HapticButton, PermissionButton, ShareButton } from "../../ui/system";
+import { Button } from "../../ui/controls";
+import { HapticButton, PermissionButton, ShareButton, TipCard } from "../../ui/system";
 
 const PERMISSIONS: readonly {
   kind: PermissionKind;
@@ -146,6 +147,39 @@ const Share = () => {
   );
 };
 
+const Tips = () => {
+  const [round, setRound] = React.useState(1);
+  const [heard, setHeard] = React.useState("nothing yet");
+  return (
+    <>
+      <div className="nav-gap" />
+      <div className="tip-stage">
+        <TipCard
+          id={`islands-favorites-${round}`}
+          title="Save your favourites"
+          message="Tap the star on any demo to keep it at the top of the list."
+          symbol="star.fill"
+          actions={[{ id: "learn", title: "Learn More" }]}
+          onAction={(id) => setHeard(`Tapped ${id}`)}
+          onDismiss={() => setHeard("Closed")}
+        />
+      </div>
+      <p className="list-footer">
+        TipKit draws the tip and remembers by its id that it was closed, even after the app
+        restarts. Once closed it takes no room on the page.
+      </p>
+      <Section>
+        <div className="row row--centered">
+          <Button title="Show a New Tip" onPress={() => setRound((count) => count + 1)} />
+        </div>
+      </Section>
+      <Section header="Page sees">
+        <Readout title="Last" value={heard} />
+      </Section>
+    </>
+  );
+};
+
 export const systemScreens: ScreenSpec[] = demoScreens("capabilities", "System", [
   {
     id: "permissions",
@@ -160,6 +194,13 @@ export const systemScreens: ScreenSpec[] = demoScreens("capabilities", "System",
     title: "Haptics",
     symbol: "hand.tap.fill",
     Component: Haptics,
+  },
+  {
+    id: "tips",
+    keywords: ["TipKit", "onboarding", "hint", "popover"],
+    title: "Tips",
+    symbol: "lightbulb.fill",
+    Component: Tips,
   },
   {
     id: "share",

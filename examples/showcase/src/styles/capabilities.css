@@ -11,11 +11,9 @@
   background: #000;
 }
 
-/* Islands wrap their web version in a `display: contents` element, so the web version itself fills the card. */
-.media-card :is(.web-map, .web-video, .web-camera) {
-  display: block;
-  width: 100%;
-  height: 100%;
+/* The package's map, video and camera fill the card; the card clips them. */
+.media-card :is(.ni-map, .ni-video, .ni-camera) {
+  border-radius: 0;
 }
 
 .media-card--map {
@@ -29,79 +27,6 @@
 
 .media-card--camera {
   aspect-ratio: 3 / 4;
-}
-
-/* Map */
-
-.web-map {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background:
-    linear-gradient(115deg, transparent 46%, rgb(255 255 255 / 70%) 46.5% 48%, transparent 48.5%),
-    linear-gradient(25deg, transparent 60%, rgb(255 255 255 / 70%) 60.5% 62%, transparent 62.5%),
-    radial-gradient(circle at 78% 18%, #a9d3f5 0 22%, transparent 22.5%),
-    linear-gradient(160deg, #e6efd9, #d7e6c6);
-}
-
-.web-map[data-style="hybrid"],
-.web-map[data-style="imagery"] {
-  background:
-    radial-gradient(circle at 78% 18%, #1f4a6b 0 22%, transparent 22.5%),
-    linear-gradient(160deg, #3d5a3a, #2b3f2a);
-}
-
-.web-map-pin {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  transform: translate(-50%, -100%);
-}
-
-.web-map-marker {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
-  transition: transform 0.2s;
-}
-
-.web-map-pin[aria-pressed="true"] .web-map-marker {
-  transform: scale(1.3);
-}
-
-.web-map-marker svg {
-  width: 16px;
-  height: 16px;
-}
-
-.web-map-title {
-  font: 600 11px var(--font);
-  color: #1c1c1e;
-  text-shadow:
-    0 0 2px #fff,
-    0 0 2px #fff;
-  white-space: nowrap;
-}
-
-.web-map[data-style="hybrid"] .web-map-title,
-.web-map[data-style="imagery"] .web-map-title {
-  color: #fff;
-  text-shadow: 0 1px 2px #000;
-}
-
-/* Video and camera */
-
-.web-video,
-.web-camera {
-  object-fit: cover;
-  background: #000;
 }
 
 .photo-row {
@@ -129,21 +54,6 @@
   border-radius: 8px;
 }
 
-/* System */
-
-.permission-allow {
-  height: 32px;
-  padding: 0 14px;
-  border-radius: 16px;
-  font: var(--subheadline);
-  font-weight: 600;
-}
-
-.permission-status {
-  font: var(--body);
-  color: var(--label-secondary);
-}
-
-.permission-status[data-status="granted"] {
-  color: var(--system-green);
+.tip-stage {
+  margin: 0 var(--margin);
 }

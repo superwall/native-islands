@@ -1,4 +1,4 @@
-import type { MenuItem } from "../islands/definitions";
+import type { MenuItem } from "native-islands/components";
 
 /**
  * How the app draws its islands: as native views, as their web versions, or

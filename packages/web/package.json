@@ -16,7 +16,9 @@
     "README.md"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": {
       "types": {
@@ -49,6 +51,18 @@
       },
       "source": "./src/simulator/index.ts",
       "import": "./dist/simulator.js"
+    },
+    "./components": {
+      "types": {
+        "source": "./src/components/index.ts",
+        "default": "./dist/components.d.ts"
+      },
+      "source": "./src/components/index.ts",
+      "import": "./dist/components.js"
+    },
+    "./components.css": {
+      "source": "./src/components/components.css",
+      "default": "./dist/components.css"
     },
     "./package.json": "./package.json"
   },

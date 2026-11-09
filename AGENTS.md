@@ -48,6 +48,8 @@ packages/web/           native-islands (page side)
   src/simulator/        the JS reference host (the /simulator entry)
   src/react/            the /react entry: components/, hooks/, provider/,
                         dom/ (props, accessibility, style rules)
+  src/components/       the /components entry: the ready-made controls with
+                        their web versions, and components.css
   test/                 mirrors src/; shared helpers in test/support/
 packages/swift/         NativeIslands (host side); Package.swift is at the root
   Sources/NativeIslands/
@@ -57,7 +59,15 @@ packages/swift/         NativeIslands (host side); Package.swift is at the root
     Components/         registry, context, props, glass, accessibility
     Debug/              frame reporter and alignment
     Extensions/, Support/
-  Tests/NativeIslandsTests/  mirrors Sources/
+  Sources/NativeIslandsComponents/
+                        the ready-made controls, presentations, app chrome,
+                        lists, media and system islands, their glass and the
+                        iOS 15–25 fallbacks; NativeIslandsComponents.register()
+  Sources/NativeIslandsMaps/, NativeIslandsCharts/
+                        the map and the chart, apart so an app links MapKit
+                        and Swift Charts only when it uses them
+  Tests/NativeIslandsTests/, Tests/NativeIslandsComponentsTests/  mirror Sources/
+                        (the second covers all three component libraries)
 tests/pages/            the scenario gallery: regression pages (Vite + React)
 tests/ios/              TestHost, the app that bundles the gallery, with its
                         UI tests and screenshot baselines
@@ -65,9 +75,9 @@ examples/showcase/      Islands, the example app's web side (Vite + React):
                         src/app/ the shell, navigation, search and preferences;
                         src/tabs/ one file per demo section; src/ui/ each
                         island with its web version; src/styles/live.css
-examples/ios/           Islands' iOS host; Components/ has one SwiftUI view per
-                        island, registered in ShowcaseComponents.swift, and
-                        Components/Defaults/ the glass views TestHost shares
+examples/ios/           Islands' iOS host; Components/ has the app's own chrome
+                        (tab bar, navigation bar, search), registered with
+                        every ready-made island in ShowcaseComponents.swift
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers, parallel UI test runs and the
                         iOS runtime matrix with its WebKit view-tree diff
@@ -87,11 +97,29 @@ before they slide in. `?native=simulate` installs the JS reference host.
 
 The showcase's `src/app/Shell.tsx` mounts a screen the first time it is pushed
 or opened, then keeps it parked the same way, so a demo that holds a device
-(camera, video) checks `useScreenShowing()` and lets go while hidden. A new island needs its name in both
-`src/islands/definitions.ts` and `ShowcaseComponents.swift`, a web version that
-behaves the same, and an entry in `main.tsx`'s simulator list. A new demo is a
+(camera, video) checks `useScreenShowing()` and lets go while hidden. The showcase has no islands of its own: every
+one comes from the package, so a new one goes in the package (see below) and,
+to show in the browser simulator, in `main.tsx`'s simulator list. `?page=` loads
+the pages that presentations show (`src/pages/`). A new demo is a
 row in its section's `demoScreens(...)` with `keywords` for Search, and its
 symbol needs a web drawing in `src/ui/icons.tsx` (a test checks).
+
+A ready-made island lives in both halves at once: its view in
+`Sources/NativeIslandsComponents/` with a case in
+`NativeIslandsComponents.Component`, and its spec, web version and styles in
+`packages/web/src/components/`, under the same name. A test reads the Swift
+names and fails when the web names drift. Its web version must keep the
+native control's size and shape, so a change there is a change to TestHost's
+screenshot baselines too. Every item an island draws (a tab, a bar item, a
+row, a button) is a prop, so a page adds one without an app update. Islands
+draw above the page, so nothing on the page can draw on one: what sits on an
+island is a prop the native view draws. Numbers from the page arrive as
+`Double`; read nested ones through `NSNumber`, never `as? Int`. An island that needs an Info.plist key notes it in
+the README's table. A large, rarely needed framework (MapKit, Swift Charts)
+goes in a library of its own, as `NativeIslandsMaps` does, with its podspec
+and its `public static let name` read by that test. Shared Swift helpers use
+`package` access; every component podspec passes `-package-name NativeIslands`.
+App chrome (tab bar, navigation bar, search) stays in the showcase.
 
 ## Commands
 
@@ -102,9 +130,9 @@ Run only what your change touches; never a whole suite by hand.
 - Web package build: `bun run --cwd packages/web build` (tsup, to `packages/web/dist`). Its exports point at `dist`; each also has a `source` condition that the workspace apps (Vite `resolve.conditions`, TS `customConditions`, `bun test --conditions source`) use to read `src`, so developing them needs no build. The `types` condition nests its own `source` too: TS takes the first condition that matches and oxfmt sorts `types` first, so a `source` beside it would never reach TS
 - Package checks: `bunx publint packages/web --strict`, `cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only`; the packed tarball in fresh Vite and Next.js apps: `scripts/pack-smoke.sh` (needs the npm registry)
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
-- Swift tests: `xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
+- Swift tests: `xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
-- Podspec: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast`; it mirrors `Package.swift`, so change both together
+- Podspecs: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast` and `pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast`, then `NativeIslandsMaps` and `NativeIslandsCharts` with `--include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec'`; they mirror the products in `Package.swift`, so change them together
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test --conditions source test`; in a browser `bun run --cwd examples/showcase dev`

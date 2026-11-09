@@ -43,7 +43,13 @@ public struct NativeComponentProps: Equatable, Sendable {
   }
 
   public func color(_ key: String) -> Color? {
-    guard let components = string(key).flatMap(Self.rgba) else { return nil }
+    string(key).flatMap(Self.color(css:))
+  }
+
+  /// A colour the page wrote as hex or `rgb()`, such as one nested in an
+  /// item of a list; `nil` for anything else.
+  public static func color(css value: String) -> Color? {
+    guard let components = rgba(value) else { return nil }
     return Color(
       .sRGB,
       red: components.red,
@@ -65,8 +71,19 @@ public struct NativeComponentProps: Equatable, Sendable {
     let alpha: Double
   }
 
+  /// `rgb`, `rgba`, `rrggbb` or `rrggbbaa`.
+  static func hex(_ digits: String) -> RGBA? {
+    var digits = digits
+    if digits.count == 3 || digits.count == 4 { digits = digits.map { "\($0)\($0)" }.joined() }
+    guard digits.count == 6 || digits.count == 8, let number = UInt64(digits, radix: 16) else { return nil }
+    let bytes = digits.count == 8 ? number : number << 8 | 0xff
+    let channel = { (shift: UInt64) in Double((bytes >> shift) & 0xff) / 255 }
+    return RGBA(red: channel(24), green: channel(16), blue: channel(8), alpha: channel(0))
+  }
+
   static func rgba(_ value: String) -> RGBA? {
     let trimmed = value.trimmingCharacters(in: .whitespaces).lowercased()
+    if trimmed.hasPrefix("#") { return hex(String(trimmed.dropFirst())) }
     guard
       let open = trimmed.firstIndex(of: "("),
       trimmed.hasSuffix(")"),

@@ -1,6 +1,11 @@
 import * as React from "react";
+import type {
+  ChartKind,
+  ChartSelection,
+  ChartSeries,
+  SymbolEffectName,
+} from "native-islands/components";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { ChartKind, ChartPoint, SymbolEffect } from "../../islands/definitions";
 import { Button, Segmented, Toggle } from "../../ui/controls";
 import { AnimatedSymbol, Chart, Gauge } from "../../ui/indicators";
 import { MenuPicker, Slider } from "../../ui/inputs";
@@ -59,7 +64,7 @@ const Gauges = () => {
 };
 
 const EFFECTS: readonly {
-  effect: SymbolEffect;
+  effect: SymbolEffectName;
   title: string;
   symbol: string;
   repeats: boolean;
@@ -123,38 +128,48 @@ const Symbols = () => {
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const KINDS: readonly ChartKind[] = ["bar", "line", "area"];
+const SPORTS = [
+  { id: "run", name: "Running" },
+  { id: "ride", name: "Cycling" },
+] as const;
 
-const randomWeek = (): ChartPoint[] =>
-  DAYS.map((label) => ({ label, value: Math.round(2 + Math.random() * 10) }));
+const randomWeek = (scale: number) =>
+  DAYS.map((x) => ({ x, y: Math.round((2 + Math.random() * 10) * scale) }));
+
+const FIRST_WEEK: readonly ChartSeries[] = [
+  {
+    ...SPORTS[0],
+    points: [6, 8, 5, 9, 11, 4, 7].map((y, index) => ({ x: DAYS[index] ?? "", y })),
+  },
+  {
+    ...SPORTS[1],
+    points: [12, 0, 18, 9, 0, 30, 22].map((y, index) => ({ x: DAYS[index] ?? "", y })),
+  },
+];
 
 const Charts = () => {
   const [kind, setKind] = React.useState(0);
-  const [points, setPoints] = React.useState<ChartPoint[]>(() => [
-    { label: "Mon", value: 6 },
-    { label: "Tue", value: 8 },
-    { label: "Wed", value: 5 },
-    { label: "Thu", value: 9 },
-    { label: "Fri", value: 11 },
-    { label: "Sat", value: 4 },
-    { label: "Sun", value: 7 },
-  ]);
-  const [selected, setSelected] = React.useState<string | null>(null);
-  const point = points.find((entry) => entry.label === selected);
-  const total = points.reduce((sum, entry) => sum + entry.value, 0);
+  const [stacked, setStacked] = React.useState(false);
+  const [series, setSeries] = React.useState(FIRST_WEEK);
+  const [selection, setSelection] = React.useState<ChartSelection>({ x: null, values: [] });
+  const total = series.flatMap((entry) => entry.points).reduce((sum, point) => sum + point.y, 0);
+  const shown =
+    selection.x === null ? total : selection.values.reduce((sum, value) => sum + value.y, 0);
   return (
     <>
       <div className="nav-gap" />
-      <Stage caption="Swift Charts, fed by the page. Drag across it: the page hears the day under your finger.">
+      <Stage caption="Swift Charts, fed by the page: two series on a day axis. Drag across it: the page hears the day under your finger and each series' value there.">
         <div className="chart-heading">
-          <span className="chart-caption">{point ? point.label : "This week"}</span>
-          <span className="chart-total">{point ? point.value : total} km</span>
+          <span className="chart-caption">{selection.x ?? "This week"}</span>
+          <span className="chart-total">{shown} km</span>
         </div>
         <div className="chart-cell">
           <Chart
             kind={KINDS[kind] ?? "bar"}
-            points={points}
-            selected={selected}
-            onSelect={setSelected}
+            series={series}
+            stacked={stacked}
+            yAxis={{ title: "km" }}
+            onSelect={setSelection}
           />
         </div>
       </Stage>
@@ -162,12 +177,28 @@ const Charts = () => {
         <div className="row">
           <Segmented segments={["Bar", "Line", "Area"]} selectedIndex={kind} onChange={setKind} />
         </div>
+        <Row
+          title="Stacked"
+          accessory={<Toggle label="Stacked" isOn={stacked} onChange={setStacked} />}
+        />
         <div className="row row--centered">
-          <Button title="New Week" onPress={() => setPoints(randomWeek())} />
+          <Button
+            title="New Week"
+            onPress={() =>
+              setSeries(SPORTS.map((sport, index) => ({ ...sport, points: randomWeek(index + 1) })))
+            }
+          />
         </div>
       </Section>
-      <Section header="State">
-        <Readout title="Scrubbing" value={selected ?? "none"} />
+      <Section header="Page sees">
+        <Readout title="Day" value={selection.x === null ? "none" : String(selection.x)} />
+        {SPORTS.map((sport) => (
+          <Readout
+            key={sport.id}
+            title={sport.name}
+            value={String(selection.values.find((value) => value.series === sport.id)?.y ?? "–")}
+          />
+        ))}
       </Section>
     </>
   );

@@ -56,6 +56,23 @@
 
   --ease-push: cubic-bezier(0.32, 0.72, 0, 1);
   --push-duration: 500ms;
+
+  /* The web versions of native-islands/components follow these tokens. */
+  --ni-accent: var(--accent);
+  --ni-label: var(--label);
+  --ni-label-secondary: var(--label-secondary);
+  --ni-label-tertiary: var(--label-tertiary);
+  --ni-separator: var(--separator);
+  --ni-fill: var(--fill);
+  --ni-fill-tertiary: var(--fill-tertiary);
+  --ni-cell: var(--cell);
+  --ni-glass: var(--glass);
+  --ni-glass-edge: var(--glass-edge);
+  --ni-on: var(--system-green);
+  --ni-destructive: var(--system-red);
+  --ni-font: var(--font);
+  --ni-font-rounded: var(--font-rounded);
+  --ni-ease: var(--ease-push);
 }
 
 :root[data-appearance="light"] {

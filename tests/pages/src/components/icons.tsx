@@ -1,4 +1,4 @@
-import { GlassButton, SystemSymbol } from "./defaults";
+import { NativeGlassButton, NativeSymbol } from "native-islands/components";
 import type { ReactNode } from "react";
 
 const PATHS: Record<string, ReactNode> = {
@@ -119,11 +119,11 @@ export const SFSymbol = ({
   size?: number;
   weight?: "regular" | "medium" | "semibold" | "bold";
 }) => (
-  <SystemSymbol name={name} tint={tint} weight={weight} pointSize={size}>
+  <NativeSymbol name={name} tint={tint} weight={weight} pointSize={size}>
     <span className="symbol" style={{ color: tint, width: size, height: size }}>
       <Icon name={name} size={size} />
     </span>
-  </SystemSymbol>
+  </NativeSymbol>
 );
 
 /** A round glass button with an SF Symbol in it. */
@@ -146,7 +146,7 @@ export const IconGlass = ({
   islandId?: string;
   size?: number;
 }) => (
-  <GlassButton
+  <NativeGlassButton
     systemImage={symbol}
     prominence={prominent ? "prominent" : "regular"}
     tint={tint}
@@ -169,5 +169,5 @@ export const IconGlass = ({
     >
       <Icon name={symbol} size={Math.round(size * 0.45)} />
     </button>
-  </GlassButton>
+  </NativeGlassButton>
 );

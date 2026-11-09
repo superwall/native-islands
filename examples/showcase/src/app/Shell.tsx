@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ISLAND_PHASE_ATTRIBUTE } from "native-islands";
 import { useNativeIslandsReady } from "native-islands/react";
-import { NativeNavigationBar } from "../islands/definitions";
+import { NativeNavigationBar } from "native-islands/components";
 import { WebSymbol } from "../ui/icons";
 import { WebMenu } from "../ui/inputs";
 import { TabBar } from "../ui/TabBar";
@@ -120,9 +120,15 @@ const NavigationBar = ({
         title={title}
         titleShown={titleShown}
         showsBack={showsBack}
-        systemImage="square.stack.3d.up.fill"
-        menuLabel="View Mode"
-        items={items}
+        trailing={[
+          {
+            id: "view-mode",
+            kind: "menu",
+            title: "",
+            systemImage: "square.stack.3d.up.fill",
+            items,
+          },
+        ]}
         native={useNativeEnabled()}
         onBack={onBack}
         onSelect={({ id }) => select(id)}

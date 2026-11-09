@@ -34,6 +34,11 @@ public final class NativeComponentRegistry {
       )
       return
     }
+    if let replaced = entries[name] {
+      NativeIslandsLog.main.debug(
+        "Replaced the native component \(name, privacy: .public) (version \(replaced.version)) with a new registration"
+      )
+    }
     entries[name] = Entry(
       version: version,
       waitsUntilReady: waitsUntilReady,

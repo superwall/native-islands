@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useRouteActive } from "../router";
-import { SystemSymbol } from "../components/defaults";
+import { NativeSymbol } from "native-islands/components";
 import { Glass } from "../components/controls";
 import { Scenario } from "../components/Scenario";
 
@@ -29,11 +29,11 @@ export default function Stress() {
       <Scenario id="S38" title="48 islands at once" expect="native">
         <div className="grid" style={{ width: "100%" }}>
           {SYMBOLS.map((index) => (
-            <SystemSymbol key={index} name="star.fill" tint="var(--accent)">
+            <NativeSymbol key={index} name="star.fill" tint="var(--accent)">
               <span className="glass glass--icon" role="img" aria-label={`Star ${index + 1}`}>
                 ★
               </span>
-            </SystemSymbol>
+            </NativeSymbol>
           ))}
         </div>
       </Scenario>

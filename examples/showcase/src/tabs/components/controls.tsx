@@ -1,7 +1,7 @@
 import * as React from "react";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
-import type { MenuItem } from "../../islands/definitions";
-import { Button, Segmented, Toggle } from "../../ui/controls";
+import type { MenuItem } from "native-islands/components";
+import { Button, CloseButton, Segmented, Toggle } from "../../ui/controls";
 import { Menu, Slider, Stepper } from "../../ui/inputs";
 import { Readout, Row, Section, Stage } from "../../ui/List";
 
@@ -34,6 +34,11 @@ const Buttons = () => {
             />
             <Button symbol="trash" label="Delete" glassGroup="toolbar" onPress={press("Delete")} />
           </div>
+        </div>
+      </Stage>
+      <Stage caption="The close button of a sheet: round glass with the system's cross.">
+        <div className="stage-row">
+          <CloseButton onPress={press("Close")} />
         </div>
       </Stage>
       <Stage caption="A disabled button keeps its place and ignores taps.">

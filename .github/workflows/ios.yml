@@ -27,9 +27,14 @@ jobs:
       - run: brew install swiftlint xcodegen
       - run: swiftlint lint --quiet --strict packages/swift tests/ios examples/ios
       - name: Swift tests
-        run: xcodebuild test -scheme NativeIslands -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
-      - name: Podspec
-        run: pod lib lint NativeIslands.podspec --platforms=ios --fail-fast
+        run: xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17' -resultBundlePath build/swift-tests.xcresult -quiet
+      - name: Podspecs
+        run: |
+          pod lib lint NativeIslands.podspec --platforms=ios --fail-fast
+          pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast
+          for pod in NativeIslandsMaps NativeIslandsCharts; do
+            pod lib lint "$pod.podspec" --include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec' --platforms=ios --fail-fast
+          done
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
