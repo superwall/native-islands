@@ -97,6 +97,18 @@ extension NativeBridgeTests {
       #expect(!island.view.isHidden)
     }
 
+    @Test("A kept view taken over on another layer follows that layer for VoiceOver")
+    func takesOverOnAnotherLayerForAccessibility() throws {
+      let harness = NativeTestHarness()
+      let old = try shown(harness)
+      #expect(old.view.accessibilityElementsHidden)
+      harness.manager.apply(batch(2, .unmount(id: "old")))
+      harness.manager.apply(batch(3, mountOp("new", anchor: .screen, reuse: "old")))
+      let island = try #require(harness.island("new"))
+      #expect(island === old)
+      #expect(!island.view.accessibilityElementsHidden)
+    }
+
     @Test("Builds a new view when the kept one is gone or does not fit")
     func buildsWhenNothingFits() throws {
       let harness = NativeTestHarness()
