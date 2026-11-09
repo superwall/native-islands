@@ -5,17 +5,15 @@ import {
   SearchField,
   TabAccessory,
   TabView,
-  Toolbar,
   deleteRows,
   useNavigationPath,
-  usePresentedPage,
   type BarItem,
   type ListSection,
   type NavigationScreen,
 } from "native-islands/components";
-import { useAccent, useNativeEnabled } from "../app/preferences";
-import { Button } from "../ui/controls";
-import { webSymbol } from "../ui/symbols";
+import { useAccent, useNativeEnabled } from "../../app/preferences";
+import { Button } from "../../ui/controls";
+import { webSymbol } from "../../ui/symbols";
 
 const INBOX: ListSection[] = [
   {
@@ -86,45 +84,32 @@ const FILES: ListSection[] = [
   },
 ];
 
+const MESSAGES = INBOX;
+
+const Message = ({ text, children }: React.PropsWithChildren<{ text?: string }>) => (
+  <div className="demo-message">
+    {text && <p>{text}</p>}
+    {children}
+  </div>
+);
+
 /**
- * A whole app from the package alone: a tab view with a bottom accessory and
- * a Search tab, a navigation stack per tab, native lists with swipe actions
- * and an outline, and a toolbar. The Swift side is `NativeIslandsComponents.register()`.
+ * A navigation stack the page drives, in a card: a native navigation bar with
+ * a large title, push and pop, Back to any depth, Forward after a pop, and a
+ * pushed screen with its own bar items.
  */
-export const DemoApp = () => {
+export const NavigationDemo = () => {
   const native = useNativeEnabled();
   const tint = useAccent();
-  const page = usePresentedPage();
-  const [tab, setTab] = React.useState("inbox");
-  const [inbox, setInbox] = React.useState<readonly ListSection[]>(INBOX);
-  const [query, setQuery] = React.useState("");
-  const [playing, setPlaying] = React.useState(true);
+  const [inbox, setInbox] = React.useState<readonly ListSection[]>(MESSAGES);
   const mail = useNavigationPath("inbox");
-  const close: BarItem = { id: "close", systemImage: "xmark" };
   const forward: BarItem[] = mail.canGoForward
     ? [{ id: "forward", systemImage: "chevron.right" }]
     : [];
-  const contact = (name: string): NavigationScreen => ({
-    title: name,
-    largeTitle: true,
-    render: () => (
-      <div className="demo-message">
-        <p>
-          Three screens deep. Back goes one screen at a time, swipe-free; the buttons jump back to
-          the thread or all the way to the Inbox at once.
-        </p>
-        <div className="demo-actions">
-          <Button title="Back to the Thread" onPress={mail.pop} />
-          <Button title="Back to Inbox" prominent onPress={mail.popToRoot} />
-        </div>
-      </div>
-    ),
-  });
   const screens: Record<string, NavigationScreen> = {
     inbox: {
       title: "Inbox",
       largeTitle: true,
-      leading: [close],
       trailing: [...forward, { id: "compose", systemImage: "square.and.pencil" }],
       render: () => (
         <List
@@ -142,11 +127,7 @@ export const DemoApp = () => {
     compose: {
       title: "New Message",
       trailing: [{ id: "send", title: "Send", prominent: true, tint }],
-      render: () => (
-        <div className="demo-message">
-          <p>A pushed screen with its own bar items. Send pops back to the Inbox.</p>
-        </div>
-      ),
+      render: () => <Message text="A pushed screen with its own bar items. Send pops back." />,
     },
     ...Object.fromEntries(
       (inbox[0]?.rows ?? []).flatMap((row) => [
@@ -166,49 +147,66 @@ export const DemoApp = () => {
               },
             ],
             render: () => (
-              <div className="demo-message">
-                <p>{row.subtitle}</p>
+              <Message text={row.subtitle}>
                 <div className="demo-actions">
                   <Button
                     title={`About ${row.title}`}
                     onPress={() => mail.push(`${row.id}-contact`)}
                   />
                 </div>
-                <Toolbar
-                  native={native}
-                  tint={tint}
-                  icon={webSymbol}
-                  items={[
-                    { id: "archive", systemImage: "archivebox" },
-                    { id: "flag", systemImage: "flag" },
-                    { kind: "flexibleSpace" },
-                    { id: "reply", title: "Reply", prominent: true, tint },
-                  ]}
-                />
-              </div>
+              </Message>
             ),
           } satisfies NavigationScreen,
         ],
-        [`${row.id}-contact`, contact(row.title)],
+        [
+          `${row.id}-contact`,
+          {
+            title: row.title,
+            largeTitle: true,
+            render: () => (
+              <Message text="Three screens deep. Back goes one screen at a time; these jump.">
+                <div className="demo-actions">
+                  <Button title="Back to the Thread" onPress={mail.pop} />
+                  <Button title="Back to Inbox" prominent onPress={mail.popToRoot} />
+                </div>
+              </Message>
+            ),
+          } satisfies NavigationScreen,
+        ],
       ]),
     ),
   };
-  const files: Record<string, NavigationScreen> = {
-    files: {
-      title: "Files",
-      largeTitle: true,
-      leading: [close],
-      render: () => <List sections={FILES} native={native} tint={tint} icon={webSymbol} />,
-    },
-  };
-  const onBar = (id: string) => {
-    if (id === "close") page.dismiss(null);
-    else if (id === "forward") mail.forward();
-    else if (id === "compose") mail.push("compose");
-    else if (id === "send") mail.popToRoot();
-  };
   return (
-    <div className="demo-app">
+    <div className="chrome-demo">
+      <NavigationStack
+        path={mail.path}
+        onPathChange={mail.setPath}
+        screens={screens}
+        tint={tint}
+        icon={webSymbol}
+        native={native}
+        onSelect={(id) => {
+          if (id === "forward") mail.forward();
+          else if (id === "compose") mail.push("compose");
+          else if (id === "send") mail.popToRoot();
+        }}
+      />
+    </div>
+  );
+};
+
+/**
+ * A tab view in a card: the floating tab bar with a badge, a Search tab and a
+ * bottom accessory, each tab keeping its content when you leave it.
+ */
+export const TabViewDemo = () => {
+  const native = useNativeEnabled();
+  const tint = useAccent();
+  const [tab, setTab] = React.useState("inbox");
+  const [query, setQuery] = React.useState("");
+  const [playing, setPlaying] = React.useState(true);
+  return (
+    <div className="chrome-demo">
       <TabView
         selectedId={tab}
         onSelect={setTab}
@@ -220,17 +218,12 @@ export const DemoApp = () => {
             id: "inbox",
             title: "Inbox",
             systemImage: "tray.fill",
-            badge: inbox[0]?.rows.length,
+            badge: MESSAGES[0]?.rows.length,
             content: (
-              <NavigationStack
-                path={mail.path}
-                onPathChange={mail.setPath}
-                screens={screens}
-                tint={tint}
-                icon={webSymbol}
-                native={native}
-                onSelect={onBar}
-              />
+              <div className="chrome-demo-tab">
+                <h2 className="ni-large-title">Inbox</h2>
+                <List sections={MESSAGES} native={native} tint={tint} icon={webSymbol} />
+              </div>
             ),
           },
           {
@@ -238,21 +231,16 @@ export const DemoApp = () => {
             title: "Files",
             systemImage: "folder.fill",
             content: (
-              <NavigationStack
-                path={["files"]}
-                onPathChange={() => {}}
-                screens={files}
-                tint={tint}
-                icon={webSymbol}
-                native={native}
-                onSelect={onBar}
-              />
+              <div className="chrome-demo-tab">
+                <h2 className="ni-large-title">Files</h2>
+                <List sections={FILES} native={native} tint={tint} icon={webSymbol} />
+              </div>
             ),
           },
         ]}
         search={{
           content: (
-            <div className="demo-search">
+            <div className="chrome-demo-tab demo-search">
               <SearchField text={query} onChange={setQuery} native={native} tint={tint} />
               <p className="list-footer">
                 {query ? `Searching for “${query}”` : "Type to search."}

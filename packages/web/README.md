@@ -222,7 +222,11 @@ Each draws a default web version sized like the native control. Pass children
 to draw your own instead; they then set the island's size. The web versions
 read `--ni-*` custom properties, such as `--ni-accent`, `--ni-glass` and
 `--ni-glass-edge`, which a page sets on `:root` to match its theme. Light and
-dark follow `color-scheme`. The `Native*` specs underneath, such as
+dark follow `color-scheme`. `TabView` and `NavigationStack` fill their
+container and keep clear of the screen's safe area; inside a smaller box, such
+as a card, set `--ni-safe-top` and `--ni-safe-bottom` to `0px`. A destructive
+swipe action takes its `List` row out at once, as iOS does; the page deletes it
+in `onAction`, or the row comes back. The `Native*` specs underneath, such as
 `NativeToggle`, are exported too, for a page that wants the native island with
 its own wrapper.
 

@@ -534,14 +534,14 @@ html[data-view-mode="outlines"] [data-island] > * {
   background-image: linear-gradient(rgb(214 58 249 / 18%), rgb(214 58 249 / 18%));
 }
 
-/* Pages a presentation shows (`?page=`), and the demo app. */
+/* Pages a presentation shows (`?page=`). */
 
 /* The document itself scrolls, not an inner scroller: a sheet follows the
    web view's own scroll view, so a drag scrolls the page until it reaches the
    top and only then moves the sheet, as in any native sheet. */
-html[data-presented]:not([data-presented="app"]),
-html[data-presented]:not([data-presented="app"]) body,
-html[data-presented]:not([data-presented="app"]) #root {
+html[data-presented],
+html[data-presented] body,
+html[data-presented] #root {
   position: static;
   overflow: visible;
   overscroll-behavior: auto;
@@ -556,10 +556,23 @@ html[data-presented]:not([data-presented="app"]) #root {
   padding: 8px 0 40px;
 }
 
-.demo-app {
-  position: absolute;
-  inset: 0;
+/* The tab view and the navigation stack in a card, not the whole screen. */
+.chrome-demo {
   --ni-page: var(--bg);
+  --ni-safe-top: 0px;
+  --ni-safe-bottom: 0px;
+  position: relative;
+  height: 440px;
+  margin: 0 16px;
+  overflow: hidden;
+  border-radius: 26px;
+  background: var(--bg);
+  box-shadow: 0 0 0 0.5px var(--separator, rgb(0 0 0 / 12%));
+}
+
+.chrome-demo-tab {
+  min-height: 100%;
+  padding: 16px 0 140px;
 }
 
 .demo-message {
@@ -578,7 +591,7 @@ html[data-presented]:not([data-presented="app"]) #root {
 .demo-search {
   display: grid;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top) + 16px) 16px 0;
+  padding: 16px 16px 140px;
 }
 
 .bar-demo {

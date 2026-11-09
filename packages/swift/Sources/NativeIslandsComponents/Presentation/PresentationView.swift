@@ -208,7 +208,18 @@ struct PresentationView: UIViewRepresentable {
       let grabber = props.bool("grabber") ?? (names.count > 1)
       let shape = "\(names)|\(grabber)|\(props.bool("undimmed") == true)|\(props.double("cornerRadius") ?? -1)"
       if changed("shape", shape) {
-        let detents = names.compactMap(SheetDetents.detent)
+        // The web view stays as tall as the tallest detent, so moving the
+        // sheet between detents never lays the page out again. `medium` has
+        // no height UIKit tells, so a sheet whose tallest detent it is keeps
+        // the web view the sheet's height.
+        page.tallestDetent = nil
+        let measured = !names.contains("medium") || names.contains("large")
+        let detents = names.compactMap { name in
+          SheetDetents.detent(name) { [weak page] height in
+            guard measured, let page else { return }
+            page.tallestDetent = max(page.tallestDetent ?? 0, height)
+          }
+        }
         sheet.animateChanges {
           sheet.detents = detents.isEmpty ? [.large()] : detents
           sheet.prefersGrabberVisible = grabber

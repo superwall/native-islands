@@ -8,7 +8,9 @@ import SwiftUI
 ///
 /// - A tap sends `press` with the row's id; with `selectionMode` it also
 ///   toggles the row in `selected`, which flows back as state.
-/// - A swipe action sends `action` with the row and the action's id.
+/// - A swipe action sends `action` with the row and the action's id. A
+///   destructive one takes its row out at once, as iOS does, while the page
+///   deletes it; a row the page keeps comes back a moment later.
 /// - With `editing`, rows of a `reorderable` list drag to reorder and rows of
 ///   a `deletable` one delete; both send `reorder` or `delete` and hand back
 ///   the new `sections` as state, so the list keeps its order until the page
@@ -18,10 +20,16 @@ import SwiftUI
 ///   give the list exactly that room.
 struct ListView: View {
   @ObservedObject var component: NativeComponentContext
+  /// Rows a destructive swipe action took out, until the page's props agree.
+  @State private var removing: Set<String> = []
+
+  /// How long a row a destructive action took out waits for the page to
+  /// delete it before it comes back.
+  static let removalWait: TimeInterval = 1
 
   var body: some View {
     let props = component.props
-    let sections = ListSection.list(props)
+    let sections = ListSection.list(props).map { $0.without(removing) }
     let selected = Set(props.strings("selected") ?? [])
     let expanded = Set(props.strings("expanded") ?? [])
     let editing = props.bool("editing") == true
@@ -79,6 +87,20 @@ struct ListView: View {
   }
 
   func swiped(_ row: ListRow, _ action: ListAction) {
+    // UIKit animates a row a destructive action deletes out with the swipe,
+    // as long as the rows change in this same update; the page's own deletion
+    // arrives a frame later, after the row snapped back, so the row goes now.
+    if action.role == "destructive" {
+      removing.insert(row.id)
+      DispatchQueue.main.asyncAfter(deadline: .now() + Self.removalWait) { [component, removing = $removing] in
+        let kept = ListSection.list(component.props).contains { $0.contains(row.id) }
+        if kept {
+          withAnimation { _ = removing.wrappedValue.remove(row.id) }
+        } else {
+          removing.wrappedValue.remove(row.id)
+        }
+      }
+    }
     component.emit("action", payload: ["row": row.id, "id": action.id])
   }
 
@@ -230,87 +252,6 @@ private struct RowLabel: View {
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
     .accessibilityAddTraits(checked ? .isSelected : [])
-  }
-}
-
-struct ListAction: Identifiable {
-  let id: String
-  let title: String
-  let systemImage: String?
-  let role: String?
-  let tint: Color?
-
-  init?(_ value: Any) {
-    guard let value = value as? [String: Any], let title = value["title"] as? String else { return nil }
-    id = value["id"] as? String ?? title
-    self.title = title
-    systemImage = value["systemImage"] as? String
-    role = value["role"] as? String
-    tint = (value["tint"] as? String).flatMap(NativeComponentProps.color(css:))
-  }
-}
-
-struct ListRow: Identifiable {
-  let id: String
-  let title: String
-  let subtitle: String?
-  let systemImage: String?
-  let iconTint: Color?
-  let value: String?
-  let badge: String?
-  let accessory: String?
-  let role: String?
-  let disabled: Bool
-  let leading: [ListAction]
-  let trailing: [ListAction]
-  let children: [ListRow]
-
-  init?(_ value: Any) {
-    guard let value = value as? [String: Any], let title = value["title"] as? String else { return nil }
-    id = value["id"] as? String ?? title
-    self.title = title
-    subtitle = value["subtitle"] as? String
-    systemImage = value["systemImage"] as? String
-    iconTint = (value["iconTint"] as? String).flatMap(NativeComponentProps.color(css:))
-    self.value = value["value"] as? String
-    let badge = value["badge"].flatMap { $0 as? String ?? ($0 as? NSNumber)?.stringValue }
-    self.badge = badge?.isEmpty == false ? badge : nil
-    accessory = value["accessory"] as? String
-    role = value["role"] as? String
-    disabled = value["disabled"] as? Bool ?? false
-    leading = (value["leadingActions"] as? [Any] ?? []).compactMap(ListAction.init)
-    trailing = (value["trailingActions"] as? [Any] ?? []).compactMap(ListAction.init)
-    children = (value["children"] as? [Any] ?? []).compactMap(ListRow.init)
-  }
-}
-
-struct ListSection: Identifiable {
-  let id: String
-  let header: String?
-  let footer: String?
-  let rows: [ListRow]
-
-  init(_ value: [String: Any], index: Int) {
-    id = value["id"] as? String ?? String(index)
-    header = value["header"] as? String
-    footer = value["footer"] as? String
-    rows = (value["rows"] as? [Any] ?? []).compactMap(ListRow.init)
-  }
-
-  /// The sections as the page wrote them; a list of `rows` alone is one section.
-  static func raw(_ props: NativeComponentProps) -> [[String: Any]] {
-    if let sections = props["sections"] as? [Any] {
-      return sections.enumerated().compactMap { index, value in
-        guard var section = value as? [String: Any] else { return nil }
-        if section["id"] == nil { section["id"] = String(index) }
-        return section
-      }
-    }
-    return [["id": "0", "rows": props["rows"] as? [Any] ?? []]]
-  }
-
-  static func list(_ props: NativeComponentProps) -> [ListSection] {
-    raw(props).enumerated().map { ListSection($1, index: $0) }
   }
 }
 

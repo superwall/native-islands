@@ -1381,7 +1381,7 @@
   position: absolute;
   z-index: 1;
   right: 16px;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: max(16px, var(--ni-safe-bottom, env(safe-area-inset-bottom)));
   left: 16px;
   display: grid;
   gap: 8px;
@@ -1406,7 +1406,7 @@
 .ni-navigation-stack-bar {
   position: absolute;
   z-index: 2;
-  top: env(safe-area-inset-top);
+  top: var(--ni-safe-top, env(safe-area-inset-top));
   right: 16px;
   left: 16px;
 }
@@ -1433,8 +1433,8 @@
 .ni-navigation-stack-content {
   box-sizing: border-box;
   min-height: calc(100% + 1px);
-  padding-top: calc(env(safe-area-inset-top) + 62px);
-  padding-bottom: calc(env(safe-area-inset-bottom) + 140px);
+  padding-top: calc(var(--ni-safe-top, env(safe-area-inset-top)) + 62px);
+  padding-bottom: calc(var(--ni-safe-bottom, env(safe-area-inset-bottom)) + 140px);
 }
 
 .ni-navigation-stack-screen[data-place="top"] {

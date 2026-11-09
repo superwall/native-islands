@@ -76,6 +76,27 @@ struct AppComponentsTests {
     #expect(flat.first?.rows.map(\.title) == ["A"])
   }
 
+  @Test("Takes rows out at any depth, as a destructive swipe action does")
+  func takesRowsOut() throws {
+    let props = NativeComponentProps([
+      "rows": .array([
+        .object(["id": .string("a"), "title": .string("A")]),
+        .object([
+          "id": .string("b"),
+          "title": .string("B"),
+          "children": .array([.object(["id": .string("c"), "title": .string("C")])])
+        ])
+      ])
+    ])
+    let section = try #require(ListSection.list(props).first)
+    #expect(section.contains("c") && section.contains("a") && !section.contains("z"))
+    #expect(section.without([]).rowIds == ["a", "b"])
+    #expect(section.without(["a"]).rowIds == ["b"])
+    let nested = section.without(["c"])
+    #expect(nested.rowIds == ["a", "b"] && nested.rows.last?.children.isEmpty == true)
+    #expect(!nested.contains("c"))
+  }
+
   @Test("Turns a page's haptic events into a Core Haptics pattern")
   func buildsHapticPatterns() {
     #expect(HapticPlayer.pattern(["events": []]) == nil)
@@ -116,6 +137,19 @@ struct AppComponentsTests {
     #expect(SheetDetents.name(of: .large) == "large")
     #expect(SheetDetents.name(of: .init("240")) == "240")
     #expect(SheetDetents.name(of: nil) == nil)
+  }
+
+  @Test("Tells the height UIKit gives large and a height in points")
+  @available(iOS 16.0, *)
+  func resolvesDetentHeights() throws {
+    var heights: [CGFloat] = []
+    let context = DetentContext(maximumDetentValue: 778)
+    let large = try #require(SheetDetents.detent("large") { heights.append($0) })
+    #expect(large.identifier == .large)
+    #expect(large.resolvedValue(in: context) == 778)
+    let points = try #require(SheetDetents.detent("240") { heights.append($0) })
+    #expect(points.resolvedValue(in: context) == 240)
+    #expect(heights == [778, 240])
   }
 
   @Test("Routes a presented page's messages, and gives it the system header")
@@ -202,5 +236,15 @@ struct AppComponentsTests {
     #expect(NativeComponentProps.color(css: "#0f0") == Color(.sRGB, red: 0, green: 1, blue: 0, opacity: 1))
     #expect(NativeComponentProps.color(css: "#12345") == nil)
     #expect(NativeComponentProps.color(css: "rgb(0, 0, 255)") == Color(.sRGB, red: 0, green: 0, blue: 1, opacity: 1))
+  }
+}
+
+/// A detent resolution context with a given maximum, as UIKit passes one.
+private final class DetentContext: NSObject, UISheetPresentationControllerDetentResolutionContext {
+  let containerTraitCollection = UITraitCollection()
+  let maximumDetentValue: CGFloat
+
+  init(maximumDetentValue: CGFloat) {
+    self.maximumDetentValue = maximumDetentValue
   }
 }

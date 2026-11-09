@@ -30,6 +30,18 @@ final class PresentedPageController: UIViewController, WKNavigationDelegate {
     }
   }
 
+  /// The height of the sheet's tallest detent, once UIKit resolved it. The
+  /// web view keeps that height while the sheet moves between detents: a
+  /// web view that changes height lays its page out again on every frame of
+  /// the drag and moves its scroll position, so the page would jump and the
+  /// sheet would lose track of whether it is at the top.
+  var tallestDetent: CGFloat? {
+    didSet {
+      guard tallestDetent != oldValue, isViewLoaded else { return }
+      view.setNeedsLayout()
+    }
+  }
+
   var showsDone = true {
     didSet { updateDone() }
   }
@@ -53,7 +65,6 @@ final class PresentedPageController: UIViewController, WKNavigationDelegate {
     // effect follows the page under it.
     view.backgroundColor = background ?? .systemGroupedBackground
     webView.frame = view.bounds
-    webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     webView.isOpaque = false
     webView.backgroundColor = .clear
     webView.scrollView.backgroundColor = .clear
@@ -135,7 +146,25 @@ final class PresentedPageController: UIViewController, WKNavigationDelegate {
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
+    let height = webViewHeight
+    webView.frame = CGRect(origin: .zero, size: CGSize(width: view.bounds.width, height: height))
+    // What lies below the screen at a smaller detent is still in reach: it
+    // scrolls up like content under a toolbar. Only the inset follows the
+    // drag, which moves no content while the page rests at its top.
+    let hidden = max(0, height - view.bounds.height).rounded()
+    if abs(webView.scrollView.contentInset.bottom - hidden) >= 0.5 {
+      webView.scrollView.contentInset.bottom = hidden
+      webView.scrollView.verticalScrollIndicatorInsets.bottom = hidden
+    }
     restAtTop()
+  }
+
+  /// The sheet's height at its tallest detent: the detent plus the home
+  /// indicator's strip below it. At a smaller detent the rest of the web view
+  /// lies below the screen.
+  private var webViewHeight: CGFloat {
+    guard !waiting, let tallestDetent, let window = view.window else { return view.bounds.height }
+    return tallestDetent + window.safeAreaInsets.bottom
   }
 
   /// The bar's inset arrives after the page first lays out (and after a

@@ -1,10 +1,9 @@
 import * as React from "react";
 import {
-  FullScreenCover,
   List,
   NavigationBar,
   Toolbar,
-  useSheet,
+  deleteRows,
   type ListSection,
 } from "native-islands/components";
 import { demoScreens, type ScreenSpec } from "../../app/nav";
@@ -12,7 +11,7 @@ import { useAccent, useNativeEnabled } from "../../app/preferences";
 import { Readout, Row, Section, Stage } from "../../ui/List";
 import { Button, Toggle } from "../../ui/controls";
 import { webSymbol } from "../../ui/symbols";
-import { presentedURL } from "./presentations";
+import { NavigationDemo, TabViewDemo } from "./chrome";
 
 const SETTINGS: ListSection[] = [
   {
@@ -81,25 +80,22 @@ const PLAYLIST: ListSection[] = [
         id: "a",
         title: "Islands in the Stream",
         subtitle: "Dolly & Kenny",
-        trailingActions: [{ id: "delete", title: "Delete", role: "destructive" }],
       },
       {
         id: "b",
         title: "Ocean Eyes",
         subtitle: "Billie Eilish",
-        trailingActions: [{ id: "delete", title: "Delete", role: "destructive" }],
+        trailingActions: [{ id: "remove", title: "Remove", role: "destructive" }],
       },
       {
         id: "c",
         title: "Harbour Lights",
         subtitle: "The Platters",
-        trailingActions: [{ id: "delete", title: "Delete", role: "destructive" }],
       },
       {
         id: "d",
         title: "Tide Is High",
         subtitle: "Blondie",
-        trailingActions: [{ id: "delete", title: "Delete", role: "destructive" }],
       },
     ],
   },
@@ -190,18 +186,11 @@ const Editing = () => {
         selected={selected}
         onSelectedChange={setSelected}
         onSectionsChange={setSections}
-        onAction={(row) =>
-          setSections(
-            sections.map((section) => ({
-              ...section,
-              rows: section.rows.filter((entry) => entry.id !== row),
-            })),
-          )
-        }
+        onAction={(row) => setSections(deleteRows(sections, "songs", [row]))}
       />
       <p className="list-footer">
-        In edit mode, drag rows by their handles or delete them; the new order flows back to the
-        page. Out of it, tap rows to select them.
+        Swipe a row to delete it. In edit mode, drag rows by their handles or delete them; the new
+        order flows back to the page. Out of it, tap rows to select them.
       </p>
       <Section header="Page sees">
         <Readout title="Order" value={sections[0]?.rows.map((row) => row.id).join(" ") ?? ""} />
@@ -311,33 +300,23 @@ const Bars = () => {
   );
 };
 
-const AppChrome = () => {
-  const native = useNativeEnabled();
-  const app = useSheet();
-  return (
-    <>
-      <div className="nav-gap" />
-      <div className="stage">
-        <div className="stage-row">
-          <Button title="Open the Demo App" prominent onPress={app.present} />
-        </div>
-      </div>
-      <p className="list-footer">
-        A whole app made of one web page and the package: a tab view with a bottom accessory and a
-        Search tab, a navigation stack per tab, lists, an outline and a toolbar, in a full-screen
-        cover.
-      </p>
-      <FullScreenCover
-        {...app.props}
-        native={native}
-        url={presentedURL("app", "Demo App")}
-        title="Demo App"
-        header={false}
-        background="var(--bg)"
-      />
-    </>
-  );
-};
+const AppChrome = () => (
+  <>
+    <div className="nav-gap" />
+    <h2 className="list-header">Tab view</h2>
+    <TabViewDemo />
+    <p className="list-footer">
+      A floating tab bar with a badge, a Search tab and a bottom accessory. Every tab keeps its
+      content and its islands while you are away.
+    </p>
+    <h2 className="list-header">Navigation stack</h2>
+    <NavigationDemo />
+    <p className="list-footer">
+      Push a thread, then its contact. Back pops one screen, the buttons jump; after a pop, Forward
+      appears in the bar. Swipe a row to delete it.
+    </p>
+  </>
+);
 
 export const layoutScreens: readonly ScreenSpec[] = demoScreens("components", "Layout", [
   {
