@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import {
+  checkAttributes,
   checkCatalogue,
   checkFrontmatter,
   checkImports,
@@ -13,6 +14,7 @@ import {
   codeBlocks,
   codeNames,
   inlineCode,
+  islandAttributes,
   jsImports,
   links,
   moduleExports,
@@ -148,6 +150,26 @@ describe("the catalogue", () => {
       "`NativeHandle`, `NativeGone`, `NativeGone`, `IslandWebView`, `Native()`, `Other`";
     expect(checkInlineSymbols(markdown, new Set(["NativeHandle", "IslandWebView"]))).toEqual([
       "names NativeGone, which neither package declares",
+    ]);
+  });
+});
+
+describe("island attributes", () => {
+  it("reads the attribute names the page library sets", () => {
+    const known = islandAttributes(join(repo, "packages/web/src/layout/attributes.ts"));
+    expect(known.has("data-island-mode")).toBe(true);
+    expect(known.has("data-island-handoff")).toBe(true);
+    expect(known.has("data-island-phase")).toBe(true);
+  });
+
+  it("fails an attribute the page no longer sets, once each", () => {
+    const known = new Set(["data-island", "data-island-mode"]);
+    const markdown = `\`data-island-mode\` and data-island-state, then:\n${fence(
+      "js",
+      'document.querySelectorAll("[data-island]"); el.getAttribute("data-island-state");',
+    )}`;
+    expect(checkAttributes(markdown, known)).toEqual([
+      "names the attribute data-island-state, which the page never sets",
     ]);
   });
 });

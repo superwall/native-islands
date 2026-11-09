@@ -357,6 +357,24 @@ export const checkInlineSymbols = (markdown: string, known: Set<string>): string
   return [...problems];
 };
 
+/** The `data-island…` attribute names the page library sets, read from its constants. */
+export const islandAttributes = (file: string): Set<string> =>
+  new Set(
+    [...readFileSync(file, "utf8").matchAll(/=\s*"(data-island[\w-]*)"/g)].map(
+      (match) => match[1] ?? "",
+    ),
+  );
+
+/** `data-island…` attributes, in prose or code, that the page library no longer sets. */
+export const checkAttributes = (markdown: string, known: Set<string>): string[] => {
+  const problems = new Set<string>();
+  for (const match of markdown.matchAll(/\bdata-island[\w-]*/g)) {
+    if (!known.has(match[0]))
+      problems.add(`names the attribute ${match[0]}, which the page never sets`);
+  }
+  return [...problems];
+};
+
 /**
  * The names pages mount the Swift islands by: every case of
  * `NativeIslandsComponents.Component`, then the `name` of each other
@@ -445,6 +463,7 @@ export const checkSkill = (skillRoot: string, repo: string): Problem[] => {
   for (const entry of entries.values()) {
     if ("exports" in entry) for (const name of entry.exports) known.add(name);
   }
+  const attributes = islandAttributes(join(webPackage, "src/layout/attributes.ts"));
   for (const file of markdownFiles(skillRoot)) {
     const markdown = readFileSync(file, "utf8");
     const blocks = codeBlocks(markdown);
@@ -452,6 +471,7 @@ export const checkSkill = (skillRoot: string, repo: string): Problem[] => {
     add(file, checkImports(blocks, entries, "native-islands"));
     add(file, checkSwift(blocks, symbols));
     add(file, checkInlineSymbols(markdown, known));
+    add(file, checkAttributes(markdown, attributes));
   }
   for (const file of unreachable(skillRoot)) {
     add(file, ["is not reachable by links from SKILL.md"]);

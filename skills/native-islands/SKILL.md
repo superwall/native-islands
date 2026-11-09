@@ -37,7 +37,7 @@ export const App = ({ notify, setNotify, buy }: AppProps) => (
   <NativeIslandsProvider>
     <Toggle label="Notifications" isOn={notify} onChange={setNotify} />
     <GlassButton title="Continue" prominence="prominent" onPress={buy}>
-      <button type="button" className="cta">
+      <button type="button" className="cta" onClick={buy}>
         Continue
       </button>
     </GlassButton>
@@ -70,13 +70,15 @@ drawn in the box of its web element, so the children must be a real, laid-out
 element of the right size: never `null`, `display: none` or a zero-size box.
 (A component defined with `sizing: "native"` or `"nativeHeight"` takes its
 size, or its height, from the native view instead.)
-Never branch on the platform (`navigator.userAgent`, `window.webkit`) to pick
-one or the other; the island decides.
+Children you pass replace a ready-made island's own web version, so they wire
+their own handlers too (`onClick` next to `onPress`): in a browser they are all
+there is. Never branch on the platform (`navigator.userAgent`,
+`window.webkit`) to pick one or the other; the island decides.
 
 ```tsx
 // The native button sits exactly where this button is laid out.
 <GlassButton title="Save" onPress={save}>
-  <button type="button" className="save">
+  <button type="button" className="save" onClick={save}>
     Save
   </button>
 </GlassButton>
@@ -163,15 +165,20 @@ simulator tap never reaches WebKit, so drive the web view with physical taps
 
 ## Where to go next
 
-Read only the file the job needs.
+Read only the file the job needs. For a whole job, follow its playbook.
 
 | Job                                                                           | Read                                                                                                              |
 | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Add Native Islands to an app and its pages for the first time                 | [Integrate](workflows/integrate.md)                                                                               |
+| Turn one part of a page into a native view                                    | [Add an island](workflows/add-island.md)                                                                          |
+| An island is web, misplaced, flashing, missing touches or not updating        | [Debug an island](workflows/debug.md)                                                                             |
 | Which ready-made island fits a job, with its props and callbacks              | [Ready-made islands](references/components.md)                                                                    |
 | A sheet, cover, popover or alert, and the page it presents                    | [Presentations](references/components.md#presentations)                                                           |
 | Tabs, a navigation stack, a toolbar or a search field                         | [App chrome](references/components.md#app-chrome)                                                                 |
+| A native view of your own: both halves, sizing, glass, commands               | [Writing your own island](references/custom-island.md)                                                            |
 | The provider, defining a component, events, state, requests, commands, sizing | [Page side](references/page.md)                                                                                   |
 | Why an island stays web, or parking screens that are not showing yet          | [When an island stays web](references/page.md#when-an-island-stays-web)                                           |
 | A page without React, or testing in a browser with the simulator              | [Without React](references/page.md#without-react)                                                                 |
 | Adding the Swift package, registering, `IslandWebView`, your own web view     | [iOS host](references/host.md)                                                                                    |
 | The page shows late or flashes, Info.plist keys, debugging flags in the app   | [Revealing the page](references/host.md#revealing-the-page), [Debugging](references/host.md#debugging-in-the-app) |
+| Checking a change before calling it done                                      | [Pitfalls](references/pitfalls.md)                                                                                |

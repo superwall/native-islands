@@ -186,13 +186,13 @@ with `unsupported`, and in an app without the component with `not_ready`.
 
 ## Props every island takes
 
-| Prop            | Default            | Meaning                                                                     |
-| --------------- | ------------------ | --------------------------------------------------------------------------- |
-| `children`      | none               | The web version. For a ready-made island, replaces its built-in web version |
-| `native`        | `true`             | `false` keeps the web version, such as for a setting that turns native off  |
-| `islandId`      | a generated id     | Only when something outside needs the id; it must be unique on the page     |
-| `accessibility` | read from children | `{ label?, traits? }` for VoiceOver on the native view                      |
-| `ref`           | none               | A `NativeHandle`: `command(name, args, { timeoutMs })` and `state()`        |
+| Prop            | Default            | Meaning                                                                            |
+| --------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| `children`      | none               | The web version. For a ready-made island, replaces its built-in web version        |
+| `native`        | `true`             | `false` keeps the web version, such as for a setting that turns native off         |
+| `islandId`      | a generated id     | Only when something outside needs the id; it must be unique on the page            |
+| `accessibility` | read from children | `{ label?, hint?, value?, traits?, hidden? }`; the island is one VoiceOver element |
+| `ref`           | none               | A `NativeHandle`: `command(name, args, { timeoutMs })` and `state()`               |
 
 A duplicate `islandId`, or more than 256 islands at once, shows the web
 version for the extra ones.
@@ -245,9 +245,14 @@ scrollers, `position: sticky` and `position: fixed`. A new inner scroller
 takes WebKit a few frames to back with a scroll view; the app waits up to a
 second, and the island stays web if it never shows.
 
-Each reason that is not obvious is logged to the console with the component's
-name. Read the console in Safari's Web Inspector (Develop menu, the
-simulator or the iPhone) when an island is unexpectedly web.
+A refusal (an unknown name, an older version, props that are not JSON,
+children with no element) is logged to the console with the component's name.
+A layout hand-off is not logged: read it from the island's wrapper, whose
+`data-island-mode` is `web`, `pending` or `native` and whose
+`data-island-handoff` names the cause (`hidden`, `inactive`, `transformed`,
+`covered` and others). Use Safari's Web Inspector (Develop menu, the
+simulator or the iPhone); [Debug an island](../workflows/debug.md) walks
+through it.
 
 Animating layout (width, height, top) on a page with many islands costs about
 0.3 ms per island per frame; animate `transform` and `opacity` instead.
