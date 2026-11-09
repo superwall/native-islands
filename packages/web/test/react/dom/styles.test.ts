@@ -65,3 +65,40 @@ describe("the web version of an island the host takes over", () => {
     expect(child.matches(rule?.selectorText ?? "")).toBe(true);
   });
 });
+
+describe("the concealed web version of a shown island", () => {
+  const concealment = () => {
+    ensureIslandStyles(document);
+    return rulesOf().find((candidate) => candidate.selectorText.includes("data-island-concealed"));
+  };
+
+  it("takes no touches, down to its deepest child", () => {
+    const rule = concealment();
+    expect(rule?.style.getPropertyValue("pointer-events")).toBe("none");
+    // Important, so a child the page gives `pointer-events: auto` stays untouchable.
+    expect(rule?.style.getPropertyPriority("pointer-events")).toBe("important");
+    const wrapper = document.createElement("span");
+    wrapper.setAttribute("data-island", "segmentedControl");
+    const child = wrapper.appendChild(document.createElement("div"));
+    const deep = child.appendChild(document.createElement("button"));
+    document.body.appendChild(wrapper);
+    const selector = rule?.selectorText ?? "";
+    expect(deep.matches(selector)).toBe(false);
+    wrapper.setAttribute("data-island-concealed", "");
+    expect(wrapper.matches(selector)).toBe(true);
+    expect(child.matches(selector)).toBe(true);
+    expect(deep.matches(selector)).toBe(true);
+    // While the page samples what covers the island, it can be hit again.
+    wrapper.setAttribute("data-island-probe", "");
+    expect(deep.matches(selector)).toBe(false);
+  });
+
+  it("stays in the accessibility tree, so VoiceOver can read it", () => {
+    concealment();
+    for (const rule of rulesOf()) {
+      expect(rule.style.getPropertyValue("visibility")).toBe("");
+      expect(rule.style.getPropertyValue("display")).toBe("");
+      expect(rule.style.getPropertyValue("content-visibility")).toBe("");
+    }
+  });
+});

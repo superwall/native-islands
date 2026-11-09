@@ -138,6 +138,8 @@ export const Native = ({
   const nativeSizing = mode === "web" ? "web" : sent.sizing;
   const shown = mode === "native" && handoff === undefined;
   const concealed = useConcealed(shown);
+  // A screen-anchored island sits in UIKit's own layer, where VoiceOver
+  // reaches the native view; its web copy would be read a second time.
   const hidden = shown && anchorType === "screen";
   return (
     <span
