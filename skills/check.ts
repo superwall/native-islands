@@ -376,6 +376,36 @@ export const checkAttributes = (markdown: string, known: Set<string>): string[] 
 };
 
 /**
+ * The names of a Swift `String` enum's cases, in order: its raw value when it
+ * has one, otherwise the case name. Reads only the enum's own body, so the
+ * `case` of a `switch` inside one of its members never counts, and takes every
+ * case of a `case a, b` list whatever comments sit around it.
+ */
+export const enumCases = (source: string, name: string): string[] => {
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const start = new RegExp(`\\benum\\s+${name}\\b[^{]*\\{`).exec(code);
+  if (!start) return [];
+  let depth = 1;
+  let body = "";
+  for (const char of code.slice(start.index + start[0].length)) {
+    if (char === "{") depth += 1;
+    else if (char === "}") depth -= 1;
+    if (depth === 0) break;
+    if (depth === 1 && char !== "}") body += char;
+  }
+  const names: string[] = [];
+  for (const statement of body.split(/[\n;]/)) {
+    const list = /^\s*(?:indirect\s+)?case\s+(.+?)\s*$/.exec(statement)?.[1];
+    if (!list) continue;
+    for (const item of list.split(",")) {
+      const match = /^\s*(\w+)\s*(?:=\s*"([^"]*)")?\s*$/.exec(item);
+      if (match) names.push(match[2] ?? match[1] ?? "");
+    }
+  }
+  return names;
+};
+
+/**
  * The names pages mount the Swift islands by: every case of
  * `NativeIslandsComponents.Component`, then the `name` of each other
  * component library, such as `NativeIslandsMaps.name`.
@@ -386,13 +416,7 @@ export const swiftComponentNames = (repo: string): string[] => {
     join(sources, "NativeIslandsComponents/NativeIslandsComponents.swift"),
     "utf8",
   );
-  const enumBody =
-    /public enum Component\b[^{]*\{([\s\S]*?)\n\s*(?:\/\/\/|public|@|var|static)/.exec(
-      components,
-    )?.[1];
-  const names = [...(enumBody ?? "").matchAll(/^\s*case\s+(\w+)\s*$/gm)].map(
-    (match) => match[1] ?? "",
-  );
+  const names = enumCases(components, "Component");
   for (const library of readdirSync(sources).toSorted()) {
     if (!library.startsWith("NativeIslands") || library === "NativeIslandsComponents") continue;
     const file = join(sources, library, `${library}.swift`);

@@ -100,9 +100,26 @@ describe("the catalogue", () => {
         "    // Lists",
         "    case list",
         "",
+        "    /// Pull to refresh.",
+        "    case refresh",
+        "    case badge // iOS 17+",
+        "    case chip, tag",
+        '    /* The old name. */ case glass = "glass-button"',
+        "",
         "    /// The name pages mount it by.",
         "    public var name: String { rawValue }",
+        "",
+        "    var isChrome: Bool {",
+        "      switch self {",
+        "      case .toggle: false",
+        "      default: true",
+        "      }",
+        "    }",
+        "",
+        "    case late",
         "  }",
+        "",
+        "  enum Other: String { case notAComponent }",
         "}",
       ].join("\n"),
       "packages/swift/Sources/NativeIslandsMaps/NativeIslandsMaps.swift":
@@ -111,7 +128,17 @@ describe("the catalogue", () => {
       "packages/swift/Sources/NativeIslandsCore/NativeIslandsCore.swift": "enum Core {}",
       "packages/swift/Sources/Helpers/Helpers.swift": 'let name = "helper"',
     });
-    expect(swiftComponentNames(root)).toEqual(["toggle", "list", "map"]);
+    expect(swiftComponentNames(root)).toEqual([
+      "toggle",
+      "list",
+      "refresh",
+      "badge",
+      "chip",
+      "tag",
+      "glass-button",
+      "late",
+      "map",
+    ]);
   });
 
   it("reads the values an entry exports, leaving out types", () => {
