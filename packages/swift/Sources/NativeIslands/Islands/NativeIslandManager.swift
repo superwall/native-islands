@@ -154,7 +154,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     )
     let host = UIHostingController(rootView: NativeIslandRoot(context: context, make: entry.make, outlines: outlines))
     let island = NativeIsland(context: context, host: host, mount: mount, glass: entry.glass)
-    if mount.sizing == .native {
+    if mount.sizing.isNative {
       island.watchSize { [weak self, weak island] in
         guard let self, let island else { return }
         contentSizeChanged(island)
@@ -195,6 +195,7 @@ final class NativeIslandManager: NativeIslandMessaging {
       reanchor(island, to: anchor)
     }
     var refade = false
+    let width = island.frame.width
     if let frame = update.frame {
       refade = island.opacity != update.opacity
       island.place(frame, geometryOf: update)
@@ -204,7 +205,8 @@ final class NativeIslandManager: NativeIslandMessaging {
       island.reorder(order)
     }
     apply(update, to: island, refade: refade)
-    if update.props != nil, island.sizing == .native, let size = island.measure() {
+    let resized = island.sizing == .nativeHeight && island.frame.width != width
+    if (update.props != nil && island.sizing.isNative) || resized, let size = island.measure() {
       post(.size(id: update.id, size: size, sequence: island.context.sequence))
     }
     return nil

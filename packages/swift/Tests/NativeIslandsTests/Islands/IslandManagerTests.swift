@@ -362,6 +362,58 @@ extension NativeBridgeTests {
     }
 
     @Test
+    func measuresOnlyTheHeightOfAnIslandAtThePagesWidth() {
+      let harness = NativeTestHarness()
+      harness.registry.register("wide") { _ in WideView() }
+      harness.manager.apply(batch(
+        1,
+        mountOp("w", component: "wide", frame: NativeFrame(x: 0, y: 0, width: 100, height: 0), sizing: .nativeHeight)
+      ))
+      #expect(harness.replies == [
+        .ack(sequence: 1, ids: ["w"]),
+        .size(id: "w", size: NativeSize(width: 100, height: 50), sequence: 1)
+      ])
+      #expect(harness.island("w")?.sizeObservation != nil)
+    }
+
+    @Test
+    func measuresAgainOnlyWhenThePageChangesTheWidth() {
+      let harness = NativeTestHarness()
+      harness.registry.register("wide") { _ in WideView() }
+      harness.manager.apply(batch(
+        1,
+        mountOp("w", component: "wide", frame: NativeFrame(x: 0, y: 0, width: 100, height: 0), sizing: .nativeHeight)
+      ))
+      harness.manager.apply(batch(
+        2,
+        .update(NativeUpdate(id: "w", frame: NativeFrame(x: 0, y: 0, width: 100, height: 50)))
+      ))
+      #expect(harness.replies.count == 2)
+      harness.manager.apply(batch(
+        3,
+        .update(NativeUpdate(id: "w", frame: NativeFrame(x: 0, y: 0, width: 300, height: 50)))
+      ))
+      #expect(harness.replies.contains(.size(id: "w", size: NativeSize(width: 300, height: 150), sequence: 1)))
+      #expect(harness.replies.filter { if case .size = $0 { true } else { false } }.count == 2)
+    }
+
+    @Test
+    func waitsForAWidthBeforeMeasuringTheHeight() {
+      let harness = NativeTestHarness()
+      harness.registry.register("wide") { _ in WideView() }
+      harness.manager.apply(batch(
+        1,
+        mountOp("w", component: "wide", frame: NativeFrame(x: 0, y: 0, width: 0, height: 0), sizing: .nativeHeight)
+      ))
+      #expect(harness.replies == [.ack(sequence: 1, ids: ["w"])])
+      harness.manager.apply(batch(
+        2,
+        .update(NativeUpdate(id: "w", frame: NativeFrame(x: 0, y: 0, width: 80, height: 0)))
+      ))
+      #expect(harness.replies.contains(.size(id: "w", size: NativeSize(width: 80, height: 40), sequence: 1)))
+    }
+
+    @Test
     func doesNotWatchTheSizeOfWebSizedIslands() {
       let harness = NativeTestHarness()
       harness.manager.apply(batch(1, mountOp("t", component: "toggle")))
@@ -483,6 +535,14 @@ struct GrowingView: View {
 
   var body: some View {
     Color.clear.frame(width: width.value, height: 20)
+  }
+}
+
+/// Twice as wide as it is tall at whatever width it is given, and as wide as
+/// the page lets it be, as a view that wraps text is.
+struct WideView: View {
+  var body: some View {
+    Color.clear.aspectRatio(2, contentMode: .fit).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
 }
 

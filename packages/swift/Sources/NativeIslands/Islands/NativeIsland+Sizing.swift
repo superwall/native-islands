@@ -12,10 +12,21 @@ extension NativeIsland {
     }
   }
 
+  /// Measures the content at its ideal size, or for `nativeHeight` at the
+  /// page's width, and returns it when it differs from the last report.
   func measure() -> NativeSize? {
-    let fitted = host.sizeThatFits(
-      in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    let fitsWidth = sizing == .nativeHeight
+    // A box the page has not laid out yet has no width to wrap text in.
+    if fitsWidth, frame.width <= 0 { return nil }
+    var fitted = host.sizeThatFits(
+      in: CGSize(
+        width: fitsWidth ? CGFloat(frame.width) : CGFloat.greatestFiniteMagnitude,
+        height: CGFloat.greatestFiniteMagnitude
+      )
     )
+    if fitsWidth {
+      fitted.width = CGFloat(frame.width)
+    }
     guard
       fitted.width.isFinite,
       fitted.height.isFinite,
