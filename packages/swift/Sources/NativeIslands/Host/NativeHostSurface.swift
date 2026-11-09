@@ -53,7 +53,7 @@ enum NativeScrollerMatcher {
     let near = candidates.compactMap { candidate -> (UIScrollView, CGFloat)? in
       guard matches(candidate, scroller) else { return nil }
       let origin = candidate.convert(candidate.bounds, to: viewport).origin
-      let distance = hypot(origin.x - scroller.frame.x, origin.y - scroller.frame.y)
+      let distance = hypot(origin.x - CGFloat(scroller.frame.x), origin.y - CGFloat(scroller.frame.y))
       return distance <= within ? (candidate, distance) : nil
     }
     guard let nearest = near.map(\.1).min() else { return nil }
