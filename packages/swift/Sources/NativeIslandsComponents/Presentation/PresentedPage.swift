@@ -69,7 +69,11 @@ final class PresentedPageController: UIViewController, WKNavigationDelegate {
     webView.backgroundColor = .clear
     webView.scrollView.backgroundColor = .clear
     webView.scrollView.contentInsetAdjustmentBehavior = .automatic
-    webView.scrollView.alwaysBounceVertical = true
+    // Only a sheet's page bounces: its drag moves the sheet once the page is
+    // at its top. A cover or popover holds still, like a native screen.
+    webView.scrollView.alwaysBounceVertical = style == "sheet" || style == "inspector"
+    webView.scrollView.showsVerticalScrollIndicator = false
+    webView.scrollView.showsHorizontalScrollIndicator = false
     webView.alpha = 0
     webView.navigationDelegate = self
     #if DEBUG

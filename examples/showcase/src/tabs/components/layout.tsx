@@ -1,5 +1,7 @@
 import * as React from "react";
 import {
+  FullScreenCover,
+  useSheet,
   List,
   NavigationBar,
   Toolbar,
@@ -11,7 +13,8 @@ import { useAccent, useNativeEnabled } from "../../app/preferences";
 import { Readout, Row, Section, Stage } from "../../ui/List";
 import { Button, Toggle } from "../../ui/controls";
 import { webSymbol } from "../../ui/symbols";
-import { NavigationDemo, TabViewDemo } from "./chrome";
+import { TabViewDemo } from "./chrome";
+import { presentedURL } from "./presentations";
 
 const SETTINGS: ListSection[] = [
   {
@@ -300,23 +303,40 @@ const Bars = () => {
   );
 };
 
-const AppChrome = () => (
-  <>
-    <div className="nav-gap" />
-    <h2 className="list-header">Tab view</h2>
-    <TabViewDemo />
-    <p className="list-footer">
-      A floating tab bar with a badge, a Search tab and a bottom accessory. Every tab keeps its
-      content and its islands while you are away.
-    </p>
-    <h2 className="list-header">Navigation stack</h2>
-    <NavigationDemo />
-    <p className="list-footer">
-      Push a thread, then its contact. Back pops one screen, the buttons jump; after a pop, Forward
-      appears in the bar. Swipe a row to delete it.
-    </p>
-  </>
-);
+const AppChrome = () => {
+  const native = useNativeEnabled();
+  const demo = useSheet();
+  return (
+    <>
+      <div className="nav-gap" />
+      <h2 className="list-header">Tab view</h2>
+      <Stage>
+        <TabViewDemo />
+      </Stage>
+      <p className="list-footer">
+        Three tabs and a Search tab on the floating tab bar, with a badge and a bottom accessory.
+      </p>
+      <h2 className="list-header">Navigation stack</h2>
+      <Stage>
+        <div className="stage-row">
+          <Button title="Open Navigation Demo" prominent onPress={demo.present} />
+        </div>
+      </Stage>
+      <p className="list-footer">
+        A whole screen in a full-screen cover: push a thread, then its contact, go back to any
+        depth, and Forward after a pop.
+      </p>
+      <FullScreenCover
+        {...demo.props}
+        native={native}
+        header={false}
+        url={presentedURL("navigation", "Navigation")}
+        background="var(--bg)"
+        title="Navigation"
+      />
+    </>
+  );
+};
 
 export const layoutScreens: readonly ScreenSpec[] = demoScreens("components", "Layout", [
   {

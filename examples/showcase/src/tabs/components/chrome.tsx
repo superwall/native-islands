@@ -2,11 +2,11 @@ import * as React from "react";
 import {
   List,
   NavigationStack,
-  SearchField,
   TabAccessory,
   TabView,
   deleteRows,
   useNavigationPath,
+  usePresentedPage,
   type BarItem,
   type ListSection,
   type NavigationScreen,
@@ -55,35 +55,6 @@ const INBOX: ListSection[] = [
   },
 ];
 
-const FILES: ListSection[] = [
-  {
-    id: "files",
-    header: "On My iPhone",
-    rows: [
-      {
-        id: "docs",
-        title: "Documents",
-        systemImage: "folder.fill",
-        children: [
-          { id: "cv", title: "CV.pdf", systemImage: "doc.fill" },
-          {
-            id: "notes",
-            title: "Notes",
-            systemImage: "folder.fill",
-            children: [{ id: "ideas", title: "Ideas.md", systemImage: "doc.text.fill" }],
-          },
-        ],
-      },
-      {
-        id: "downloads",
-        title: "Downloads",
-        systemImage: "folder.fill",
-        children: [{ id: "zip", title: "Islands.zip", systemImage: "doc.zipper" }],
-      },
-    ],
-  },
-];
-
 const MESSAGES = INBOX;
 
 const Message = ({ text, children }: React.PropsWithChildren<{ text?: string }>) => (
@@ -94,12 +65,14 @@ const Message = ({ text, children }: React.PropsWithChildren<{ text?: string }>)
 );
 
 /**
- * A navigation stack the page drives, in a card: a native navigation bar with
- * a large title, push and pop, Back to any depth, Forward after a pop, and a
- * pushed screen with its own bar items.
+ * A navigation stack the page drives, as a whole screen in a full-screen
+ * cover: a native navigation bar with a large title, push and pop, Back to any
+ * depth, Forward after a pop, and a pushed screen with its own bar items.
+ * Close dismisses the cover.
  */
-export const NavigationDemo = () => {
+export const NavigationDemoPage = () => {
   const native = useNativeEnabled();
+  const page = usePresentedPage();
   const tint = useAccent();
   const [inbox, setInbox] = React.useState<readonly ListSection[]>(MESSAGES);
   const mail = useNavigationPath("inbox");
@@ -110,6 +83,7 @@ export const NavigationDemo = () => {
     inbox: {
       title: "Inbox",
       largeTitle: true,
+      leading: [{ id: "close", title: "Close" }],
       trailing: [...forward, { id: "compose", systemImage: "square.and.pencil" }],
       render: () => (
         <List
@@ -177,7 +151,7 @@ export const NavigationDemo = () => {
     ),
   };
   return (
-    <div className="chrome-demo">
+    <div className="chrome-screen">
       <NavigationStack
         path={mail.path}
         onPathChange={mail.setPath}
@@ -186,7 +160,8 @@ export const NavigationDemo = () => {
         icon={webSymbol}
         native={native}
         onSelect={(id) => {
-          if (id === "forward") mail.forward();
+          if (id === "close") page.dismiss();
+          else if (id === "forward") mail.forward();
           else if (id === "compose") mail.push("compose");
           else if (id === "send") mail.popToRoot();
         }}
@@ -195,15 +170,22 @@ export const NavigationDemo = () => {
   );
 };
 
+const EmptyState = ({ title, text }: { title: string; text: string }) => (
+  <div className="chrome-empty">
+    <h3 className="chrome-empty-title">{title}</h3>
+    <p className="chrome-empty-text">{text}</p>
+  </div>
+);
+
 /**
- * A tab view in a card: the floating tab bar with a badge, a Search tab and a
- * bottom accessory, each tab keeping its content when you leave it.
+ * A tab view in a card: three tabs and a Search tab on the floating tab bar,
+ * a badge and a bottom accessory. The tabs hold empty states; the bar is the
+ * point.
  */
 export const TabViewDemo = () => {
   const native = useNativeEnabled();
   const tint = useAccent();
   const [tab, setTab] = React.useState("inbox");
-  const [query, setQuery] = React.useState("");
   const [playing, setPlaying] = React.useState(true);
   return (
     <div className="chrome-demo">
@@ -218,35 +200,24 @@ export const TabViewDemo = () => {
             id: "inbox",
             title: "Inbox",
             systemImage: "tray.fill",
-            badge: MESSAGES[0]?.rows.length,
-            content: (
-              <div className="chrome-demo-tab">
-                <h2 className="ni-large-title">Inbox</h2>
-                <List sections={MESSAGES} native={native} tint={tint} icon={webSymbol} />
-              </div>
-            ),
+            badge: 3,
+            content: <EmptyState title="Inbox" text="No new messages." />,
           },
           {
             id: "files",
             title: "Files",
             systemImage: "folder.fill",
-            content: (
-              <div className="chrome-demo-tab">
-                <h2 className="ni-large-title">Files</h2>
-                <List sections={FILES} native={native} tint={tint} icon={webSymbol} />
-              </div>
-            ),
+            content: <EmptyState title="Files" text="Nothing here yet." />,
+          },
+          {
+            id: "profile",
+            title: "Profile",
+            systemImage: "person.crop.circle.fill",
+            content: <EmptyState title="Profile" text="Not signed in." />,
           },
         ]}
         search={{
-          content: (
-            <div className="chrome-demo-tab demo-search">
-              <SearchField text={query} onChange={setQuery} native={native} tint={tint} />
-              <p className="list-footer">
-                {query ? `Searching for “${query}”` : "Type to search."}
-              </p>
-            </div>
-          ),
+          content: <EmptyState title="Search" text="No recent searches." />,
         }}
         accessory={
           <TabAccessory

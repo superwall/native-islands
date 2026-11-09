@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { PreferencesProvider } from "./app/preferences";
 import { Shell } from "./app/Shell";
 import { PresentedPage } from "./pages/Presented";
+import { NavigationDemoPage } from "./tabs/components/chrome";
 import { capabilityScreens } from "./tabs/capabilities";
 import { componentScreens } from "./tabs/components";
 import { searchScreen } from "./tabs/search";
@@ -63,6 +64,7 @@ const presented = query.get("page");
 
 /** `?page=` is a page a presentation shows; anything else is the app. */
 const App = () => {
+  if (presented === "navigation") return <NavigationDemoPage />;
   if (presented) return <PresentedPage />;
   return <Shell screens={SCREENS} />;
 };

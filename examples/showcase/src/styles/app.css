@@ -556,23 +556,54 @@ html[data-presented] #root {
   padding: 8px 0 40px;
 }
 
-/* The tab view and the navigation stack in a card, not the whole screen. */
+/* The tab view in a card, the way the toolbars sit in theirs. */
 .chrome-demo {
-  --ni-page: var(--bg);
+  --ni-page: var(--cell);
   --ni-safe-top: 0px;
   --ni-safe-bottom: 0px;
   position: relative;
-  height: 440px;
-  margin: 0 16px;
+  height: 380px;
+  margin: -20px calc(-1 * var(--row-inset));
   overflow: hidden;
-  border-radius: 26px;
-  background: var(--bg);
-  box-shadow: 0 0 0 0.5px var(--separator, rgb(0 0 0 / 12%));
+  border-radius: inherit;
+  background: var(--cell);
 }
 
-.chrome-demo-tab {
-  min-height: 100%;
-  padding: 16px 0 140px;
+.chrome-empty {
+  box-sizing: border-box;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 32px 120px;
+  text-align: center;
+}
+
+.chrome-empty-title {
+  margin: 0;
+  font: 600 20px / 25px var(--ni-font);
+}
+
+.chrome-empty-text {
+  margin: 0;
+  font: 400 15px / 20px var(--ni-font);
+  color: var(--label-secondary, rgb(60 60 67 / 60%));
+}
+
+/* The navigation stack as the whole screen of a full-screen cover. */
+html[data-presented="navigation"],
+html[data-presented="navigation"] body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.chrome-screen {
+  --ni-page: var(--bg);
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
 }
 
 .demo-message {
@@ -586,12 +617,6 @@ html[data-presented] #root {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-}
-
-.demo-search {
-  display: grid;
-  gap: 8px;
-  padding: 16px 16px 140px;
 }
 
 .bar-demo {
