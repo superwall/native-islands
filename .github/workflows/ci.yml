@@ -37,15 +37,17 @@ jobs:
       - run: bun run --cwd examples/showcase build
 
   # Xcode 27 accepts some type conversions that Xcode 26 rejects, so the package
-  # and its tests are built with the oldest and newest Xcode 26 as well. Intel
-  # runners start at once; building needs no simulator, so their speed is fine.
+  # and its tests are built with the oldest and newest Xcode 26 as well. 26.2 is
+  # the oldest Xcode the image has an iOS simulator runtime for: 26.0.1 and
+  # 26.1.1 cannot resolve a simulator destination there. Intel runners start at
+  # once, and a build without running tests is fine at their speed.
   swift-xcode26:
     runs-on: macos-26-intel
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        xcode: ["26.0.1", "26.6"]
+        xcode: ["26.2", "26.6"]
     name: swift (Xcode ${{ matrix.xcode }})
     steps:
       - uses: actions/checkout@v4
