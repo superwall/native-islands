@@ -93,6 +93,7 @@ describe("installNativeSimulator", () => {
         "transform",
         "motion",
         "reuse",
+        "nativeHeight",
       ],
     });
     expect(() => installNativeSimulator()).toThrow(/already present/);
@@ -475,6 +476,38 @@ describe("installNativeSimulator", () => {
     });
   });
 
+  it("measures a nativeHeight island at its frame's width, again when the width changes", () => {
+    simulator = installNativeSimulator({
+      components: { tip: 1 },
+      sizes: { tip: { width: 999, height: 96 } },
+    });
+    const sizes = () =>
+      received.filter((message) => message.event_name === "native_component_size");
+    post([
+      mount({ id: "t", component: "tip", sizing: "nativeHeight" }),
+      mount({
+        id: "z",
+        component: "tip",
+        sizing: "nativeHeight",
+        frame: { x: 0, y: 0, width: 0, height: 0 },
+      }),
+    ]);
+    expect(sizes()).toEqual([
+      {
+        event_name: "native_component_size",
+        id: "t",
+        size: { width: 100, height: 96 },
+        sequence: expect.any(Number),
+      },
+    ]);
+    post([{ op: "update", id: "t", frame: { x: 10, y: 20, width: 100, height: 96 } }]);
+    expect(sizes()).toHaveLength(1);
+    post([{ op: "update", id: "t", frame: { x: 10, y: 20, width: 240, height: 96 } }]);
+    expect(sizes().at(-1)).toMatchObject({ id: "t", size: { width: 240, height: 96 } });
+    post([{ op: "update", id: "z", frame: { x: 0, y: 0, width: 300, height: 0 } }]);
+    expect(sizes().at(-1)).toMatchObject({ id: "z", size: { width: 300, height: 96 } });
+  });
+
   it("applies updates, re-anchors, and replaces a re-mounted id", () => {
     simulator = installNativeSimulator();
     post([mount()]);
@@ -725,6 +758,7 @@ describe("simulated state, requests and commands", () => {
         "transform",
         "motion",
         "reuse",
+        "nativeHeight",
       ],
     });
   });

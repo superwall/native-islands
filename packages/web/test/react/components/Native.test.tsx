@@ -452,6 +452,43 @@ describe("native sizing", () => {
     });
   });
 
+  it("fills the page's width and takes only the reported height for nativeHeight", async () => {
+    installCapability({ ...CAPABILITY, features: [...CAPABILITY.features, "nativeHeight"] });
+    const view = renderNative(
+      <Native component="symbol" sizing="nativeHeight">
+        <div data-rect={rectAttribute(0, 0, 300, 80)}>Tip</div>
+      </Native>,
+    );
+    await view.nextFrame();
+    expect(view.operations()[0]).toMatchObject({ op: "mount", sizing: "nativeHeight" });
+    const island = islandOf(view.container, "symbol");
+    expect(island.style.display).toBe("block");
+    expect(island.style.height).toBe("");
+    const id = view.operations()[0]?.id as string;
+    view.send({ event_name: "native_component_size", id, size: { width: 300, height: 96 } });
+    expect(island.style.display).toBe("block");
+    expect(island.style.width).toBe("");
+    expect(island.style.height).toBe("96px");
+    expect(island.style.overflow).toBe("hidden");
+    view.send({ event_name: "native_component_size", id, size: { width: 300, height: 0 } });
+    expect(island.style.height).toBe("0px");
+  });
+
+  it("sends web sizing for nativeHeight to a host that can't measure it", async () => {
+    const view = renderNative(
+      <Native component="symbol" sizing="nativeHeight">
+        <div data-rect={rectAttribute(0, 0, 300, 80)}>Tip</div>
+      </Native>,
+    );
+    await view.nextFrame();
+    expect(view.operations()[0]).toMatchObject({ op: "mount", sizing: "web" });
+    const id = view.operations()[0]?.id as string;
+    view.send({ event_name: "native_component_size", id, size: { width: 300, height: 96 } });
+    const island = islandOf(view.container, "symbol");
+    expect(island.style.display).toBe("contents");
+    expect(island.style.height).toBe("");
+  });
+
   it("routes change events with their payload", async () => {
     const onChange = vi.fn();
     const view = renderNative(

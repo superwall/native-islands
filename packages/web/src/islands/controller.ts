@@ -70,7 +70,7 @@ export type NativeIslandSpec = {
   anchor: TNativeAnchor;
   visible: boolean;
   order: number;
-  sizing: "web" | "native";
+  sizing: "web" | "native" | "nativeHeight";
   accessibility?: TNativeAccessibility;
   sticky?: TNativeSticky;
   clip?: TNativeFrame;

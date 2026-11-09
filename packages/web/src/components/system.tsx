@@ -258,10 +258,10 @@ type TipCommands = { invalidate: { args: undefined; result: void } };
 
 /**
  * A TipKit tip: a title, a message and buttons, with a close button.
- * TipKit remembers by `id` that it was closed, across launches. Its web
- * version sets its size, so keep it the size of TipKit's card; once TipKit
- * stops showing the tip, or the web card is closed, it collapses and takes no
- * room. Needs iOS 17; before, the web version shows.
+ * TipKit remembers by `id` that it was closed, across launches. It fills the
+ * width of its place and TipKit sets its height, so once TipKit stops showing
+ * the tip it collapses and takes no room, as the web card does once closed.
+ * Needs iOS 17; before, the web version shows.
  */
 export const Tip = ({
   id,
@@ -299,7 +299,6 @@ export const Tip = ({
 }) => {
   const island = React.useRef<NativeHandle<TipCommands>>(null);
   const [closed, setClosed] = React.useState(false);
-  const [shown, setShown] = React.useState(true);
   React.useImperativeHandle(
     handle,
     () => ({
@@ -328,11 +327,10 @@ export const Tip = ({
       accessibility={accessibility ?? { label: title }}
       onAction={({ id: action }) => onAction?.(action)}
       onDismiss={onDismiss}
-      onStateChange={(state) => setShown(state.shown !== false)}
       {...common}
     >
       {children ??
-        (closed || !shown ? null : (
+        (closed ? null : (
           <aside
             className="ni-tip"
             data-arrow={arrowEdge}
