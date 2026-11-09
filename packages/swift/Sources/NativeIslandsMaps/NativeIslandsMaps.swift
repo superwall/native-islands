@@ -10,6 +10,6 @@ public enum NativeIslandsMaps {
 
   @MainActor
   public static func register(in registry: NativeComponentRegistry? = nil) {
-    (registry ?? .shared).register(name) { MapView(component: $0) }
+    (registry ?? .shared).register(name, accessibilityChildren: .contain) { MapView(component: $0) }
   }
 }
