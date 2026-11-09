@@ -536,16 +536,23 @@ html[data-view-mode="outlines"] [data-island] > * {
 
 /* Pages a presentation shows (`?page=`), and the demo app. */
 
-.presented {
-  position: absolute;
-  inset: 0;
-  overflow: auto;
+/* The document itself scrolls, not an inner scroller: a sheet follows the
+   web view's own scroll view, so a drag scrolls the page until it reaches the
+   top and only then moves the sheet, as in any native sheet. */
+html[data-presented]:not([data-presented="app"]),
+html[data-presented]:not([data-presented="app"]) body,
+html[data-presented]:not([data-presented="app"]) #root {
+  position: static;
+  overflow: visible;
+  overscroll-behavior: auto;
 }
 
-/* One pixel taller than the page, so it scrolls natively and its islands ride it. */
+.presented {
+  min-height: calc(100vh + 1px);
+}
+
 .presented-body {
   box-sizing: border-box;
-  min-height: calc(100% + 1px);
   padding: 8px 0 40px;
 }
 

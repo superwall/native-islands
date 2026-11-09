@@ -46,6 +46,7 @@ struct PresentationView: UIViewRepresentable {
 
   static func dismantleUIView(_ anchor: AnchorView, coordinator: Coordinator) {
     coordinator.close(animated: true, report: false)
+    coordinator.discardPrepared()
   }
 
   @MainActor
@@ -53,6 +54,9 @@ struct PresentationView: UIViewRepresentable {
     var component: NativeComponentContext
     weak var anchor: AnchorView?
     private(set) var page: PresentedPageController?
+    /// The next page, loaded while the presentation is closed, so it opens
+    /// with its islands already drawn.
+    private var prepared: PresentedPageController?
     private var shown: UIViewController?
     private var shownStyle: String?
     private var applied: [String: String] = [:]
@@ -69,6 +73,7 @@ struct PresentationView: UIViewRepresentable {
       // never close it.
       guard props.bool("open") == true else {
         if page != nil { close(animated: true, report: false) }
+        prepare()
         return
       }
       if let page {
@@ -89,17 +94,60 @@ struct PresentationView: UIViewRepresentable {
       anchor?.enclosingWebView.flatMap(NativeIslandsHost.of)
     }
 
-    private func present() {
-      guard let anchor, let webView = anchor.enclosingWebView, let url = resolvedURL(),
-        let front = anchor.frontController
-      else { return }
+    /// Loads the page before it is asked for (`preload`, on by default), in
+    /// a web view off screen, so presenting it shows a page already laid out.
+    private func prepare() {
+      // A presentation whose page left the screen lets its page go.
+      guard component.isVisible else {
+        discardPrepared()
+        return
+      }
+      guard props.bool("preload") != false, let anchor,
+        let webView = anchor.enclosingWebView, let url = resolvedURL()
+      else {
+        if props.bool("preload") == false { discardPrepared() }
+        return
+      }
       let style = props.string("style") ?? "sheet"
+      if let prepared, prepared.url == url, prepared.style == style {
+        // Prepared before the anchor had a window: wait there now.
+        if prepared.view.window == nil, let window = anchor.window { window.insertSubview(prepared.view, at: 0) }
+        return
+      }
+      discardPrepared()
       let page = PresentedPageController(
         url: url,
         configuration: webView.configuration,
         style: style,
         background: props.uiColor("background")
       )
+      page.preload(in: anchor.window, size: anchor.window?.bounds.size ?? UIScreen.main.bounds.size)
+      prepared = page
+    }
+
+    func discardPrepared() {
+      prepared?.close()
+      prepared = nil
+    }
+
+    private func present() {
+      guard let anchor, let webView = anchor.enclosingWebView, let url = resolvedURL(),
+        let front = anchor.frontController
+      else { return }
+      let style = props.string("style") ?? "sheet"
+      let page: PresentedPageController
+      if let prepared, prepared.url == url, prepared.style == style {
+        page = prepared
+        self.prepared = nil
+      } else {
+        discardPrepared()
+        page = PresentedPageController(
+          url: url,
+          configuration: webView.configuration,
+          style: style,
+          background: props.uiColor("background")
+        )
+      }
       page.webView.islands?.showsOutlines = presenterHost?.showsOutlines ?? false
       page.onDismissRequest = { [weak self] result in
         self?.close(animated: true, report: true, reason: "page", result: result)
@@ -160,7 +208,7 @@ struct PresentationView: UIViewRepresentable {
       let grabber = props.bool("grabber") ?? (names.count > 1)
       let shape = "\(names)|\(grabber)|\(props.bool("undimmed") == true)|\(props.double("cornerRadius") ?? -1)"
       if changed("shape", shape) {
-        let detents = names.compactMap(Self.detent)
+        let detents = names.compactMap(SheetDetents.detent)
         sheet.animateChanges {
           sheet.detents = detents.isEmpty ? [.large()] : detents
           sheet.prefersGrabberVisible = grabber
@@ -168,7 +216,7 @@ struct PresentationView: UIViewRepresentable {
           if let radius = props.double("cornerRadius") { sheet.preferredCornerRadius = radius }
           if props.bool("undimmed") == true {
             // Dims nothing up to the tallest detent but the full height.
-            let tallest = names.last.map(Self.identifier) ?? .large
+            let tallest = names.last.map(SheetDetents.identifier) ?? .large
             sheet.largestUndimmedDetentIdentifier = tallest == .large ? .medium : tallest
           } else {
             sheet.largestUndimmedDetentIdentifier = nil
@@ -176,50 +224,19 @@ struct PresentationView: UIViewRepresentable {
         }
       }
       if let selected = props.string("selectedDetent"), changed("selected", selected),
-        sheet.selectedDetentIdentifier != Self.identifier(selected) {
-        sheet.animateChanges { sheet.selectedDetentIdentifier = Self.identifier(selected) }
+        sheet.selectedDetentIdentifier != SheetDetents.identifier(selected) {
+        sheet.animateChanges { sheet.selectedDetentIdentifier = SheetDetents.identifier(selected) }
       }
-      page.detent = Self.name(of: sheet.selectedDetentIdentifier) ?? names.first ?? "large"
+      page.detent = SheetDetents.name(of: sheet.selectedDetentIdentifier) ?? names.first ?? "large"
     }
 
     private func select(detent name: String) {
       guard let sheet = shown?.sheetPresentationController else { return }
-      if #available(iOS 16.0, *), !sheet.detents.contains(where: { $0.identifier == Self.identifier(name) }) {
+      if #available(iOS 16.0, *), !sheet.detents.contains(where: { $0.identifier == SheetDetents.identifier(name) }) {
         return
       }
-      sheet.animateChanges { sheet.selectedDetentIdentifier = Self.identifier(name) }
+      sheet.animateChanges { sheet.selectedDetentIdentifier = SheetDetents.identifier(name) }
       sheetPresentationControllerDidChangeSelectedDetentIdentifier(sheet)
-    }
-
-    /// `medium`, `large`, or a height in points such as `"240"`.
-    static func detent(_ name: String) -> UISheetPresentationController.Detent? {
-      switch name {
-      case "medium": return .medium()
-      case "large": return .large()
-      default:
-        guard let height = Double(name), height > 0 else { return nil }
-        if #available(iOS 16.0, *) {
-          return .custom(identifier: identifier(name)) { _ in height }
-        }
-        return .medium()
-      }
-    }
-
-    static func identifier(_ name: String) -> UISheetPresentationController.Detent.Identifier {
-      switch name {
-      case "medium": return .medium
-      case "large": return .large
-      default: return .init(name)
-      }
-    }
-
-    static func name(of identifier: UISheetPresentationController.Detent.Identifier?) -> String? {
-      guard let identifier else { return nil }
-      switch identifier {
-      case .medium: return "medium"
-      case .large: return "large"
-      default: return identifier.rawValue
-      }
     }
 
     func close(animated: Bool, report: Bool, reason: String = "page", result: Any? = nil) {
@@ -227,13 +244,28 @@ struct PresentationView: UIViewRepresentable {
       let shown = self.shown
       self.page = nil
       self.shown = nil
-      page.close()
-      if let shown, shown.presentingViewController != nil, !shown.isBeingDismissed {
-        shown.presentingViewController?.dismiss(animated: animated)
-      }
+      Self.dismiss(shown, animated: animated) { page.close() }
       guard report else { return }
       component.setState(["open": false])
       component.emit("dismiss", payload: ["reason": reason, "result": result ?? NSNull()])
+    }
+
+    /// Dismisses `shown` and then runs `done`. A dismissal asked for while a
+    /// transition runs (the person dragging the sheet, or it still sliding
+    /// in) is ignored by UIKit, so it waits for that transition to end first;
+    /// the page keeps its islands until the sheet is really gone.
+    static func dismiss(_ shown: UIViewController?, animated: Bool, done: @escaping @MainActor () -> Void) {
+      guard let shown, let presenter = shown.presentingViewController, !shown.isBeingDismissed else {
+        done()
+        return
+      }
+      if let transition = shown.transitionCoordinator {
+        transition.animate(alongsideTransition: nil) { _ in
+          MainActor.assumeIsolated { dismiss(shown, animated: animated, done: done) }
+        }
+        return
+      }
+      presenter.dismiss(animated: animated) { MainActor.assumeIsolated { done() } }
     }
 
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
@@ -248,7 +280,7 @@ struct PresentationView: UIViewRepresentable {
     func sheetPresentationControllerDidChangeSelectedDetentIdentifier(
       _ sheet: UISheetPresentationController
     ) {
-      guard let name = Self.name(of: sheet.selectedDetentIdentifier) else { return }
+      guard let name = SheetDetents.name(of: sheet.selectedDetentIdentifier) else { return }
       applied["selected"] = name
       page?.detent = name
       component.setState(["selectedDetent": name])
@@ -270,107 +302,5 @@ struct PresentationView: UIViewRepresentable {
 final class PresentationNavigationController: UINavigationController {
   override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
     presentingViewController?.supportedInterfaceOrientations ?? .all
-  }
-}
-
-/// A system alert or confirmation dialog built from props: `title`,
-/// `message`, `buttons` with roles (`cancel`, `destructive`) and optional
-/// `textFields`. `open` shows it; a button closes it, sets `open` to false and
-/// sends `action` with the button's id and what was typed.
-struct AlertView: UIViewRepresentable {
-  @ObservedObject var component: NativeComponentContext
-
-  func makeCoordinator() -> Coordinator { Coordinator(component: component) }
-
-  func makeUIView(context: Context) -> AnchorView {
-    let anchor = AnchorView()
-    context.coordinator.anchor = anchor
-    return anchor
-  }
-
-  func updateUIView(_ anchor: AnchorView, context: Context) {
-    context.coordinator.component = component
-    DispatchQueue.main.async { context.coordinator.update() }
-  }
-
-  static func dismantleUIView(_ anchor: AnchorView, coordinator: Coordinator) {
-    coordinator.alert?.presentingViewController?.dismiss(animated: false)
-  }
-
-  @MainActor
-  final class Coordinator {
-    var component: NativeComponentContext
-    weak var anchor: AnchorView?
-    private(set) var alert: UIAlertController?
-
-    init(component: NativeComponentContext) {
-      self.component = component
-    }
-
-    func update() {
-      let props = component.props
-      let open = props.bool("open") == true && component.isVisible
-      if !open {
-        if let alert {
-          self.alert = nil
-          alert.presentingViewController?.dismiss(animated: true)
-        }
-        return
-      }
-      guard alert == nil, let anchor, let front = anchor.frontController else { return }
-      let dialog = props.string("style") == "confirmationDialog"
-      let title = props.string("title")
-      let message = props.string("message")
-      let alert = UIAlertController(
-        title: title?.isEmpty == false ? title : nil,
-        message: message?.isEmpty == false ? message : nil,
-        preferredStyle: dialog ? .actionSheet : .alert
-      )
-      let fields = dialog ? [] : (props["textFields"] as? [Any] ?? []).compactMap { $0 as? [String: Any] }
-      for field in fields {
-        alert.addTextField { text in
-          text.placeholder = field["placeholder"] as? String
-          text.text = field["text"] as? String
-          text.isSecureTextEntry = field["secure"] as? Bool ?? false
-        }
-      }
-      var buttons = (props["buttons"] as? [Any] ?? []).compactMap { $0 as? [String: Any] }
-      if buttons.isEmpty { buttons = [["id": "ok", "title": "OK", "role": "cancel"]] }
-      for button in buttons {
-        let id = button["id"] as? String ?? button["title"] as? String ?? "ok"
-        let style: UIAlertAction.Style = switch button["role"] as? String {
-        case "cancel": .cancel
-        case "destructive": .destructive
-        default: .default
-        }
-        let action = UIAlertAction(title: button["title"] as? String ?? id, style: style) { [weak self, weak alert] _ in
-          self?.chose(id, in: alert, fields: fields)
-        }
-        alert.addAction(action)
-        if button["preferred"] as? Bool == true { alert.preferredAction = action }
-      }
-      alert.view.tintColor = props.uiColor("tint")
-      alert.popoverPresentationController?.sourceView = anchor
-      alert.popoverPresentationController?.sourceRect = anchor.bounds
-      self.alert = alert
-      front.present(alert, animated: true)
-    }
-
-    private func chose(_ id: String, in alert: UIAlertController?, fields: [[String: Any]]) {
-      var values: [String: Any] = [:]
-      for (index, field) in fields.enumerated() {
-        let key = field["id"] as? String ?? String(index)
-        values[key] = alert?.textFields?[safe: index]?.text ?? ""
-      }
-      self.alert = nil
-      component.setState(["open": false])
-      component.emit("action", payload: ["id": id, "values": values])
-    }
-  }
-}
-
-extension Array {
-  subscript(safe index: Int) -> Element? {
-    indices.contains(index) ? self[index] : nil
   }
 }

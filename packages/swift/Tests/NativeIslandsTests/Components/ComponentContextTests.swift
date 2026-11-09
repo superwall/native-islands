@@ -136,6 +136,27 @@ extension NativeBridgeTests {
       #expect(context.props.string("email") == "ab")
     }
 
+    @Test("A value the page has seen and replaced never comes back with newer state")
+    func newerStateKeepsWhatThePageChangedSince() {
+      let harness = NativeTestHarness()
+      let context = mounted(
+        harness,
+        mountOp(props: ["open": .bool(true), "detent": .string("large")], stateRevision: 0)
+      )
+      // The person swipes the sheet away; the page echoes it.
+      context.setState(["open": false])
+      harness.manager.apply(
+        batch(2, .update(NativeUpdate(id: "cta", props: ["open": .bool(false), "detent": .string("large")], stateRevision: 1)))
+      )
+      // The page opens it again, then the sheet reports a new detent.
+      harness.manager.apply(
+        batch(3, .update(NativeUpdate(id: "cta", props: ["open": .bool(true), "detent": .string("large")], stateRevision: 1)))
+      )
+      context.setState(["detent": "medium"])
+      #expect(context.props.bool("open") == true)
+      #expect(context.props.string("detent") == "medium")
+    }
+
     @Test
     func dropsPropsThatEchoAnOlderState() {
       let harness = NativeTestHarness()

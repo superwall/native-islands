@@ -98,8 +98,43 @@ struct InteractionView: UIViewRepresentable {
       preview()
     }
 
+    // Closing settles the lifted element back where it sits. Without a
+    // preview for it, UIKit shrinks a copy of it away instead.
+    func contextMenuInteraction(
+      _ interaction: UIContextMenuInteraction,
+      configuration: UIContextMenuConfiguration,
+      dismissalPreviewForItemWithIdentifier identifier: any NSCopying
+    ) -> UITargetedPreview? {
+      lifted ?? preview()
+    }
+
+    func contextMenuInteraction(
+      _ interaction: UIContextMenuInteraction,
+      previewForDismissingMenuWithConfiguration configuration: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+      lifted ?? preview()
+    }
+
+    func contextMenuInteraction(
+      _ interaction: UIContextMenuInteraction,
+      willEndFor configuration: UIContextMenuConfiguration,
+      animator: (any UIContextMenuInteractionAnimating)?
+    ) {
+      guard let animator else {
+        lifted = nil
+        return
+      }
+      animator.addCompletion { [weak self] in
+        MainActor.assumeIsolated { self?.lifted = nil }
+      }
+    }
+
+    /// The preview lifted when the menu opened, settled back when it closes.
+    private var lifted: UITargetedPreview?
+
     /// A snapshot of the element as the page draws it, lifted from where it sits.
     private func preview() -> UITargetedPreview? {
+      if let lifted { return lifted }
       guard let view, let webView = view.enclosingWebView, view.window != nil else { return nil }
       let rect = view.convert(view.bounds, to: webView)
       guard let snapshot = webView.resizableSnapshotView(from: rect, afterScreenUpdates: false, withCapInsets: .zero)
@@ -109,7 +144,9 @@ struct InteractionView: UIViewRepresentable {
       parameters.visiblePath = UIBezierPath(roundedRect: view.bounds, cornerRadius: radius)
       parameters.backgroundColor = .clear
       let target = UIPreviewTarget(container: view, center: CGPoint(x: view.bounds.midX, y: view.bounds.midY))
-      return UITargetedPreview(view: snapshot, parameters: parameters, target: target)
+      let preview = UITargetedPreview(view: snapshot, parameters: parameters, target: target)
+      lifted = preview
+      return preview
     }
 
     static func elements(_ items: [MenuView.Item], select: @escaping @MainActor (String) -> Void) -> [UIMenuElement] {

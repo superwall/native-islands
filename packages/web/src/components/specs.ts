@@ -406,6 +406,8 @@ export const NativePresentation = defineNativeComponent<{
     header?: boolean;
     /** Shows behind the page while it loads. */
     background?: string;
+    /** False loads the page only when it opens, instead of ahead of time. */
+    preload?: boolean;
   };
   events: { dismiss: PresentationDismiss; message: { data: NativeJSON } };
   state: { open: boolean; selectedDetent: SheetDetent };

@@ -451,6 +451,32 @@ export const TabAccessory = ({
   </NativeTabAccessory>
 );
 
+/**
+ * One tab's content. Tabs that are not selected wait below, each at its own
+ * spot, instead of `display: none`: hiding a scrolling area makes WebKit drop
+ * its native scroll view, and the islands in it with it. Parked, they keep
+ * their scroll views and their islands, so a tab comes back drawn. They wait
+ * below, never beside: a `NavigationStack` parks pushed screens beside it,
+ * and the host tells scrolling areas apart by size and place.
+ */
+const TabPage = ({
+  index,
+  selected,
+  label,
+  children,
+}: React.PropsWithChildren<{ index: number; selected: boolean; label: string }>) => (
+  <section
+    className="ni-tab-view-page"
+    data-selected={selected}
+    style={selected ? undefined : { top: `${(index + 1) * 200}%` }}
+    aria-label={label}
+    aria-hidden={selected ? undefined : true}
+    inert={selected ? undefined : true}
+  >
+    {children}
+  </section>
+);
+
 export type TabViewTab = Tab & { content: React.ReactNode };
 
 /**
@@ -482,20 +508,15 @@ export const TabView = ({
   const searching = search !== undefined && selectedId === "search";
   return (
     <div className="ni-tab-view">
-      {tabs.map((tab) => (
-        <section
-          key={tab.id}
-          className="ni-tab-view-page"
-          hidden={tab.id !== selectedId}
-          aria-label={tab.title}
-        >
+      {tabs.map((tab, index) => (
+        <TabPage key={tab.id} index={index} selected={tab.id === selectedId} label={tab.title}>
           {tab.content}
-        </section>
+        </TabPage>
       ))}
       {search && (
-        <section className="ni-tab-view-page" hidden={!searching} aria-label="Search">
+        <TabPage index={tabs.length} selected={searching} label="Search">
           {search.content}
-        </section>
+        </TabPage>
       )}
       <div className="ni-tab-view-bottom">
         {accessory && <div className="ni-tab-view-accessory">{accessory}</div>}
@@ -776,7 +797,14 @@ export const NavigationStack = ({
           <section
             key={key}
             className="ni-navigation-stack-screen"
-            style={place === "parked" ? { left: `${parkedAt(key) * 100}%` } : undefined}
+            // Out of sight, a screen waits at its own spot rather than hidden:
+            // hiding a scrolling area makes WebKit drop its native scroll view
+            // and the islands in it, so Back would show an empty screen.
+            style={
+              place === "parked" || place === "away"
+                ? { left: `${parkedAt(key) * 100}%` }
+                : undefined
+            }
             data-place={place}
             data-motion={motion}
             aria-hidden={live ? undefined : true}

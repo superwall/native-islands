@@ -261,7 +261,10 @@ of your own:
   `FullScreenCover`, `Popover`, `Inspector`, `Alert` and `ConfirmationDialog`.
   A sheet, cover, popover or inspector holds another page in its own web view
   with its own islands; that page closes itself and messages back with
-  `usePresentedPage()`.
+  `usePresentedPage()`. The page is loaded ahead of time, so it opens already
+  drawn (`preload={false}` loads it only on open). Let that page scroll the
+  document itself, not an inner scroller: a sheet follows the web view's own
+  scroll view, scrolling the page before it moves the sheet.
 - **App chrome:** `TabView` with a bottom `TabAccessory` and a `SearchTab`,
   `TabBar`, `NavigationStack` with large titles, `NavigationBar`, `Toolbar`
   and `SearchField`.

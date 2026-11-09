@@ -40,14 +40,17 @@ extension NativeBridgeTests {
       ("rgba(0, 0, 255, 0.5)", NativeComponentProps.RGBA(red: 0, green: 0, blue: 1, alpha: 0.5)),
       ("rgb(0 255 0 / 25%)", NativeComponentProps.RGBA(red: 0, green: 1, blue: 0, alpha: 0.25)),
       ("RGB(100%, 0%, 50%)", NativeComponentProps.RGBA(red: 1, green: 0, blue: 0.5, alpha: 1)),
-      ("rgb(300, -5, 0)", NativeComponentProps.RGBA(red: 1, green: 0, blue: 0, alpha: 1))
+      ("rgb(300, -5, 0)", NativeComponentProps.RGBA(red: 1, green: 0, blue: 0, alpha: 1)),
+      ("#ff0000", NativeComponentProps.RGBA(red: 1, green: 0, blue: 0, alpha: 1)),
+      ("#0000ff80", NativeComponentProps.RGBA(red: 0, green: 0, blue: 1, alpha: 128 / 255)),
+      ("#0f0", NativeComponentProps.RGBA(red: 0, green: 1, blue: 0, alpha: 1))
     ])
     func parsesComputedCSSColours(css: String, expected: NativeComponentProps.RGBA) {
       #expect(NativeComponentProps.rgba(css) == expected)
     }
 
-    @Test(arguments: ["red", "#ff0000", "hsl(0, 100%, 50%)", "rgb(1, 2)", "rgb(a, b, c)", "rgb(1, 2, 3", "rgb(nan, 0, 0)"])
-    func refusesAnythingButRGB(css: String) {
+    @Test(arguments: ["red", "#ff000", "#gg0000", "hsl(0, 100%, 50%)", "rgb(1, 2)", "rgb(a, b, c)", "rgb(1, 2, 3", "rgb(nan, 0, 0)"])
+    func refusesAnythingButRGBOrHex(css: String) {
       #expect(NativeComponentProps.rgba(css) == nil)
     }
 

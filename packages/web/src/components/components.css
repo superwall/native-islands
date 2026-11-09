@@ -1361,12 +1361,20 @@
 
 .ni-tab-view {
   position: relative;
+  isolation: isolate;
   height: 100%;
+  overflow: hidden;
 }
 
 .ni-tab-view-page {
-  height: 100%;
+  position: absolute;
+  inset: 0;
   overflow: auto;
+}
+
+.ni-tab-view-page[data-selected="false"] {
+  bottom: auto;
+  height: 100%;
 }
 
 .ni-tab-view-bottom {
@@ -1438,13 +1446,10 @@
   transform: translateX(-30%);
 }
 
-.ni-navigation-stack-screen[data-place="parked"] {
+.ni-navigation-stack-screen[data-place="parked"],
+.ni-navigation-stack-screen[data-place="away"] {
   right: auto;
   width: 100%;
-}
-
-.ni-navigation-stack-screen[data-place="away"] {
-  visibility: hidden;
 }
 
 .ni-navigation-stack-screen[data-motion="push-in"],

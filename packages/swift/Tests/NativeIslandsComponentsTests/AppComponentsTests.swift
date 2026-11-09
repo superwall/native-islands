@@ -107,15 +107,15 @@ struct AppComponentsTests {
 
   @Test("Reads sheet detents as medium, large or a height")
   func readsDetents() {
-    #expect(PresentationView.Coordinator.detent("medium") != nil)
-    #expect(PresentationView.Coordinator.detent("large") != nil)
-    #expect(PresentationView.Coordinator.detent("240") != nil)
-    #expect(PresentationView.Coordinator.detent("tall") == nil)
-    #expect(PresentationView.Coordinator.identifier("240").rawValue == "240")
-    #expect(PresentationView.Coordinator.name(of: .medium) == "medium")
-    #expect(PresentationView.Coordinator.name(of: .large) == "large")
-    #expect(PresentationView.Coordinator.name(of: .init("240")) == "240")
-    #expect(PresentationView.Coordinator.name(of: nil) == nil)
+    #expect(SheetDetents.detent("medium") != nil)
+    #expect(SheetDetents.detent("large") != nil)
+    #expect(SheetDetents.detent("240") != nil)
+    #expect(SheetDetents.detent("tall") == nil)
+    #expect(SheetDetents.identifier("240").rawValue == "240")
+    #expect(SheetDetents.name(of: .medium) == "medium")
+    #expect(SheetDetents.name(of: .large) == "large")
+    #expect(SheetDetents.name(of: .init("240")) == "240")
+    #expect(SheetDetents.name(of: nil) == nil)
   }
 
   @Test("Routes a presented page's messages, and gives it the system header")
@@ -141,7 +141,11 @@ struct AppComponentsTests {
     let navigation = PresentationNavigationController(rootViewController: page)
     page.loadViewIfNeeded()
     #expect(page.view.backgroundColor == .red)
-    #expect(page.edgesForExtendedLayout.isEmpty)
+    // The page runs under the bar and its own scroll view is the sheet's
+    // content, so a drag scrolls the page before it moves the sheet.
+    #expect(page.edgesForExtendedLayout == .all)
+    #expect(page.contentScrollView(for: .top) === page.webView.scrollView)
+    #expect(page.webView.scrollView.contentInsetAdjustmentBehavior == .automatic)
     var done = false
     page.onDone = { done = true }
     let item = try #require(page.navigationItem.rightBarButtonItem)
@@ -153,6 +157,35 @@ struct AppComponentsTests {
     page.detent = "large"
     #expect(navigation.viewControllers == [page])
     page.close()
+  }
+
+  @Test("Loads a page ahead of time behind the app, out of reach")
+  func preloadsBehindTheApp() throws {
+    let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+    window.rootViewController = UIViewController()
+    window.makeKeyAndVisible()
+    let page = PresentedPageController(
+      url: try #require(URL(string: "about:blank")),
+      configuration: WKWebViewConfiguration(),
+      style: "fullScreenCover",
+      background: nil
+    )
+    page.preload(in: window, size: window.bounds.size)
+    #expect(page.view.superview === window)
+    #expect(window.subviews.first === page.view)
+    #expect(page.view.frame.size == window.bounds.size)
+    #expect(!page.view.isUserInteractionEnabled)
+    #expect(page.view.accessibilityElementsHidden)
+    page.close()
+    #expect(page.view.superview == nil)
+  }
+
+  @Test("Runs what follows a dismissal at once when nothing is shown")
+  func dismissesNothing() {
+    var done = 0
+    PresentationView.Coordinator.dismiss(nil, animated: false) { done += 1 }
+    PresentationView.Coordinator.dismiss(UIViewController(), animated: false) { done += 1 }
+    #expect(done == 2)
   }
 
   @Test("Draws glass for glass materials only")

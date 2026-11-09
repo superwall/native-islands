@@ -335,8 +335,12 @@ describe("TabView", () => {
         accessory={<p>Accessory</p>}
       />,
     );
-    const pages = [...view.container.querySelectorAll("section")].map((section) => section.hidden);
-    expect(pages).toEqual([true, true, false]);
+    const pages = [...view.container.querySelectorAll("section")];
+    // Unselected tabs wait below, each at its own spot, never display: none.
+    expect(pages.map((section) => section.hidden)).toEqual([false, false, false]);
+    expect(pages.map((section) => section.dataset.selected)).toEqual(["false", "false", "true"]);
+    expect(pages.map((section) => section.style.top)).toEqual(["200%", "400%", ""]);
+    expect(pages.map((section) => section.hasAttribute("inert"))).toEqual([true, true, false]);
     fireEvent.click(screen.getByRole("tab", { name: "Files" }));
     fireEvent.click(screen.getByRole("tab", { name: "Search" }));
     expect(onSelect.mock.calls).toEqual([["files"], ["search"]]);
@@ -452,6 +456,10 @@ describe("NavigationStack", () => {
     expect(placeOf(view.container, "Deeper page")?.dataset.motion).toBe("push-in");
     act(() => vi.advanceTimersByTime(NAVIGATION_SLIDE_MS));
     expect(root()?.dataset.place).toBe("away");
+    // Out of sight it waits off to the side at its own spot, never hidden,
+    // so WebKit keeps its scroll view and its islands.
+    expect(root()?.style.left).toMatch(/^\d+00%$/);
+    expect(root()?.style.left).not.toBe(placeOf(view.container, "Detail page")?.style.left);
 
     // A pop to the root slides the top screen off and the root back in.
     view.rerender(

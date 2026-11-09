@@ -46,6 +46,11 @@ public final class NativeComponentContext: ObservableObject {
   private(set) var isAcknowledged = false
   private(set) var revision = 0
   private(set) var localState: [String: NativeValue] = [:]
+  /// The revision each key of `localState` was last set at. Only keys set
+  /// after the state the page last echoed override its props; an older
+  /// value the page has since replaced (a sheet's `open: false` from the
+  /// last dismissal, before the page opened it again) must never come back.
+  private var localStateRevisions: [String: Int] = [:]
   private var pageProps: [String: NativeValue]
   private var pageRevision: Int
   private(set) var commandHandler: (@MainActor (String, Any?) async throws -> Any?)?
@@ -101,8 +106,12 @@ public final class NativeComponentContext: ObservableObject {
     revision += 1
     if replace {
       localState = converted
+      localStateRevisions = [:]
     } else {
       localState.merge(converted) { _, new in new }
+    }
+    for key in converted.keys {
+      localStateRevisions[key] = revision
     }
     refreshProps()
     host?.post(
@@ -142,6 +151,7 @@ public final class NativeComponentContext: ObservableObject {
     isAcknowledged = false
     revision = 0
     localState = [:]
+    localStateRevisions = [:]
     pageProps = mount.props
     pageRevision = mount.stateRevision ?? 0
     refreshProps()
@@ -179,8 +189,8 @@ public final class NativeComponentContext: ObservableObject {
 
   private func refreshProps() {
     var merged = pageProps
-    if pageRevision < revision {
-      merged.merge(localState) { _, local in local }
+    for (key, value) in localState where (localStateRevisions[key] ?? 0) > pageRevision {
+      merged[key] = value
     }
     let next = NativeComponentProps(merged)
     if next != props {

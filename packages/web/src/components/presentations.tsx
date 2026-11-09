@@ -44,6 +44,11 @@ export type PresentationProps = NativeCommonProps & {
   header?: boolean;
   /** Shows behind the presented page while it loads, such as `var(--page-background)`. */
   background?: string;
+  /**
+   * Loads the page in the app ahead of time, so it opens with its islands
+   * already drawn. On by default; false loads it only when it opens.
+   */
+  preload?: boolean;
   handle?: React.Ref<PresentationHandle>;
 };
 
@@ -165,6 +170,7 @@ const Presentation = ({
   title,
   header,
   background,
+  preload,
   handle,
   style,
   detents,
@@ -219,6 +225,7 @@ const Presentation = ({
         title={title}
         header={header}
         background={background}
+        preload={preload}
         native={native}
         onOpenChange={(next) => {
           if (!next) onOpenChange(false);
