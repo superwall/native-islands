@@ -167,6 +167,9 @@ Read only the file the job needs.
 
 | Job                                                                           | Read                                                                                                              |
 | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Which ready-made island fits a job, with its props and callbacks              | [Ready-made islands](references/components.md)                                                                    |
+| A sheet, cover, popover or alert, and the page it presents                    | [Presentations](references/components.md#presentations)                                                           |
+| Tabs, a navigation stack, a toolbar or a search field                         | [App chrome](references/components.md#app-chrome)                                                                 |
 | The provider, defining a component, events, state, requests, commands, sizing | [Page side](references/page.md)                                                                                   |
 | Why an island stays web, or parking screens that are not showing yet          | [When an island stays web](references/page.md#when-an-island-stays-web)                                           |
 | A page without React, or testing in a browser with the simulator              | [Without React](references/page.md#without-react)                                                                 |

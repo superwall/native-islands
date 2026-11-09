@@ -321,6 +321,105 @@ export const checkSwift = (
   return [...new Set(problems)];
 };
 
+/** The text of each inline code span outside code blocks. */
+export const inlineCode = (markdown: string): string[] =>
+  [...markdown.replace(/^```[\s\S]*?^```$/gm, "").matchAll(/`([^`\n]+)`/g)].map(
+    (match) => match[1] ?? "",
+  );
+
+/**
+ * The names a Markdown file mentions as code: the first identifier of each
+ * inline code span (`<Toggle>`, `useSheet()`, `glassButton`) and every
+ * identifier in its code blocks.
+ */
+export const codeNames = (markdown: string) => {
+  const names = new Set<string>();
+  for (const span of inlineCode(markdown)) {
+    const name = /^<?\s*([A-Za-z_$][\w$]*)/.exec(span)?.[1];
+    if (name) names.add(name);
+  }
+  for (const block of codeBlocks(markdown)) {
+    for (const match of block.code.matchAll(/[A-Za-z_$][\w$]*/g)) names.add(match[0]);
+  }
+  return names;
+};
+
+/**
+ * Inline code that names a NativeIslands symbol (`NativeHandle`,
+ * `IslandWebView`) neither package declares any more.
+ */
+export const checkInlineSymbols = (markdown: string, known: Set<string>): string[] => {
+  const problems = new Set<string>();
+  for (const span of inlineCode(markdown)) {
+    if (!/^(?:Native|Island)[A-Z]\w*$/.test(span)) continue;
+    if (!known.has(span)) problems.add(`names ${span}, which neither package declares`);
+  }
+  return [...problems];
+};
+
+/**
+ * The names pages mount the Swift islands by: every case of
+ * `NativeIslandsComponents.Component`, then the `name` of each other
+ * component library, such as `NativeIslandsMaps.name`.
+ */
+export const swiftComponentNames = (repo: string): string[] => {
+  const sources = join(repo, "packages/swift/Sources");
+  const components = readFileSync(
+    join(sources, "NativeIslandsComponents/NativeIslandsComponents.swift"),
+    "utf8",
+  );
+  const enumBody =
+    /public enum Component\b[^{]*\{([\s\S]*?)\n\s*(?:\/\/\/|public|@|var|static)/.exec(
+      components,
+    )?.[1];
+  const names = [...(enumBody ?? "").matchAll(/^\s*case\s+(\w+)\s*$/gm)].map(
+    (match) => match[1] ?? "",
+  );
+  for (const library of readdirSync(sources).toSorted()) {
+    if (!library.startsWith("NativeIslands") || library === "NativeIslandsComponents") continue;
+    const file = join(sources, library, `${library}.swift`);
+    if (!existsSync(file)) continue;
+    const name = /public static let name = "(\w+)"/.exec(readFileSync(file, "utf8"))?.[1];
+    if (name) names.push(name);
+  }
+  return names;
+};
+
+/** The values an entry's `export { … }` lists and declarations export, leaving out types. */
+export const valueExports = (file: string): string[] => {
+  const source = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const names: string[] = [];
+  for (const match of source.matchAll(/export\s+\{([^}]*)\}/g)) {
+    for (const part of (match[1] ?? "").split(",")) {
+      const words = part.trim().split(/\s+as\s+/);
+      const name = (words[1] ?? words[0] ?? "").trim();
+      if (name && !name.startsWith("type ")) names.push(name);
+    }
+  }
+  for (const match of source.matchAll(/export\s+(?:const|let|function|class)\s+(\w+)/g)) {
+    names.push(match[1] ?? "");
+  }
+  return names;
+};
+
+/** The islands and exports a catalogue does not mention. */
+export const checkCatalogue = (
+  markdown: string,
+  swiftNames: readonly string[],
+  webExports: readonly string[],
+): string[] => {
+  const spans = new Set(inlineCode(markdown).map((span) => span.trim()));
+  const names = codeNames(markdown);
+  return [
+    ...swiftNames
+      .filter((name) => !spans.has(name))
+      .map((name) => `does not list the Swift island \`${name}\``),
+    ...webExports
+      .filter((name) => !names.has(name))
+      .map((name) => `does not list \`${name}\` from native-islands/components`),
+  ];
+};
+
 /** Every problem with one skill folder. */
 export const checkSkill = (skillRoot: string, repo: string): Problem[] => {
   const problems: Problem[] = [];
@@ -342,12 +441,17 @@ export const checkSkill = (skillRoot: string, repo: string): Problem[] => {
   const webPackage = join(repo, "packages/web");
   const entries = packageEntries(webPackage);
   const symbols = swiftSymbols(repo);
+  const known = new Set([...symbols.types, ...symbols.modules]);
+  for (const entry of entries.values()) {
+    if ("exports" in entry) for (const name of entry.exports) known.add(name);
+  }
   for (const file of markdownFiles(skillRoot)) {
     const markdown = readFileSync(file, "utf8");
     const blocks = codeBlocks(markdown);
     add(file, checkLinks(file, markdown, skillRoot));
     add(file, checkImports(blocks, entries, "native-islands"));
     add(file, checkSwift(blocks, symbols));
+    add(file, checkInlineSymbols(markdown, known));
   }
   for (const file of unreachable(skillRoot)) {
     add(file, ["is not reachable by links from SKILL.md"]);

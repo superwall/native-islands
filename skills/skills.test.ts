@@ -1,14 +1,18 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import {
+  checkCatalogue,
   checkFrontmatter,
   checkImports,
   checkLinks,
   checkSkill,
+  checkInlineSymbols,
   checkSwift,
   codeBlocks,
+  codeNames,
+  inlineCode,
   jsImports,
   links,
   moduleExports,
@@ -16,8 +20,10 @@ import {
   parseFrontmatter,
   skillFolders,
   slug,
+  swiftComponentNames,
   swiftSymbols,
   unreachable,
+  valueExports,
   type PackageEntry,
 } from "./check";
 
@@ -58,6 +64,92 @@ describe("the skills in this repository", () => {
       expect(checkSkill(path, repo)).toEqual([]);
     });
   }
+
+  it("native-islands lists every ready-made island in its catalogue", () => {
+    const catalogue = readFileSync(
+      join(skillsRoot, "native-islands/references/components.md"),
+      "utf8",
+    );
+    expect(
+      checkCatalogue(
+        catalogue,
+        swiftComponentNames(repo),
+        valueExports(join(repo, "packages/web/src/components/index.ts")),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("the catalogue", () => {
+  it("reads every Swift island, the map and the chart included", () => {
+    const names = swiftComponentNames(repo);
+    expect(names).toContain("glassButton");
+    expect(names).toContain("material");
+    expect(names.slice(-2).toSorted()).toEqual(["chart", "map"]);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("reads component libraries by their name and skips ones without one", () => {
+    const root = folder({
+      "packages/swift/Sources/NativeIslandsComponents/NativeIslandsComponents.swift": [
+        "public enum NativeIslandsComponents {",
+        "  public enum Component: String {",
+        "    case toggle",
+        "    // Lists",
+        "    case list",
+        "",
+        "    /// The name pages mount it by.",
+        "    public var name: String { rawValue }",
+        "  }",
+        "}",
+      ].join("\n"),
+      "packages/swift/Sources/NativeIslandsMaps/NativeIslandsMaps.swift":
+        'public enum NativeIslandsMaps { public static let name = "map" }',
+      "packages/swift/Sources/NativeIslandsKit/Other.swift": "struct Other {}",
+      "packages/swift/Sources/NativeIslandsCore/NativeIslandsCore.swift": "enum Core {}",
+      "packages/swift/Sources/Helpers/Helpers.swift": 'let name = "helper"',
+    });
+    expect(swiftComponentNames(root)).toEqual(["toggle", "list", "map"]);
+  });
+
+  it("reads the values an entry exports, leaving out types", () => {
+    const root = folder({
+      "index.ts": [
+        'export { A, type B, c as D } from "./a";',
+        "/* export { Hidden } */",
+        "export const E = 1;",
+        "export function f() {}",
+        "export type G = string;",
+      ].join("\n"),
+    });
+    expect(valueExports(join(root, "index.ts"))).toEqual(["A", "D", "E", "f"]);
+  });
+
+  it("reads names from inline code and code blocks, not prose", () => {
+    const markdown = `Use \`<Toggle>\`, \`useSheet()\` and \`glassButton\`, not Slider.\n${fence("tsx", "<List sections={rows} />")}`;
+    expect(inlineCode(markdown)).toEqual(["<Toggle>", "useSheet()", "glassButton"]);
+    expect([...codeNames(markdown)].toSorted()).toEqual(
+      ["List", "Toggle", "glassButton", "rows", "sections", "useSheet"].toSorted(),
+    );
+  });
+
+  it("fails an island or an export it does not list", () => {
+    const markdown = `| \`Toggle\` | \`toggle\` |\n${fence("tsx", "const s = useSheet();")}`;
+    expect(
+      checkCatalogue(markdown, ["toggle", "slider"], ["Toggle", "useSheet", "Slider"]),
+    ).toEqual([
+      "does not list the Swift island `slider`",
+      "does not list `Slider` from native-islands/components",
+    ]);
+  });
+
+  it("fails inline NativeIslands names neither package declares, once each", () => {
+    const markdown =
+      "`NativeHandle`, `NativeGone`, `NativeGone`, `IslandWebView`, `Native()`, `Other`";
+    expect(checkInlineSymbols(markdown, new Set(["NativeHandle", "IslandWebView"]))).toEqual([
+      "names NativeGone, which neither package declares",
+    ]);
+  });
 });
 
 describe("frontmatter", () => {
@@ -265,7 +357,7 @@ describe("Swift examples", () => {
 
 describe("a whole skill", () => {
   it("reports every problem with the file it is in", () => {
-    const body = `${"line\n".repeat(500)}[orphan](references/gone.md)\n${fence("ts", 'import { Gone } from "native-islands";')}${fence("swift", "let x = NativeGone()")}`;
+    const body = `${"line\n".repeat(500)}[orphan](references/gone.md) \`NativeGone\`\n${fence("ts", 'import { Gone } from "native-islands";')}${fence("swift", "let x = NativeGone()")}`;
     const root = folder({
       "demo/SKILL.md": `${skill()}${body}`,
       "demo/references/orphan.md": "# Orphan\n",
@@ -276,6 +368,7 @@ describe("a whole skill", () => {
       "links to a missing file: references/gone.md",
       'imports Gone from "native-islands", which does not export it',
       "names the Swift type NativeGone, which the libraries do not declare",
+      "names NativeGone, which neither package declares",
       "is not reachable by links from SKILL.md",
     ]);
   });
