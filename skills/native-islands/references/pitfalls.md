@@ -52,6 +52,8 @@ native view in the wrong place.
 | Animating `width`, `height` or `top` on a page full of islands       | Animate `transform` and `opacity`; layout costs about 0.3 ms per island per frame                       |
 | Hundreds of islands, such as one per row of a long list              | One `List` island, or fewer parked screens: a page shows at most 256                                    |
 | A parked screen keeping the camera or a video playing                | Let go of devices while the screen is not showing                                                       |
+| A web version of `<div onClick>`s with no roles or labels            | Real buttons, roles, `aria-*` state and labels: VoiceOver reads the web version of islands in the page  |
+| `aria-hidden` or `visibility: hidden` on a web version you pass      | Leave it readable; the island hides it from sight and touches itself                                    |
 
 ## In the app
 
@@ -85,7 +87,7 @@ native view in the wrong place.
 | An unknown command returning `nil`                                | Throw `NativeComponentError.refused`, so the page knows                           |
 | `.frame(maxWidth: .infinity)` with `sizing: "native"`             | An ideal size (`.fixedSize()`); fill the box only with `sizing: "web"`            |
 | A `glass` closure that returns `nil` until a prop arrives         | Decide glass from the first props: an island without glass at mount never gets it |
-| `.accessibilityLabel` on each control inside one island           | One `accessibility` from the page; the island is one VoiceOver element            |
+| `.accessibilityLabel` on each control inside one island           | Labels in the web version; in the page VoiceOver reads it, not the Swift view     |
 | Keeping `component.id`                                            | It changes when the view is handed to a new island                                |
 
 ## Proving it

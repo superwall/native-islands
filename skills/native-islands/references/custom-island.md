@@ -270,22 +270,28 @@ and switches to native as soon as it does come.
 
 ## Accessibility
 
-The page sends `accessibility` (`label`, `hint`, `value`, `traits`, `hidden`),
-and when it is left out reads one from the children: their `aria-label`,
-`alt` or text, and the first child's role. Whenever there is one, the app
-makes the whole island a single VoiceOver element with it, and labels set
-inside the SwiftUI view are merged away. So:
+VoiceOver reads each island from one side only, chosen by where the app
+placed it:
 
-- Give the island one `accessibility` that describes it, with the current
-  value in `value`, as the rating above does.
-- An icon-only control needs a label on the page, such as `aria-label` on its
-  web version.
-- An island whose controls must each be reached on their own (a toolbar of
-  buttons) is better split into one island per control.
+- **In the page or a scrolling area** (most islands): VoiceOver reads the
+  children, your web version. It stays in the accessibility tree behind the
+  native view, and the app hides the native view from VoiceOver. A
+  double-tap runs the web version's own handlers, which drive the island.
+- **In the screen layer** (`position: fixed` chrome such as a tab bar): VoiceOver
+  reads the native view, as one element named by `accessibility`.
+
+So:
+
+- Make the web version accessible on its own: real `<button>`s and inputs,
+  `role` and `aria-checked`, `aria-pressed` or `aria-selected` for state, and
+  `aria-label` on icon-only controls. Each control in it is reached on its own.
+- A control your web version steps with − and + buttons reads as two buttons;
+  for one adjustable element give it `role="slider"` (or `spinbutton`) with
+  `aria-valuenow` and arrow-key handlers, as the ready-made `Stepper` does.
+- Still give the island an `accessibility` (or children with text or a label):
+  it names the native view when the island sits in the screen layer.
 - `traits` takes only `button`, `link`, `image` and `header`; others are
-  ignored. There is no adjustable trait, so VoiceOver cannot step a control
-  of your own that holds − and + buttons: say so in its `hint`, and prefer a
-  ready-made `Stepper` or `Slider` when one fits.
+  ignored.
 
 ## The view's lifetime
 
@@ -319,7 +325,8 @@ use a name of your own.
 - [ ] Every prop is JSON; nested numbers are read through `NSNumber`.
 - [ ] The Swift view fills its box, or has an ideal size for `"native"`.
 - [ ] Every command has a web path on the page.
-- [ ] The island has one `accessibility` label, or children that give one.
+- [ ] The web version reads correctly with VoiceOver on its own (roles, state,
+      labels), and the island has an `accessibility` label for the screen layer.
 - [ ] Registered before the first `IslandWebView` is created.
 - [ ] Seen native in the app with `-NativeIslandsOutlines YES`, and seen as
       web in a browser.
