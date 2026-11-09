@@ -29,7 +29,7 @@ jobs:
       - run: bun run --cwd packages/web test:coverage
       - run: bun run --cwd packages/web build
       - run: bunx publint packages/web --strict
-      - run: cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only
+      - run: cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only --exclude-entrypoints components.css
       - run: scripts/pack-smoke.sh
       - run: bun test performance
       - run: bun run --cwd tests/pages build
