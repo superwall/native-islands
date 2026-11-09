@@ -30,7 +30,7 @@ import { accessibilityOf } from "../dom/accessibility";
 import { useNativeIslandsContext } from "../provider/context";
 import { resolveNativeProps } from "../dom/props";
 
-export type NativeSizing = "web" | "native";
+export type NativeSizing = "web" | "native" | "nativeHeight";
 
 export type NativeMode = "web" | "pending" | "native";
 
@@ -57,6 +57,8 @@ export type NativeIslandState = {
   size?: TNativeSize;
   handoff?: NativeHandoff;
   anchorType?: TNativeAnchor["type"];
+  /** The sizing the host was sent: `web` in place of `nativeHeight` when the host can't measure that. */
+  sizing: NativeSizing;
   /** The host is taking over a view it kept, so the web version stays hidden. */
   reusing?: boolean;
   command: (name: string, args?: unknown, options?: { timeoutMs?: number }) => Promise<unknown>;
@@ -169,7 +171,9 @@ export const useNativeIsland = (
   const { islands, readiness } = useNativeIslandsContext();
   const generatedId = React.useId();
   const id = options.islandId ?? `${options.component}${generatedId}`;
-  const [state, setState] = React.useState<Omit<NativeIslandState, "id" | "command" | "state">>({
+  const [state, setState] = React.useState<
+    Omit<NativeIslandState, "id" | "sizing" | "command" | "state">
+  >({
     mode: "web",
   });
   const latest = React.useRef(options);
@@ -281,7 +285,11 @@ export const useNativeIsland = (
     [],
   );
 
-  const { component, version, sizing, enabled } = options;
+  const { component, version, enabled } = options;
+  const sizing =
+    options.sizing === "nativeHeight" && !supportsFeature(islands.capability, "nativeHeight")
+      ? "web"
+      : options.sizing;
 
   React.useLayoutEffect(() => {
     const element = wrapper.current;
@@ -522,5 +530,5 @@ export const useNativeIsland = (
   );
   const readState = React.useCallback(() => islands.state(id), [islands, id]);
 
-  return { ...state, id, command, state: readState };
+  return { ...state, id, sizing, command, state: readState };
 };

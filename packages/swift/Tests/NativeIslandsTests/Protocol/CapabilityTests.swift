@@ -11,7 +11,7 @@ struct CapabilityTests {
       source == """
         window.__NATIVE_ISLANDS__ = {"anchors":["page","scroller","screen"],\
         "components":{"glassButton":2,"toggle":1},\
-        "features":["state","requests","commands","layered","sticky","clip","transform","motion","reuse"],"protocol":1};
+        "features":["state","requests","commands","layered","sticky","clip","transform","motion","reuse","nativeHeight"],"protocol":1};
         """
     )
   }

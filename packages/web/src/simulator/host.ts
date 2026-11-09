@@ -14,6 +14,7 @@ import {
   type TNativeMotion,
   type TNativeTransform,
   type TNativeOperation,
+  type TNativeMountOperation,
   type TNativeScroller,
   type TNativeSize,
 } from "../protocol/schemas";
@@ -40,6 +41,7 @@ export type SimulatedIsland = {
   id: string;
   component: string;
   props: Readonly<Record<string, unknown>>;
+  sizing: TNativeMountOperation["sizing"];
   anchor: TNativeAnchor["type"];
   visible: boolean;
   element: HTMLElement;
@@ -290,6 +292,19 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     return true;
   };
 
+  // A `nativeHeight` island takes the page's width and only its height from
+  // the simulated size, as the host measures it at the frame's width.
+  const reportSize = (island: SimulatedIsland) => {
+    const simulated = sizes[island.component];
+    if (!simulated || island.sizing === "web") return;
+    if (island.sizing === "nativeHeight" && island.frame.width <= 0) return;
+    const size =
+      island.sizing === "nativeHeight"
+        ? { width: island.frame.width, height: simulated.height }
+        : simulated;
+    send({ event_name: "native_component_size", id: island.id, size, sequence: island.sequence });
+  };
+
   const show = (island: SimulatedIsland) => {
     island.element.style.opacity = island.visible ? String(island.opacity ?? 1) : "0";
     island.element.textContent = labelOf(island.component, island.props);
@@ -378,6 +393,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         id: operation.id,
         component: operation.component,
         props: operation.props,
+        sizing: operation.sizing,
         anchor: operation.anchor.type,
         visible: operation.visible,
         element,
@@ -406,8 +422,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
       );
       element.style.display = "";
       show(island);
-      const size = operation.sizing === "native" ? sizes[operation.component] : undefined;
-      if (size) send({ event_name: "native_component_size", id: operation.id, size, sequence });
+      reportSize(island);
       if (!silent.has(operation.component)) acked.push(operation.id);
       return;
     }
@@ -425,6 +440,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
     }
     if (operation.anchor) island.anchor = operation.anchor.type;
     if (operation.frame) {
+      const resized = operation.frame.width !== island.frame.width;
       place(
         island,
         operation.frame,
@@ -434,6 +450,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
         operation.opacity,
         operation.motion,
       );
+      if (resized && island.sizing === "nativeHeight") reportSize(island);
     }
     const echoed = operation.state_revision;
     const stale = echoed !== undefined && echoed < (revisions.get(operation.id) ?? 0);
@@ -521,6 +538,7 @@ export const installNativeSimulator = (options: NativeSimulatorOptions = {}): Na
       "transform",
       "motion",
       "reuse",
+      "nativeHeight",
     ],
   };
 

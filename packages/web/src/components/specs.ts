@@ -285,8 +285,10 @@ export type TipAction = { id: string; title: string };
 export type TipArrowEdge = "top" | "bottom" | "leading" | "trailing";
 
 /**
- * TipKit's inline tip. Its web version sets its size; once TipKit stops
- * showing it (`shown: false`), the web version collapses so it takes no room.
+ * TipKit's inline tip. It fills the width of its place in the page and TipKit
+ * sets its height, wrapping its text to fit; once TipKit stops showing it, its
+ * height is 0 and it takes no room. A host without `nativeHeight` sizes it by
+ * its web version instead.
  */
 export const NativeTip = defineNativeComponent<{
   props: {
@@ -304,7 +306,7 @@ export const NativeTip = defineNativeComponent<{
   events: { action: { id: string }; dismiss: undefined };
   state: { shown: boolean };
   commands: { invalidate: { args: undefined; result: void } };
-}>("tip", { colorProps: ["tint", "background"] });
+}>("tip", { sizing: "nativeHeight", colorProps: ["tint", "background"] });
 
 export type MapStyle = "standard" | "hybrid" | "imagery";
 

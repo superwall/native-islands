@@ -229,4 +229,9 @@ struct NativeAccessibility: Codable, Equatable, Sendable {
 enum NativeSizing: String, Codable, Sendable {
   case web
   case native
+  case nativeHeight
+
+  /// The host measures the island: both sides of it, or only its height at
+  /// the width the page gives it.
+  var isNative: Bool { self != .web }
 }

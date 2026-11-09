@@ -3,8 +3,8 @@ import * as React from "react";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { HapticButton, Permission, ShareButton, Tip, type TipHandle } from "../../src/components";
 import { askBrowser, fromBrowser, vibrationOf } from "../../src/components/system";
-import { removeCapability, renderNative } from "../support/react";
-import { installComponents, mountComponent, replyTo } from "./support";
+import { CAPABILITY, installCapability, removeCapability, renderNative } from "../support/react";
+import { COMPONENTS, installComponents, mountComponent, replyTo } from "./support";
 
 beforeEach(installComponents);
 
@@ -230,12 +230,35 @@ describe("Tip", () => {
     expect(onAction).toHaveBeenCalledWith("learn");
     expect(onDismiss).toHaveBeenCalled();
     expect(view.container.querySelector(".ni-tip")).not.toBeNull();
-    await view.state({ shown: false });
-    expect(view.container.querySelector(".ni-tip")).toBeNull();
-    await view.state({ shown: true });
-    expect(view.container.querySelector(".ni-tip")).not.toBeNull();
     await act(async () => handle.current?.invalidate());
     await replyTo(view, "invalidate", { ok: false, error: "Gone." });
+  });
+
+  it("takes its height from TipKit and collapses once TipKit stops showing it", async () => {
+    installCapability({
+      ...CAPABILITY,
+      components: COMPONENTS,
+      features: [...CAPABILITY.features, "nativeHeight"],
+    });
+    const view = await mountComponent(
+      <Tip id="favorites" title="Save it" message="Tap the star." />,
+    );
+    expect(view.mount).toMatchObject({ component: "tip", sizing: "nativeHeight" });
+    const island = view.container.querySelector<HTMLElement>('[data-island="tip"]');
+    expect(island?.style.display).toBe("block");
+    view.send({
+      event_name: "native_component_size",
+      id: view.mount.id,
+      size: { width: 120, height: 96 },
+    });
+    expect(island?.style.height).toBe("96px");
+    await view.state({ shown: false });
+    view.send({
+      event_name: "native_component_size",
+      id: view.mount.id,
+      size: { width: 120, height: 0 },
+    });
+    expect(island?.style.height).toBe("0px");
   });
 
   it("is a card in its web version until closed", () => {

@@ -83,7 +83,7 @@ struct ContractTests {
       return nil
     }
     let first = batches[0].operations
-    #expect(first.count == 3)
+    #expect(first.count == 4)
     guard case .mount(let cta) = first[0] else {
       Issue.record("Expected a mount")
       return
@@ -176,6 +176,19 @@ struct ContractTests {
     holes: [NativeFrame(x: 0, y: 12, width: 51, height: 8)],
     shades: [NativeShade(x: 0, y: 0, width: 51, height: 12, color: "rgba(0, 0, 0, 0.4)")]
   )
+
+  @Test("Decodes a mount whose width comes from the page and height from the host")
+  func decodesNativeHeightMount() throws {
+    let toHost = try #require(try ContractFixture.json()["toHost"] as? [[String: Any]])
+    let batch = try ContractFixture.decodeBatch(#require(toHost.first))
+    guard case .mount(let tip) = try #require(batch.operations.last) else {
+      Issue.record("Expected a mount")
+      return
+    }
+    #expect(tip.id == "tip")
+    #expect(tip.sizing == .nativeHeight)
+    #expect(tip.frame == NativeFrame(x: 24, y: 540, width: 354, height: 0))
+  }
 
   @Test("Encodes every reply as the contract's messages to the page")
   func encodesFixtureReplies() throws {

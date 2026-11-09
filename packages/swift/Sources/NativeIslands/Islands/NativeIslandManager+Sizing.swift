@@ -3,7 +3,7 @@ import UIKit
 extension NativeIslandManager {
   func reportSizes(of ids: [String]) {
     for id in ids {
-      guard let island = islands[id], island.sizing == .native, let size = island.measure() else { continue }
+      guard let island = islands[id], island.sizing.isNative, let size = island.measure() else { continue }
       outbox.append(.size(id: id, size: size, sequence: island.context.sequence))
     }
   }
