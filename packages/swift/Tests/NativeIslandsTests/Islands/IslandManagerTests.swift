@@ -550,7 +550,7 @@ struct WideView: View {
 /// hosting controller updates its preferred size.
 @MainActor
 func settle(_ island: NativeIsland?) async {
-  try? await Task.sleep(for: .milliseconds(50))
+  try? await Task.sleep(nanoseconds: 50_000_000)
   island?.host.view.setNeedsLayout()
   island?.host.view.layoutIfNeeded()
 }
