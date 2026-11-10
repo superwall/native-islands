@@ -221,8 +221,11 @@ struct AppComponentsTests {
     var done = false
     page.onDone = { done = true }
     let item = try #require(page.navigationItem.rightBarButtonItem)
-    item.primaryAction?.performWithSender(nil, target: nil)
-    #expect(done)
+    // UIAction can only be fired by hand from iOS 16; the package builds for 15.
+    if #available(iOS 16.0, *) {
+      item.primaryAction?.performWithSender(nil, target: nil)
+      #expect(done)
+    }
     page.showsDone = false
     #expect(page.navigationItem.rightBarButtonItem == nil)
     page.detent = "large"

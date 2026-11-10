@@ -141,6 +141,7 @@ Run only what your change touches; never a whole suite by hand.
 - Package checks: `bunx publint packages/web --strict`, `cd packages/web && bunx @arethetypeswrong/cli --pack . --profile esm-only`; the packed tarball in fresh Vite and Next.js apps: `scripts/pack-smoke.sh` (needs the npm registry)
 - JS lint and format: `bunx oxlint --deny-warnings packages/web tests/pages examples/showcase performance`, `bunx oxfmt --check packages/web tests examples performance`
 - Swift tests: `xcodebuild test -scheme NativeIslands-Package -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
+- Swift build on Xcode 26: the package has to compile with the oldest Xcode 26 the runners can build with (26.2) as well as Xcode 27, which accepts some type conversions Xcode 26 rejects. The `swift-xcode26` job in `ci.yml` runs `xcodebuild build-for-testing -scheme NativeIslands-Package -destination 'generic/platform=iOS Simulator' -quiet` with Xcode 26.2 and 26.6 on every pull request
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
 - Podspecs: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast` and `pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast`, then `NativeIslandsMaps` and `NativeIslandsCharts` with `--include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec'`; they mirror the products in `Package.swift`, so change them together
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
