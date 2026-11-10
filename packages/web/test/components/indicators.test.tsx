@@ -94,11 +94,17 @@ describe("Gauge", () => {
     view.rerender(<Gauge label="Progress" value={0.25} style="bar" minimumLabel="Start" />);
     expect(view.container.querySelector(".ni-gauge-linear")?.textContent).toBe("");
     expect(view.container.querySelector<HTMLElement>(".ni-gauge-fill")?.style.width).toBe("25%");
+    view.rerender(<Gauge label="Storage" value={0.72} valueLabel="72%" style="circular" />);
+    const gauge = screen.getByRole("progressbar", { name: "Storage" });
+    expect(gauge.getAttribute("aria-valuenow")).toBe("72");
+    expect(gauge.getAttribute("aria-valuetext")).toBe("72%");
+    expect(gauge.hasAttribute("aria-busy")).toBe(false);
   });
 
   it("is a spinner, takes its own web version and its own accessibility", async () => {
     await mountComponent(<Gauge label="Loading" value={0} style="spinner" />);
-    expect(screen.getByRole("progressbar")).toBeTruthy();
+    const spinner = screen.getByRole("progressbar", { name: "Loading", busy: true });
+    expect(spinner.hasAttribute("aria-valuenow")).toBe(false);
     const own = await mountComponent(
       <Gauge label="Loading" value={0} style="spinner" accessibility={{ label: "Busy" }}>
         <span>Own</span>

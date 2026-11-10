@@ -3,6 +3,7 @@ import { NativeIslandsProvider } from "native-islands/react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Pages, ROUTES, type RouteName } from "./router";
+import Accessibility from "./routes/accessibility";
 import MapScreen from "./routes/apps/map";
 import Paywall from "./routes/apps/paywall";
 import Player from "./routes/apps/player";
@@ -39,6 +40,7 @@ const ALL_PAGES: Record<RouteName, React.ComponentType> = {
   "flow-plans": FlowPlans,
   "flow-details": FlowDetails,
   "flow-done": FlowDone,
+  accessibility: Accessibility,
   perf: Perf,
 };
 

@@ -102,8 +102,9 @@ const WebChart = ({
   smooth = true,
   legend,
   tint,
+  label,
   onSelect,
-}: ChartSpec & { onSelect?: (selection: ChartSelection) => void }) => {
+}: ChartSpec & { label: string; onSelect?: (selection: ChartSelection) => void }) => {
   const [scrubbed, setScrubbed] = React.useState<number>();
   const xs = chartXs(series, xAxis?.type);
   const single = series.length <= 1;
@@ -134,6 +135,7 @@ const WebChart = ({
         viewBox={`0 0 ${BOX.width} ${BOX.height + 20}`}
         preserveAspectRatio="none"
         role="img"
+        aria-label={label}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           scrub(event);
@@ -287,6 +289,7 @@ export const Chart = ({
         smooth={smooth}
         legend={legend}
         tint={tint}
+        label={label}
         onSelect={onSelect}
       />
     )}

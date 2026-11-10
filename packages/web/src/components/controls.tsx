@@ -110,12 +110,13 @@ export const SegmentedControl = ({
     {...common}
   >
     {children ?? (
-      <div className="ni-segmented" role="group" aria-label={label}>
+      <div className="ni-segmented" role="radiogroup" aria-label={label}>
         {segments.map((segment, index) => (
           <button
             key={segment}
             type="button"
-            aria-pressed={index === selectedIndex}
+            role="radio"
+            aria-checked={index === selectedIndex}
             disabled={disabled}
             onClick={() => onChange(index)}
           >
@@ -195,6 +196,13 @@ export const Slider = ({
   </NativeSlider>
 );
 
+const STEP_KEYS: Readonly<Record<string, number>> = {
+  ArrowUp: 1,
+  ArrowRight: 1,
+  ArrowDown: -1,
+  ArrowLeft: -1,
+};
+
 /** A minus and plus stepper. */
 export const Stepper = ({
   value,
@@ -226,9 +234,28 @@ export const Stepper = ({
     {...common}
   >
     {children ?? (
-      <div className="ni-stepper" role="group" aria-label={label}>
+      // One adjustable element, as SwiftUI's stepper is: VoiceOver's swipe up
+      // and down reach it as the arrow keys.
+      <div
+        className="ni-stepper"
+        role="spinbutton"
+        tabIndex={disabled ? undefined : 0}
+        aria-label={label}
+        aria-valuenow={value}
+        aria-valuemin={minimum}
+        aria-valuemax={maximum}
+        aria-disabled={disabled || undefined}
+        onKeyDown={(event) => {
+          const direction = STEP_KEYS[event.key];
+          if (direction === undefined || disabled) return;
+          event.preventDefault();
+          const next = stepped(value, direction * step, minimum, maximum);
+          if (next !== value) onChange(next);
+        }}
+      >
         <button
           type="button"
+          tabIndex={-1}
           aria-label="Decrement"
           disabled={disabled || value <= minimum}
           onClick={() => onChange(stepped(value, -step, minimum, maximum))}
@@ -237,6 +264,7 @@ export const Stepper = ({
         </button>
         <button
           type="button"
+          tabIndex={-1}
           aria-label="Increment"
           disabled={disabled || value >= maximum}
           onClick={() => onChange(stepped(value, step, minimum, maximum))}
@@ -407,9 +435,9 @@ const WebCalendar = ({
           <Glyph name="chevron.right" />
         </button>
       </div>
-      <div className="ni-calendar-grid" role="grid">
+      <div className="ni-calendar-grid">
         {WEEKDAYS.map((day, index) => (
-          <span key={index} className="ni-calendar-weekday">
+          <span key={index} className="ni-calendar-weekday" aria-hidden="true">
             {day}
           </span>
         ))}
@@ -423,6 +451,7 @@ const WebCalendar = ({
                 key={index}
                 type="button"
                 className="ni-calendar-day"
+                aria-label={describeDate({ ...shown, day })}
                 aria-pressed={day === selected}
                 onClick={() => onChange({ ...shown, day })}
               >

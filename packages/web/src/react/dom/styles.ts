@@ -15,7 +15,11 @@ export const ISLAND_STYLES = [
   // The host shows a view it takes over in the frame the row first paints,
   // so the web version never shows under it.
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_REUSING_ATTRIBUTE}] > * { opacity: 0; transition: none; }`,
-  `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_CONCEALED_ATTRIBUTE}]:not([${ISLAND_PROBE_ATTRIBUTE}]) { visibility: hidden; }`,
+  // The faded-out web version stays in the accessibility tree: WebKit hands
+  // VoiceOver the page as one element, so the native views in its scroll
+  // views can't be reached, and this is what VoiceOver reads in their place.
+  // `visibility: hidden` would drop it; this only stops it taking touches.
+  `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_CONCEALED_ATTRIBUTE}]:not([${ISLAND_PROBE_ATTRIBUTE}]), [${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_CONCEALED_ATTRIBUTE}]:not([${ISLAND_PROBE_ATTRIBUTE}]) * { pointer-events: none !important; }`,
   `[${ISLAND_COMPONENT_ATTRIBUTE}][${ISLAND_PROBE_ATTRIBUTE}] * { pointer-events: auto !important; }`,
   // While content in a scroller animates, WebKit composites what follows it.
   // Unless the scroller is a stacking context, those layers go above the

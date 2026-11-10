@@ -105,8 +105,10 @@ on your own phone.
   The host waits up to a second; if it never shows, the island stays web.
 - After a fast fling, a carousel nested in a list can be about 0.5 pt off
   until the next layout pass.
-- VoiceOver can't reach an island inside an inner scrolling area yet, only
-  ones in the page's own scroll or in fixed chrome.
+- VoiceOver reads an island in the page or in a scrolling area through its
+  web version, since WebKit doesn't expose native views inside its scroll
+  views. Give your web versions real roles and labels; fixed islands (a tab
+  bar, a nav bar) are read from the native view.
 - iOS only for now. No Android host yet.
 
 Some of this has been done before: Cordova and Capacitor map plugins draw a

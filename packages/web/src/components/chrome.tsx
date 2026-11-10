@@ -317,10 +317,9 @@ export const SearchTab = ({
     {children ?? (
       <button
         type="button"
-        role="tab"
         className="ni-glass ni-glass--circle ni-search-tab"
         aria-label="Search"
-        aria-selected={selected}
+        aria-current={selected ? "page" : undefined}
         style={cssVariables({ "--ni-tint": tint })}
         onClick={onPress}
       >
