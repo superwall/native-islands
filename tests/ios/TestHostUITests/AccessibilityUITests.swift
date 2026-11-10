@@ -138,12 +138,17 @@ enum VoiceOverAction: Int32 {
   case activate = 2010
 }
 
+struct VoiceOverActionUnavailable: Error, CustomStringConvertible {
+  let description = "This XCTest cannot send accessibility actions; update `perform(_:)` for it."
+}
+
 extension XCUIElement {
   /// Sends the element the accessibility action itself, as VoiceOver does,
   /// where `tap()` would send a touch to whatever is drawn at that point.
   ///
   /// XCTest has no public call for this, so it goes through the one its own
-  /// `XCUIAccessibilityAction` uses, and skips the test where that is gone.
+  /// `XCUIAccessibilityAction` uses. Where that is gone the test fails, so a
+  /// new Xcode cannot quietly stop these tests from proving anything.
   @MainActor
   func perform(_ voiceOver: VoiceOverAction) throws {
     typealias Make = @convention(c) (AnyObject, Selector, Int32) -> AnyObject
@@ -160,7 +165,7 @@ extension XCUIElement {
       client.responds(to: perform),
       let target = (try snapshot() as AnyObject).value(forKey: "accessibilityElement")
     else {
-      throw XCTSkip("This XCTest cannot send accessibility actions.")
+      throw VoiceOverActionUnavailable()
     }
     let allocated = actions.perform(NSSelectorFromString("alloc")).takeUnretainedValue()
     let action = unsafeBitCast(makeAction, to: Make.self)(allocated, make, voiceOver.rawValue)
