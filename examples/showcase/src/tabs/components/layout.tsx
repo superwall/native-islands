@@ -261,6 +261,7 @@ const Bars = () => {
                 id: "more",
                 kind: "menu",
                 systemImage: "ellipsis",
+                accessibilityLabel: "More",
                 items: [
                   { id: "grid", title: "Grid", systemImage: "square.grid.2x2", checked: true },
                   { id: "list", title: "List", systemImage: "list.bullet" },
@@ -280,11 +281,11 @@ const Bars = () => {
             tint={tint}
             icon={webSymbol}
             items={[
-              { id: "share", systemImage: "square.and.arrow.up" },
+              { id: "share", systemImage: "square.and.arrow.up", accessibilityLabel: "Share" },
               { kind: "flexibleSpace" },
-              { id: "favorite", systemImage: "heart" },
-              { id: "info", systemImage: "info.circle" },
-              { id: "trash", systemImage: "trash" },
+              { id: "favorite", systemImage: "heart", accessibilityLabel: "Favourite" },
+              { id: "info", systemImage: "info.circle", accessibilityLabel: "Info" },
+              { id: "trash", systemImage: "trash", accessibilityLabel: "Delete" },
               { kind: "flexibleSpace" },
               { id: "edit", title: "Edit", prominent: true, tint },
             ]}

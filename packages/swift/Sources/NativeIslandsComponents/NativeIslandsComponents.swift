@@ -81,6 +81,19 @@ public enum NativeIslandsComponents {
       default: nil
       }
     }
+
+    /// How VoiceOver reaches what it draws: each tab, segment, bar button,
+    /// row or wheel on its own, or one element the page's label names. One
+    /// that draws nothing in the page contains nothing, so it is never focused.
+    var accessibilityChildren: NativeAccessibilityChildren {
+      switch self {
+      case .segmentedControl, .picker, .datePicker, .tip: .contain
+      case .tabBar, .tabAccessory, .searchField, .navigationBar, .toolbar, .list, .video: .contain
+      case .presentation, .alert, .haptics, .notifications: .contain
+      default:
+        .combine
+      }
+    }
   }
 
   /// A ready-made component drawn for one island.
@@ -151,7 +164,11 @@ public enum NativeIslandsComponents {
     }
     if components.contains(.notifications) { NotificationRelay.shared.install() }
     for component in Component.allCases where components.contains(component) && component.isAvailable {
-      registry.register(component.name, glass: component.glass) { context in
+      registry.register(
+        component.name,
+        accessibilityChildren: component.accessibilityChildren,
+        glass: component.glass
+      ) { context in
         ComponentView(component: component, context: context)
       }
     }
