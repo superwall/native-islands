@@ -248,6 +248,18 @@ override func didMoveToWindow() {
 }
 ```
 
+VoiceOver reads an island as one element, named by the label the page gives
+it (its text or `aria-label`), with the control's own value and traits. An
+island that holds several controls, such as a row of buttons, registers with
+`accessibilityChildren: .contain`, so VoiceOver reaches each control on its own
+and the page's label only names the group:
+
+```swift
+NativeComponentRegistry.shared.register("playerControls", accessibilityChildren: .contain) { component in
+  PlayerControls(component: component)
+}
+```
+
 ### Ready-made controls
 
 For the common controls you don't have to write either side. Add the

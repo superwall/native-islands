@@ -152,7 +152,13 @@ final class NativeIslandManager: NativeIslandMessaging {
       waitsUntilReady: entry.waitsUntilReady,
       host: self
     )
-    let host = UIHostingController(rootView: NativeIslandRoot(context: context, make: entry.make, outlines: outlines))
+    let root = NativeIslandRoot(
+      context: context,
+      make: entry.make,
+      accessibilityChildren: entry.accessibilityChildren,
+      outlines: outlines
+    )
+    let host = UIHostingController(rootView: root)
     let island = NativeIsland(context: context, host: host, mount: mount, glass: entry.glass)
     if mount.sizing.isNative {
       island.watchSize { [weak self, weak island] in

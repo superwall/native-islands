@@ -18,6 +18,6 @@ public enum NativeIslandsCharts {
   @MainActor
   public static func register(in registry: NativeComponentRegistry? = nil) {
     guard #available(iOS 16.0, *) else { return }
-    (registry ?? .shared).register(name) { ChartView(component: $0) }
+    (registry ?? .shared).register(name, accessibilityChildren: .contain) { ChartView(component: $0) }
   }
 }

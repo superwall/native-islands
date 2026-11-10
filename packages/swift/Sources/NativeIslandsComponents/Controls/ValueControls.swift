@@ -99,6 +99,7 @@ public struct PickerView: View {
     }
     .labelsHidden()
     .tint(props.color("tint"))
+    .labelled(by: component.accessibility)
     Group {
       if props.string("style") == "wheel" {
         picker.pickerStyle(.wheel)
@@ -139,6 +140,7 @@ public struct DatePickerView: View {
     let picker = DatePicker("", selection: date, displayedComponents: components)
       .labelsHidden()
       .tint(props.color("tint"))
+      .labelled(by: component.accessibility)
     Group {
       switch props.string("style") {
       case "graphical": picker.datePickerStyle(.graphical)
@@ -182,5 +184,27 @@ public struct ColorPickerView: View {
     UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
     let channel = { (value: CGFloat) in Int((min(max(value, 0), 1) * 255).rounded()) }
     return String(format: "#%02x%02x%02x", channel(red), channel(green), channel(blue))
+  }
+}
+
+// A picker's island contains its control, so a wheel or a calendar keeps its
+// own elements; the page's label and hint name the control itself, where its
+// hidden label would have.
+extension View {
+  @ViewBuilder
+  func labelled(by accessibility: NativeComponentAccessibility?) -> some View {
+    let label = accessibility?.label ?? ""
+    let hint = accessibility?.hint ?? ""
+    if #available(iOS 18, *) {
+      accessibilityLabel(Text(label), isEnabled: !label.isEmpty)
+        .accessibilityHint(Text(hint), isEnabled: !hint.isEmpty)
+    } else {
+      switch (label.isEmpty, hint.isEmpty) {
+      case (false, false): accessibilityLabel(Text(label)).accessibilityHint(Text(hint))
+      case (false, true): accessibilityLabel(Text(label))
+      case (true, false): accessibilityHint(Text(hint))
+      case (true, true): self
+      }
+    }
   }
 }

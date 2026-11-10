@@ -77,14 +77,17 @@ export const NavigationDemoPage = () => {
   const [inbox, setInbox] = React.useState<readonly ListSection[]>(MESSAGES);
   const mail = useNavigationPath("inbox");
   const forward: BarItem[] = mail.canGoForward
-    ? [{ id: "forward", systemImage: "chevron.right" }]
+    ? [{ id: "forward", systemImage: "chevron.right", accessibilityLabel: "Forward" }]
     : [];
   const screens: Record<string, NavigationScreen> = {
     inbox: {
       title: "Inbox",
       largeTitle: true,
       leading: [{ id: "close", title: "Close" }],
-      trailing: [...forward, { id: "compose", systemImage: "square.and.pencil" }],
+      trailing: [
+        ...forward,
+        { id: "compose", systemImage: "square.and.pencil", accessibilityLabel: "Compose" },
+      ],
       render: () => (
         <List
           sections={inbox}
@@ -114,6 +117,7 @@ export const NavigationDemoPage = () => {
                 id: "more",
                 kind: "menu",
                 systemImage: "ellipsis",
+                accessibilityLabel: "More",
                 items: [
                   { id: "reply", title: "Reply", systemImage: "arrowshape.turn.up.left" },
                   { id: "delete", title: "Delete", systemImage: "trash", destructive: true },
@@ -227,7 +231,13 @@ export const TabViewDemo = () => {
             native={native}
             tint={tint}
             icon={webSymbol}
-            actions={[{ id: "toggle", systemImage: playing ? "pause.fill" : "play.fill" }]}
+            actions={[
+              {
+                id: "toggle",
+                systemImage: playing ? "pause.fill" : "play.fill",
+                accessibilityLabel: playing ? "Pause" : "Play",
+              },
+            ]}
             onAction={() => setPlaying(!playing)}
           />
         }

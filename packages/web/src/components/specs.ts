@@ -451,6 +451,8 @@ export type BarItem =
       kind?: "button" | "menu";
       title?: string;
       systemImage?: string;
+      /** What VoiceOver reads, for an item with only an icon. Defaults to `title`. */
+      accessibilityLabel?: string;
       /** Stands on its own, filled with `tint`. */
       prominent?: boolean;
       /** Hex or `rgb()`. */
