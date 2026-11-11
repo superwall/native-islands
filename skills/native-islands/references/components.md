@@ -96,15 +96,18 @@ see [registering](host.md#register-components).
   [the skill](../SKILL.md#hard-rules)).
 - **Common props.** Every island also takes `native`, `islandId` and
   `accessibility`; see [props every island takes](page.md#props-every-island-takes).
-- **VoiceOver reaches each control.** The islands that draw several controls
-  keep them apart, each with its own label and selected state: `TabBar`,
+- **VoiceOver reaches each control.** In the page or a scrolling area
+  VoiceOver reads the built-in web version, which has the roles, state and
+  labels of the native control. Pinned in the screen layer (`position: fixed`)
+  it reads the native view, where the islands that draw several controls keep
+  them apart, each with its own label and selected state: `TabBar`,
   `TabAccessory`, `SearchField`, `NavigationBar`, `Toolbar`,
   `SegmentedControl`, `Picker`, `DatePicker`, `List`, `Tip`, `Video`,
   `MapView` and `Chart`. Their `label` or `accessibility.label` names the
   group; on `Picker` and `DatePicker` it names the control itself. Every
-  other island is one element, named by its `label`. VoiceOver cannot reach
-  an island inside an inner scrolling area (`overflow: auto` or `scroll`)
-  yet; islands that scroll with the page and fixed ones are reached.
+  other island is one element there, named by its `label`. Children you pass
+  must be accessible themselves; see
+  [Accessibility](custom-island.md#accessibility).
 
 ## Buttons
 

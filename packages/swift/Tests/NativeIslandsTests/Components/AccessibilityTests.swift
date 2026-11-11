@@ -100,7 +100,10 @@ extension NativeBridgeTests {
     ) async -> [SpokenElement] {
       let harness = NativeTestHarness()
       harness.registry.register(component, accessibilityChildren: children, content: content)
-      harness.manager.apply(batch(1, mountOp("a", component: component, accessibility: accessibility)))
+      // VoiceOver reads the native view only on the screen layer.
+      harness.manager.apply(
+        batch(1, mountOp("a", component: component, anchor: .screen, accessibility: accessibility))
+      )
       guard let island = harness.island("a") else { return [] }
       return await spokenElements(onScreen: island.host.view)
     }

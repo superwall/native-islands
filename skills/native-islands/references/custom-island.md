@@ -275,17 +275,46 @@ and switches to native as soon as it does come.
 
 ## Accessibility
 
-The registration says how VoiceOver reaches what the view draws, with
-`accessibilityChildren` (a `NativeAccessibilityChildren`):
+VoiceOver reads each island from one side only, chosen by where the app
+placed it:
+
+- **In the page or a scrolling area** (most islands): VoiceOver reads the
+  children, your web version. It stays in the accessibility tree behind the
+  native view, and the app hides the native view from VoiceOver. A
+  double-tap runs the web version's own handlers, which drive the island.
+- **In the screen layer** (`position: fixed` chrome such as a tab bar or a
+  toolbar): VoiceOver reads the native view, and the web version is hidden
+  from it. The page's `accessibility` and the registration's
+  `accessibilityChildren` decide what it finds there.
+
+An island can sit in either place, so do both.
+
+### The web version
+
+- Make it accessible on its own: real `<button>`s and inputs, `role` and
+  `aria-checked`, `aria-pressed` or `aria-selected` for state, and
+  `aria-label` on icon-only controls. Each control in it is reached on its own.
+- A control your web version steps with − and + buttons reads as two buttons;
+  for one adjustable element give it `role="slider"` (or `spinbutton`) with
+  `aria-valuenow` and arrow-key handlers, as the ready-made `Stepper` does.
+- Never put `aria-hidden` or `visibility: hidden` on it; the island hides it
+  from sight and touches itself.
+
+### The native view
+
+In the screen layer the registration says how VoiceOver reaches what the view
+draws, with `accessibilityChildren` (a `NativeAccessibilityChildren`):
 
 | Value                | VoiceOver finds                                         | The page's `accessibility`                                             | Use for                                                    |
 | -------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `.combine` (default) | One element for the whole island                        | Its `label`, `hint`, `value` and `traits` describe that element        | A single control: a button, a switch, a slider, a field    |
 | `.contain`           | Each control the view draws, on its own, inside a group | Its `label` names the group; `hint`, `value` and `traits` are not used | Several controls: a row of buttons, tabs, segments, a list |
 
-`hidden: true` hides the island from VoiceOver in both.
+`hidden: true` hides the native view from VoiceOver in both. Register by what
+the view draws, not by where today's page puts it: the grouping is fixed at
+registration, and another page may pin the island.
 
-### One control: `.combine`
+### One control in the screen layer: `.combine`
 
 The page names it. It sends `accessibility`, and when that is left out reads
 one from the children: their `aria-label`, `alt` or text, and the first
@@ -301,7 +330,7 @@ page's label, so:
 - `traits` takes `button`, `link`, `image`, `header`, `selected` and `switch`
   (a button before iOS 17); others are ignored.
 
-### Several controls: `.contain`
+### Several controls in the screen layer: `.contain`
 
 Without it, VoiceOver gets one element for the whole island and cannot reach
 or activate a single button in it. Register with `.contain` and label each
@@ -363,11 +392,8 @@ NativeComponentRegistry.shared.register("playerControls", accessibilityChildren:
 
 ### Limits
 
-- VoiceOver cannot reach an island inside an inner scrolling area (an element
-  with `overflow: auto` or `scroll`) yet, however it is registered. Islands
-  that scroll with the page itself, and fixed ones such as a tab bar, are
-  reached. Check with VoiceOver on a device before relying on an island in a
-  scroller.
+- In the page or a scrolling area nothing set in Swift is read: not
+  `accessibilityChildren`, not `.accessibilityLabel`. Only the web version is.
 - Before iOS 18 the island's view is rebuilt when the page starts or stops
   sending a `label`, `hint` or `value`, which can reset `@State` and focus.
   Send them from the first render.
@@ -409,9 +435,11 @@ again, as the default is `.combine`.
 - [ ] Every prop is JSON; nested numbers are read through `NSNumber`.
 - [ ] The Swift view fills its box, or has an ideal size for `"native"`.
 - [ ] Every command has a web path on the page.
-- [ ] One control: the page names it (`accessibility`, or children that give
-      a label). Several: registered with `accessibilityChildren: .contain`,
-      each control labelled in Swift, the group named by the page.
+- [ ] The web version reads correctly with VoiceOver on its own (roles, state,
+      labels).
+- [ ] For the screen layer: one control is named by the page (`accessibility`,
+      or children that give a label); several are registered with
+      `accessibilityChildren: .contain`, each labelled in Swift.
 - [ ] Registered before the first `IslandWebView` is created.
 - [ ] Seen native in the app with `-NativeIslandsOutlines YES`, and seen as
       web in a browser.

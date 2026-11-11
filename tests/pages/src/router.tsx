@@ -19,6 +19,7 @@ export const ROUTES = [
   "flow-plans",
   "flow-details",
   "flow-done",
+  "accessibility",
   "perf",
 ] as const;
 

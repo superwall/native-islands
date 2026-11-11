@@ -59,6 +59,26 @@ Mark a waiting screen with `data-island-phase` or `inert` and move it off
 screen or underneath, rather than hiding it with `display: none`, so its
 islands mount right away and move with it when it slides in.
 
+## How VoiceOver reaches islands
+
+WebKit gives VoiceOver the whole page as one element, and the native views it
+holds in its scroll views are not part of it. So each island has one source
+for VoiceOver, chosen by where the host placed it:
+
+- **In the page or an inner scrolling area:** VoiceOver reads the web
+  version. Behind the native view the page hides it from sight and from
+  touches (`opacity: 0` and `pointer-events: none` in
+  `packages/web/src/react/dom/styles.ts`), never with `visibility: hidden`,
+  so it keeps its place in reading order. Its own handlers drive the island,
+  so a double-tap or an adjustment reaches the native view through the page.
+  The host hides these native views from accessibility
+  (`applyAccessibility` in `NativeIsland.swift`), so nothing is read twice.
+- **In the screen layer** (fixed elements such as a tab bar or a nav bar):
+  VoiceOver reads the native view, with the `accessibility` the page sends.
+
+A web version is therefore what VoiceOver says for most islands: give it real
+roles, states and labels. The ready-made ones match their native controls.
+
 ## What the tests hold to
 
 - **Alignment** (`tests/ios/TestHostUITests/AlignmentUITests.swift`) opens
@@ -71,5 +91,9 @@ islands mount right away and move with it when it slides in.
   `tests/ios/Baselines/`. A pixel counts as different when a colour channel
   moves by more than 24 of 255, and a page fails when more than 0.2% of its
   pixels differ.
+- **Accessibility** (`tests/ios/TestHostUITests/AccessibilityUITests.swift`)
+  fails when an island in the page, in an inner scrolling area or in the
+  screen layer is missing from the accessibility tree or appears more than
+  once, or reads the wrong state.
 - **Performance** is described in [`performance.md`](performance.md), and
   each iOS release's results in [`compatibility.md`](compatibility.md).

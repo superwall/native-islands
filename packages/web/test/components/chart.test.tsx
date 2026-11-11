@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { Chart, type ChartSeries } from "../../src/components";
 import { chartXs, describeX, linePath, selectionAt } from "../../src/components/chart";
 import type * as React from "react";
@@ -81,8 +81,7 @@ describe("the chart's web version", () => {
   it("draws grouped bars with a legend and scrubs to the x under the finger", async () => {
     const onSelect = vi.fn();
     const view = renderWeb(<Chart series={WEEK} tint="blue" onSelect={onSelect} />);
-    const svg = view.container.querySelector("svg");
-    if (!svg) throw new Error("No chart was drawn.");
+    const svg = screen.getByRole("img", { name: "Chart" });
     expect(view.container.querySelectorAll(".ni-chart-bar")).toHaveLength(4);
     expect(view.container.querySelector(".ni-chart-legend")?.textContent).toBe("RunningCycling");
     const bars = [...view.container.querySelectorAll(".ni-chart-bar")];
@@ -111,8 +110,15 @@ describe("the chart's web version", () => {
 
   it("stacks bars and keeps to the y axis it is given", async () => {
     const view = renderWeb(
-      <Chart series={WEEK} stacked legend={false} yAxis={{ min: 0, max: 20 }} />,
+      <Chart
+        series={WEEK}
+        stacked
+        legend={false}
+        yAxis={{ min: 0, max: 20 }}
+        label="Distance this week"
+      />,
     );
+    expect(screen.getByRole("img", { name: "Distance this week" })).toBeTruthy();
     const heights = [...view.container.querySelectorAll(".ni-chart-bar")].map((bar) =>
       Math.round(Number(bar.getAttribute("height"))),
     );

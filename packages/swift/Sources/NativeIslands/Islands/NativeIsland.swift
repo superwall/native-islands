@@ -76,6 +76,7 @@ final class NativeIsland {
 
   func move(to anchor: NativeAnchor) {
     self.anchor = anchor
+    applyAccessibility()
   }
 
   func place(
@@ -258,8 +259,12 @@ final class NativeIsland {
     }
   }
 
+  /// Only an island on the screen layer is read from its native view.
+  /// WebKit hands VoiceOver the page as one element, so a view in its scroll
+  /// views can't take its place in reading order: VoiceOver reads the web
+  /// version there, and the native view would be read a second time.
   func applyAccessibility() {
-    view.accessibilityElementsHidden = context.accessibility?.isHidden == true
+    view.accessibilityElementsHidden = anchor != .screen || context.accessibility?.isHidden == true
   }
 }
 

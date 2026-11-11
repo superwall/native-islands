@@ -307,6 +307,46 @@ extension NativeBridgeTests {
       #expect(harness.island("cta")?.view.superview === harness.surface.pageScrollView)
     }
 
+    @Test("VoiceOver reads only screen-layer islands from their native view")
+    func readsOnlyScreenIslandsNatively() {
+      let harness = NativeTestHarness()
+      harness.surface.addScroller(
+        frame: CGRect(x: 0, y: 100, width: 400, height: 300),
+        contentSize: CGSize(width: 400, height: 900)
+      )
+      let list = scroller(
+        frame: NativeFrame(x: 0, y: 100, width: 400, height: 300),
+        contentSize: NativeSize(width: 400, height: 900)
+      )
+      harness.manager.apply(
+        batch(1, mountOp("page"), mountOp("screen", anchor: .screen), mountOp("scroller", anchor: list))
+      )
+      #expect(harness.island("page")?.view.accessibilityElementsHidden == true)
+      #expect(harness.island("scroller")?.view.accessibilityElementsHidden == true)
+      #expect(harness.island("screen")?.view.accessibilityElementsHidden == false)
+    }
+
+    @Test("A screen-layer island the page hides stays hidden from VoiceOver")
+    func hidesAScreenIslandThePageHides() {
+      let harness = NativeTestHarness()
+      harness.manager.apply(batch(1, mountOp(anchor: .screen, accessibility: NativeAccessibility(hidden: true))))
+      #expect(harness.island("cta")?.view.accessibilityElementsHidden == true)
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", accessibility: NativeAccessibility()))))
+      #expect(harness.island("cta")?.view.accessibilityElementsHidden == false)
+    }
+
+    @Test("Moving between the page and the screen layer changes which side VoiceOver reads")
+    func followsTheAnchorForAccessibility() {
+      let harness = NativeTestHarness()
+      harness.manager.apply(batch(1, mountOp()))
+      let view = harness.island("cta")?.view
+      #expect(view?.accessibilityElementsHidden == true)
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: .screen))))
+      #expect(view?.accessibilityElementsHidden == false)
+      harness.manager.apply(batch(3, .update(NativeUpdate(id: "cta", anchor: .page))))
+      #expect(view?.accessibilityElementsHidden == true)
+    }
+
     @Test
     func reportsTheSizeOfNativelySizedComponents() {
       let harness = NativeTestHarness()

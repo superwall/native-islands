@@ -13,6 +13,7 @@ import {
   type TextFieldHandle,
 } from "../../src/components";
 import { WHEEL_ROW } from "../../src/components/controls";
+import { describeDate } from "../../src/components/dates";
 import { removeCapability, renderNative } from "../support/react";
 import { installComponents, mountComponent } from "./support";
 
@@ -72,8 +73,9 @@ describe("SegmentedControl", () => {
       accessibility: { label: "View", value: "Day" },
     });
     view.state({ selectedIndex: 1 });
-    expect(screen.getByRole("button", { name: "Day" }).getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: "Week" }));
+    expect(screen.getByRole("radiogroup", { name: "View" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Day", checked: true })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Week", checked: false }));
     expect(onChange.mock.calls).toEqual([[1], [1]]);
   });
 });
@@ -134,6 +136,32 @@ describe("Stepper", () => {
     expect(screen.getByRole("button", { name: "Decrement" })).toHaveProperty("disabled", true);
     fireEvent.click(screen.getByRole("button", { name: "Increment" }));
     expect(onChange.mock.calls).toEqual([[2], [2]]);
+  });
+
+  it("is one adjustable element whose arrow keys step it", async () => {
+    const onChange = vi.fn();
+    const view = await mountComponent(
+      <Stepper label="Guests" value={2} minimum={1} maximum={3} step={1} onChange={onChange} />,
+    );
+    const stepper = screen.getByRole("spinbutton", { name: "Guests" });
+    expect(stepper.getAttribute("aria-valuenow")).toBe("2");
+    expect(stepper.getAttribute("aria-valuemin")).toBe("1");
+    expect(stepper.getAttribute("aria-valuemax")).toBe("3");
+    expect(stepper.tabIndex).toBe(0);
+    expect(screen.getByRole("button", { name: "Increment" }).tabIndex).toBe(-1);
+    fireEvent.keyDown(stepper, { key: "ArrowUp" });
+    fireEvent.keyDown(stepper, { key: "ArrowLeft" });
+    fireEvent.keyDown(stepper, { key: "Enter" });
+    expect(onChange.mock.calls).toEqual([[3], [1]]);
+    view.rerender(<Stepper label="Guests" value={3} minimum={1} maximum={3} onChange={onChange} />);
+    fireEvent.keyDown(stepper, { key: "ArrowRight" });
+    view.rerender(
+      <Stepper label="Guests" value={2} minimum={1} maximum={3} disabled onChange={onChange} />,
+    );
+    fireEvent.keyDown(stepper, { key: "ArrowDown" });
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(stepper.getAttribute("aria-disabled")).toBe("true");
+    expect(stepper.hasAttribute("tabindex")).toBe(false);
   });
 
   it("steps down and stops at the top, or not at all when disabled", async () => {
@@ -273,15 +301,23 @@ describe("DatePicker", () => {
     const view = await mountComponent(
       <DatePicker label="Day" style="graphical" date="2026-11-04T09:30" onChange={onChange} />,
     );
-    expect(screen.getByRole("button", { name: "4" }).getAttribute("aria-pressed")).toBe("true");
+    const day = (number: number, month = 11) =>
+      describeDate({ year: 2026, month, day: number, hour: 0, minute: 0 });
+    expect(screen.getByRole("button", { name: day(4) }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "Next month" }));
     expect(screen.queryByRole("button", { pressed: true })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
-    fireEvent.click(screen.getByRole("button", { name: "9" }));
+    fireEvent.click(screen.getByRole("button", { name: day(9, 10) }));
     expect(onChange).toHaveBeenCalledWith("2026-10-09T09:30");
     view.rerender(<DatePicker label="Day" style="graphical" date="bad" onChange={onChange} />);
-    expect(screen.getByRole("button", { name: "1" }).getAttribute("aria-pressed")).toBe("true");
+    expect(
+      screen
+        .getByRole("button", {
+          name: describeDate({ year: 2026, month: 1, day: 1, hour: 0, minute: 0 }),
+        })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
   });
 
   it("is a pair of hour and minute wheels", async () => {

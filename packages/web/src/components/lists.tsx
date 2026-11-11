@@ -112,6 +112,7 @@ const WebRow = ({
           className="ni-list-row-main"
           disabled={row.disabled}
           aria-pressed={context.selectionMode === "none" ? undefined : checked}
+          aria-expanded={row.children ? open : undefined}
           onClick={() => context.press(row)}
         >
           {row.systemImage && (
@@ -135,7 +136,11 @@ const WebRow = ({
           {row.accessory === "chevron" && (
             <Glyph name="chevron.right" className="ni-list-chevron" />
           )}
-          {row.accessory === "info" && <span className="ni-list-info">ⓘ</span>}
+          {row.accessory === "info" && (
+            <span className="ni-list-info" aria-hidden="true">
+              ⓘ
+            </span>
+          )}
         </button>
         {row.children && (
           <button
@@ -266,7 +271,6 @@ export const List = ({
         <div
           className="ni-list"
           data-style={style}
-          role="list"
           style={{
             ...cssVariables({ "--ni-tint": tint }),
             ...(nativeHeight === undefined ? {} : { height: nativeHeight, overflow: "hidden" }),
@@ -275,7 +279,7 @@ export const List = ({
           {sections.map((section) => (
             <div key={section.id} className="ni-list-section">
               {section.header && <h3 className="ni-list-header">{section.header}</h3>}
-              <div className="ni-list-rows">
+              <div className="ni-list-rows" role="list" aria-label={section.header}>
                 {section.rows.map((row, index) => (
                   <WebRow
                     key={row.id}

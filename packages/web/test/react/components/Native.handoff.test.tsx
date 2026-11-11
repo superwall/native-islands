@@ -437,7 +437,7 @@ describe("following motion frame by frame", () => {
     ).toBe(false);
   });
 
-  it("conceals the faded-out web version from taps and VoiceOver, and reveals it on hand-off", async () => {
+  it("conceals the faded-out web version from taps, not VoiceOver, and reveals it on hand-off", async () => {
     const view = renderNative(<Card />);
     await view.nextFrame();
     view.ackAll();
@@ -447,6 +447,7 @@ describe("following motion frame by frame", () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
     });
     expect(island.hasAttribute("data-island-concealed")).toBe(true);
+    expect(island.hasAttribute("aria-hidden")).toBe(false);
     const card = view.container.querySelector("#card") as HTMLElement;
     overrideStyle(card, { opacity: "0.5" });
     act(() => {

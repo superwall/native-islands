@@ -100,7 +100,7 @@ const WebGauge = ({
 }) => {
   switch (style) {
     case "spinner":
-      return <div className="ni-spinner" role="progressbar" aria-busy />;
+      return <div className="ni-spinner" />;
     case "bar":
     case "linear":
       return (
@@ -170,7 +170,15 @@ export const Gauge = ({
     {...common}
   >
     {children ?? (
-      <div className="ni-gauge" style={cssVariables({ "--ni-tint": tint })}>
+      <div
+        className="ni-gauge"
+        role="progressbar"
+        aria-label={label}
+        aria-busy={style === "spinner" || undefined}
+        aria-valuenow={style === "spinner" ? undefined : Math.round(clamp(value, 0, 1) * 100)}
+        aria-valuetext={style === "spinner" ? undefined : valueLabel}
+        style={cssVariables({ "--ni-tint": tint })}
+      >
         <WebGauge
           value={value}
           style={style}
