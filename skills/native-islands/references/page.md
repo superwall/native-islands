@@ -186,13 +186,13 @@ with `unsupported`, and in an app without the component with `not_ready`.
 
 ## Props every island takes
 
-| Prop            | Default            | Meaning                                                                            |
-| --------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| `children`      | none               | The web version. For a ready-made island, replaces its built-in web version        |
-| `native`        | `true`             | `false` keeps the web version, such as for a setting that turns native off         |
-| `islandId`      | a generated id     | Only when something outside needs the id; it must be unique on the page            |
-| `accessibility` | read from children | `{ label?, hint?, value?, traits?, hidden? }`; the island is one VoiceOver element |
-| `ref`           | none               | A `NativeHandle`: `command(name, args, { timeoutMs })` and `state()`               |
+| Prop            | Default            | Meaning                                                                                                                                                                               |
+| --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`      | none               | The web version. For a ready-made island, replaces its built-in web version                                                                                                           |
+| `native`        | `true`             | `false` keeps the web version, such as for a setting that turns native off                                                                                                            |
+| `islandId`      | a generated id     | Only when something outside needs the id; it must be unique on the page                                                                                                               |
+| `accessibility` | read from children | `{ label?, hint?, value?, traits?, hidden? }`. It describes a single control, and only names the group of an island with several; see [Accessibility](custom-island.md#accessibility) |
+| `ref`           | none               | A `NativeHandle`: `command(name, args, { timeoutMs })` and `state()`                                                                                                                  |
 
 A duplicate `islandId`, or more than 256 islands at once, shows the web
 version for the extra ones.

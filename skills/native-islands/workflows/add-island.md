@@ -74,7 +74,12 @@ Then check the page's layout around it:
    outline and name. Scroll, rotate and switch light and dark: it stays put.
 4. Use it with real touches: the page hears every event and state change, and
    a value the page sets (a reset button) shows in the native control.
-5. Turn on VoiceOver once: the island reads its label.
+5. Turn on VoiceOver once, on a device. In the page or a scrolling area it
+   reads the web version: each control is reached on its own, with its label
+   and state, and a double-tap works. Pinned in the screen layer
+   (`position: fixed`) it reads the native view: a single control reads its
+   label and value, and each tab, segment, bar item or row is reached on its
+   own. An icon-only bar item reads its `accessibilityLabel`.
 
 If it stays web, follow [Debug an island](debug.md).
 

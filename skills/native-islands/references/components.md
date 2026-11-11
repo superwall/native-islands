@@ -96,6 +96,18 @@ see [registering](host.md#register-components).
   [the skill](../SKILL.md#hard-rules)).
 - **Common props.** Every island also takes `native`, `islandId` and
   `accessibility`; see [props every island takes](page.md#props-every-island-takes).
+- **VoiceOver reaches each control.** In the page or a scrolling area
+  VoiceOver reads the built-in web version, which has the roles, state and
+  labels of the native control. Pinned in the screen layer (`position: fixed`)
+  it reads the native view, where the islands that draw several controls keep
+  them apart, each with its own label and selected state: `TabBar`,
+  `TabAccessory`, `SearchField`, `NavigationBar`, `Toolbar`,
+  `SegmentedControl`, `Picker`, `DatePicker`, `List`, `Tip`, `Video`,
+  `MapView` and `Chart`. Their `label` or `accessibility.label` names the
+  group; on `Picker` and `DatePicker` it names the control itself. Every
+  other island is one element there, named by its `label`. Children you pass
+  must be accessible themselves; see
+  [Accessibility](custom-island.md#accessibility).
 
 ## Buttons
 
@@ -405,8 +417,10 @@ The pieces, for a shell of your own:
 
 A `Tab` is `{ id, title, systemImage, badge? }`; a `TabBar` selects nothing
 for an id it does not have, such as `"search"`. A `BarItem` is a button or a
-menu, `{ id, kind?, title?, systemImage?, prominent?, tint?, disabled?, items? }`,
-or a gap, `{ kind: "spacer" | "flexibleSpace" }` between glass groups.
+menu, `{ id, kind?, title?, systemImage?, accessibilityLabel?, prominent?, tint?, disabled?, items? }`,
+or a gap, `{ kind: "spacer" | "flexibleSpace" }` between glass groups. Give
+an item with only a `systemImage` an `accessibilityLabel`, such as `"Share"`:
+it is what VoiceOver reads, and defaults to `title`.
 `SearchFieldHandle` has `focus()` and `blur()`. Building a shell of your own
 means parking hidden tabs and screens yourself: see
 [screens that are not showing yet](page.md#screens-that-are-not-showing-yet).
