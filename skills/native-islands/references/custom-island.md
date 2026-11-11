@@ -350,7 +350,8 @@ NativeComponentRegistry.shared.register("playerControls", accessibilityChildren:
   `.accessibilityAddTraits(.isSelected)`, as the rating above does.
 - Name the group on the page with `accessibility={{ label: "Player" }}`. A web
   version whose root has a composite role (`toolbar`, `tablist`, `list`,
-  `listbox`, `menu`, `grid`, `radiogroup`, `tree`, `table`) is never named
+  `listbox`, `menu`, `menubar`, `grid`, `treegrid`, `radiogroup`, `tree`,
+  `table`) is never named
   from its text, which would run every button together: give it an
   `aria-label`, or the group has no name.
 - A SwiftUI `Slider` in the view stays adjustable, but needs its own

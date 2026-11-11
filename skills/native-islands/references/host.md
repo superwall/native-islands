@@ -83,7 +83,7 @@ build it:
 enum AppIslands {
   static func register() {
     NativeIslandsComponents.register()
-    NativeComponentRegistry.shared.register("rating", version: 1) { component in
+    NativeComponentRegistry.shared.register("rating", version: 1, accessibilityChildren: .contain) { component in
       RatingView(component: component)
     }
   }
@@ -103,10 +103,13 @@ enum AppIslands {
   chart's web version there. `tip` needs iOS 17 the same way.
 
 Your own component is one more `register` call; see the page side for the
-matching `defineNativeComponent`:
+matching `defineNativeComponent`. A view that draws several controls, as the
+rating's stars do, passes `accessibilityChildren: .contain` so VoiceOver
+reaches each one; a single control leaves it out. See
+[Accessibility](custom-island.md#accessibility):
 
 ```swift
-NativeComponentRegistry.shared.register("rating", version: 1) { component in
+NativeComponentRegistry.shared.register("rating", version: 1, accessibilityChildren: .contain) { component in
   RatingView(component: component)
 }
 ```

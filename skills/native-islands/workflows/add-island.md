@@ -74,7 +74,11 @@ Then check the page's layout around it:
    outline and name. Scroll, rotate and switch light and dark: it stays put.
 4. Use it with real touches: the page hears every event and state change, and
    a value the page sets (a reset button) shows in the native control.
-5. Turn on VoiceOver once: the island reads its label.
+5. Turn on VoiceOver once, on a device: a single control reads its label and
+   value, and each tab, segment, bar item or row is reached on its own. An
+   icon-only bar item reads its `accessibilityLabel`. An island inside an
+   inner scrolling area (`overflow: auto` or `scroll`) cannot be reached by
+   VoiceOver yet, so keep a control people must use out of one.
 
 If it stays web, follow [Debug an island](debug.md).
 
