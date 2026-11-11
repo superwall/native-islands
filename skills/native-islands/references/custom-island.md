@@ -66,7 +66,7 @@ export const RateThisApp = ({ send }: { send: (stars: number) => void }) => {
       value={stars}
       max={5}
       tint="var(--accent)"
-      accessibility={{ label: "Rating", value: `${stars} of 5 stars` }}
+      accessibility={{ label: "Rating" }}
       onValueChange={setStars}
       onSubmit={({ value }) => send(value)}
     >
@@ -103,6 +103,8 @@ struct RatingView: View {
         } label: {
           Image(systemName: star <= value ? "star.fill" : "star")
         }
+        .accessibilityLabel("\(star) of \(count) stars")
+        .accessibilityAddTraits(star == value ? .isSelected : [])
       }
       Button("Send") {
         component.emit("submit", payload: ["value": value])
@@ -114,10 +116,13 @@ struct RatingView: View {
 }
 ```
 
-Register it with the rest, before the first web view is created:
+Register it with the rest, before the first web view is created. It holds
+several controls (five stars and Send), so it registers with
+`accessibilityChildren: .contain`: VoiceOver reaches each one on its own, and
+the page's label names the group. See [Accessibility](#accessibility).
 
 ```swift
-NativeComponentRegistry.shared.register("rating", version: 1) { component in
+NativeComponentRegistry.shared.register("rating", version: 1, accessibilityChildren: .contain) { component in
   RatingView(component: component)
 }
 ```
@@ -270,22 +275,103 @@ and switches to native as soon as it does come.
 
 ## Accessibility
 
-The page sends `accessibility` (`label`, `hint`, `value`, `traits`, `hidden`),
-and when it is left out reads one from the children: their `aria-label`,
-`alt` or text, and the first child's role. Whenever there is one, the app
-makes the whole island a single VoiceOver element with it, and labels set
-inside the SwiftUI view are merged away. So:
+The registration says how VoiceOver reaches what the view draws, with
+`accessibilityChildren` (a `NativeAccessibilityChildren`):
 
-- Give the island one `accessibility` that describes it, with the current
-  value in `value`, as the rating above does.
-- An icon-only control needs a label on the page, such as `aria-label` on its
-  web version.
-- An island whose controls must each be reached on their own (a toolbar of
-  buttons) is better split into one island per control.
-- `traits` takes only `button`, `link`, `image` and `header`; others are
-  ignored. There is no adjustable trait, so VoiceOver cannot step a control
-  of your own that holds − and + buttons: say so in its `hint`, and prefer a
-  ready-made `Stepper` or `Slider` when one fits.
+| Value                | VoiceOver finds                                         | The page's `accessibility`                                             | Use for                                                    |
+| -------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `.combine` (default) | One element for the whole island                        | Its `label`, `hint`, `value` and `traits` describe that element        | A single control: a button, a switch, a slider, a field    |
+| `.contain`           | Each control the view draws, on its own, inside a group | Its `label` names the group; `hint`, `value` and `traits` are not used | Several controls: a row of buttons, tabs, segments, a list |
+
+`hidden: true` hides the island from VoiceOver in both.
+
+### One control: `.combine`
+
+The page names it. It sends `accessibility`, and when that is left out reads
+one from the children: their `aria-label`, `alt` or text, and the first
+child's role. Labels set inside the SwiftUI view are merged away under the
+page's label, so:
+
+- Give the island a label on the page: `accessibility={{ label }}`, or a web
+  version that has one, such as `aria-label` on an icon-only button.
+- Leave `value` out when the control says it itself. A SwiftUI `Toggle`,
+  `Slider`, `Stepper`, `TextField` or `DatePicker` keeps its own value and
+  traits (on or off, 60%, adjustable), and a `value` from the page replaces
+  it. Send one only for a view that has none of its own.
+- `traits` takes `button`, `link`, `image`, `header`, `selected` and `switch`
+  (a button before iOS 17); others are ignored.
+
+### Several controls: `.contain`
+
+Without it, VoiceOver gets one element for the whole island and cannot reach
+or activate a single button in it. Register with `.contain` and label each
+control in Swift, since the page's label is now only the group's name:
+
+```swift
+import NativeIslands
+import SwiftUI
+
+struct PlayerControlsView: View {
+  @ObservedObject var component: NativeComponentContext
+
+  var body: some View {
+    let playing = component.props.bool("playing") == true
+    HStack(spacing: 24) {
+      Button {
+        component.emit("previous")
+      } label: {
+        Image(systemName: "backward.fill")
+      }
+      .accessibilityLabel("Previous")
+      Button {
+        component.setState(["playing": !playing])
+      } label: {
+        Image(systemName: playing ? "pause.fill" : "play.fill")
+      }
+      .accessibilityLabel(playing ? "Pause" : "Play")
+      Button {
+        component.emit("next")
+      } label: {
+        Image(systemName: "forward.fill")
+      }
+      .accessibilityLabel("Next")
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}
+
+NativeComponentRegistry.shared.register("playerControls", accessibilityChildren: .contain) { component in
+  PlayerControlsView(component: component)
+}
+```
+
+- Every control needs its own label in Swift: text it shows, or
+  `.accessibilityLabel` on an icon. Mark the chosen one with
+  `.accessibilityAddTraits(.isSelected)`, as the rating above does.
+- Name the group on the page with `accessibility={{ label: "Player" }}`. A web
+  version whose root has a composite role (`toolbar`, `tablist`, `list`,
+  `listbox`, `menu`, `grid`, `radiogroup`, `tree`, `table`) is never named
+  from its text, which would run every button together: give it an
+  `aria-label`, or the group has no name.
+- A SwiftUI `Slider` in the view stays adjustable, but needs its own
+  `.accessibilityLabel`. A `Stepper`, or − and + buttons of your own, reads
+  as two buttons VoiceOver reaches one by one; a stepper that should be one
+  adjustable element belongs in an island of its own, registered `.combine`.
+- A view that only sometimes shows a second control (a clear button in a
+  field) is still several controls: register `.contain`.
+
+### Limits
+
+- VoiceOver cannot reach an island inside an inner scrolling area (an element
+  with `overflow: auto` or `scroll`) yet, however it is registered. Islands
+  that scroll with the page itself, and fixed ones such as a tab bar, are
+  reached. Check with VoiceOver on a device before relying on an island in a
+  scroller.
+- Before iOS 18 the island's view is rebuilt when the page starts or stops
+  sending a `label`, `hint` or `value`, which can reset `@State` and focus.
+  Send them from the first render.
+- The grouping is fixed when the component is registered; a prop cannot
+  change it.
 
 ## The view's lifetime
 
@@ -308,7 +394,10 @@ existing prop, event or state key means: add a new one.
 Register your own view under a ready-made name after
 `NativeIslandsComponents.register()`; the later registration wins. Keep its
 props, events and state exactly as `native-islands/components` sends them, or
-use a name of your own.
+use a name of your own. Keep its grouping too: a view registered under
+`segmentedControl`, `tabBar`, `toolbar`, `navigationBar`, `list` or another
+ready-made name with several controls needs `accessibilityChildren: .contain`
+again, as the default is `.combine`.
 
 ## Checklist
 
@@ -319,7 +408,9 @@ use a name of your own.
 - [ ] Every prop is JSON; nested numbers are read through `NSNumber`.
 - [ ] The Swift view fills its box, or has an ideal size for `"native"`.
 - [ ] Every command has a web path on the page.
-- [ ] The island has one `accessibility` label, or children that give one.
+- [ ] One control: the page names it (`accessibility`, or children that give
+      a label). Several: registered with `accessibilityChildren: .contain`,
+      each control labelled in Swift, the group named by the page.
 - [ ] Registered before the first `IslandWebView` is created.
 - [ ] Seen native in the app with `-NativeIslandsOutlines YES`, and seen as
       web in a browser.
