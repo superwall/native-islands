@@ -42,6 +42,9 @@ env:
     26.0,26.0.1,26.1,26.2,26.3.1,26.4,26.4.1,26.5,
     27.0,27.1,27.2
 
+permissions:
+  contents: read
+
 jobs:
   runtimes:
     runs-on: ubuntu-latest
@@ -67,13 +70,13 @@ jobs:
       matrix:
         runtime: ${{ fromJSON(needs.runtimes.outputs.list) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       # A runtime needs an Xcode at least as new as its major release, so iOS 27
       # runtimes take Xcode 27 and older ones the newest stable Xcode.
-      - uses: maxim-lobanov/setup-xcode@v1
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: ${{ inputs.xcode || (startsWith(matrix.runtime, '27') && '27') || 'latest-stable' }}
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.4
       - name: Install iOS ${{ matrix.runtime }}
@@ -88,13 +91,13 @@ jobs:
           xcrun simctl list runtimes available
       - name: WebKit probe and Swift suite
         run: scripts/compat-matrix.sh --runtimes "${{ matrix.runtime }}" --steps probe,swift
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: webkit-tree-${{ matrix.runtime }}
           path: build/compat/trees/*.json
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
           name: probe-results-${{ matrix.runtime }}
@@ -107,11 +110,11 @@ jobs:
     if: always() && needs.probe.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: webkit-tree-*
           path: build/trees
