@@ -83,20 +83,35 @@ coding agents follow here; they apply to people too.
 
 ## Releasing
 
-The web package is published to npm as `native-islands`. Bump `version` in
-`packages/web/package.json`, run `scripts/pack-smoke.sh`, then publish from the
-package's folder:
+A tag releases everything at once: the `native-islands` npm package, the
+`NativeIslands`, `NativeIslandsComponents`, `NativeIslandsMaps` and
+`NativeIslandsCharts` pods, and the GitHub release. Swift Package Manager reads
+the tag itself.
 
-```bash
-cd packages/web
-npm publish
-```
+1. Bump `version` in `packages/web/package.json` and `s.version` in the four
+   podspecs, then run `scripts/release-check.sh v<version>` and
+   `scripts/pack-smoke.sh`. Check what npm will ship with
+   `cd packages/web && npm pack --dry-run`: only `dist`, `README.md`, `LICENSE`
+   and `package.json`.
+2. Merge that to `main`, then tag the merge commit and push the tag:
 
-`prepack` copies the root `LICENSE` in and builds `dist` first, and
-`publishConfig` makes the package public. Check what will ship with
-`npm pack --dry-run`: only `dist`, `README.md`, `LICENSE` and `package.json`.
-The Swift package ships from this repository through Swift Package Manager; tag
-the release commit with the same version.
+   ```bash
+   git fetch origin
+   git tag v0.1.0 origin/main
+   git push origin v0.1.0
+   ```
+
+`.github/workflows/release.yml` then checks that every version matches the tag,
+publishes to npm with provenance (a version with a `-` goes to the `next`
+dist-tag), pushes the pods in dependency order and creates the release with
+generated notes. Each step skips what is already published, so a failed run can
+be re-run on the same tag.
+
+It needs two repository secrets: `NPM_TOKEN`, an npm automation token that can
+publish `native-islands`, and `COCOAPODS_TRUNK_TOKEN`, the token of a trunk
+session (`pod trunk register`, then the password for `trunk.cocoapods.org` in
+`~/.netrc`). The repository must be public: SwiftPM, CocoaPods and npm
+provenance all fetch from it.
 
 ## Licence
 
