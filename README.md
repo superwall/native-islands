@@ -232,14 +232,24 @@ webView.load(URLRequest(url: pageURL))
 the page loads, it tells the page which components are registered on
 `NativeComponentRegistry.shared`.
 
-To use your own web view, attach `NativeIslandsHost(webView:)` before the first
-load and forward two calls to it, as `IslandWebView` does:
+To draw islands in a web view you didn't create, or don't want to subclass,
+attach a host to it before its first load:
 
-- `hitTest(_:with:webHit:)` from your `hitTest(_:with:)`, so islands in inner
-  scrolling areas receive their taps;
-- `webViewDidMoveToWindow()` from your `didMoveToWindow()`, so each island's
-  hosting controller becomes a child of the view controller that shows the web
-  view and can present sheets, menus and pickers.
+```swift
+NativeIslandsHost.attach(to: webView)
+```
+
+The web view keeps the host alive, and attaching again returns the same host.
+The two calls the host needs from the web view, `hitTest(_:with:)` so islands
+in inner scrolling areas receive their taps and `didMoveToWindow()` so islands
+present sheets, menus and pickers from the right view controller, are added to
+the web view's class at runtime. Web views of that class without a host behave
+as before.
+
+In a `WKWebView` subclass of your own you can forward the two calls yourself
+instead, as `IslandWebView` does: create `NativeIslandsHost(webView:)`, keep it,
+and call its `hitTest(_:with:webHit:)` from your `hitTest(_:with:)` and its
+`webViewDidMoveToWindow()` from your `didMoveToWindow()`:
 
 ```swift
 override func didMoveToWindow() {
@@ -257,6 +267,38 @@ and the page's label only names the group:
 ```swift
 NativeComponentRegistry.shared.register("playerControls", accessibilityChildren: .contain) { component in
   PlayerControls(component: component)
+}
+```
+
+### With Superwall paywalls
+
+Superwall paywalls can draw islands without SuperwallKit depending on Native
+Islands: an app that wants them adds the package itself, and every other app
+installs nothing new. Add `NativeIslands` and `NativeIslandsComponents` to the
+app, then, before `Superwall.configure`, register the components and attach a
+host to each paywall web view as SuperwallKit creates it:
+
+```swift
+import NativeIslands
+import NativeIslandsComponents
+import SuperwallKit
+
+NativeIslandsComponents.register()
+Superwall.paywallWebViewCreated = { webView in
+  NativeIslandsHost.attach(to: webView)
+}
+Superwall.configure(apiKey: "pk_...")
+```
+
+`Superwall.paywallWebViewCreated` hands the app each paywall's `WKWebView`
+before it loads anything; it needs a SuperwallKit release that has it. The
+paywall itself uses `native-islands` from npm like any other page. If only some
+of your paywalls use it, attach with `reveal: .immediately`, so the others
+don't stay covered until the two-second timeout:
+
+```swift
+Superwall.paywallWebViewCreated = { webView in
+  NativeIslandsHost.attach(to: webView, reveal: .immediately)
 }
 ```
 

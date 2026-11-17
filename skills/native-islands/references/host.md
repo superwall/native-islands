@@ -10,6 +10,7 @@ keys some islands need.
 - [Register components](#register-components)
 - [Show the page](#show-the-page)
 - [Your own web view](#your-own-web-view)
+- [A web view an SDK creates](#a-web-view-an-sdk-creates)
 - [Revealing the page](#revealing-the-page)
 - [Web view lifecycle](#web-view-lifecycle)
 - [Presentations load pages too](#presentations-load-pages-too)
@@ -187,11 +188,33 @@ web view in a `UIViewRepresentable` whose `makeUIView` creates the
 
 ## Your own web view
 
-To keep a `WKWebView` subclass of your own, attach a `NativeIslandsHost`
-before its first load, keep a strong reference to the host (nothing else
-does), and forward two calls as `IslandWebView` does: `hitTest` so islands in
-inner scrolling areas get their taps, and `didMoveToWindow` so islands present
-from the right view controller.
+When the app already has a web view it can't or won't replace with
+`IslandWebView` (a plain `WKWebView`, or a subclass from an SDK), attach a host
+to it before its first load:
+
+```swift
+let webView = WKWebView(frame: .zero, configuration: configuration)
+NativeIslandsHost.attach(to: webView)
+webView.load(URLRequest(url: url))
+```
+
+| `attach(to:)` argument | Default                          | Meaning                                                            |
+| ---------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| `to`                   | required                         | The web view, before it loads its first page                       |
+| `registry`             | `NativeComponentRegistry.shared` | Where its components come from                                     |
+| `reveal`               | `.whenIslandsReady(timeout: 2)`  | When the page shows; see [Revealing the page](#revealing-the-page) |
+
+- The web view keeps the host alive; the app need not hold it. It returns the
+  host, for `onReady`, `showsOutlines` or `detach()`.
+- Attaching again, or to an `IslandWebView`, returns the host it already has.
+- It adds `hitTest(_:with:)` and `didMoveToWindow()` to the web view's class at
+  runtime, so islands in inner scrolling areas get their taps and present from
+  the right view controller. Web views of that class without a host behave as
+  before, and so does this one after `detach()`.
+
+A `WKWebView` subclass of your own can instead create the host and forward the
+two calls itself, as `IslandWebView` does; then keep a strong reference to the
+host, as nothing else does:
 
 ```swift
 import NativeIslands
@@ -227,6 +250,46 @@ final class PageWebView: WKWebView {
 
 Call `islands?.detach()` before reusing the web view for something without
 islands. One host per web view; any number of web views can each have one.
+
+## A web view an SDK creates
+
+An SDK that shows pages in a web view of its own needs no dependency on Native
+Islands: it only has to hand the app each web view before it loads. The app
+links Native Islands and attaches. Superwall paywalls work this way, with
+`Superwall.paywallWebViewCreated`, which the app sets before
+`Superwall.configure`:
+
+```swift
+import NativeIslands
+import NativeIslandsComponents
+import SuperwallKit
+import UIKit
+
+@main
+final class AppDelegate: UIResponder, UIApplicationDelegate {
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    NativeIslandsComponents.register()
+    Superwall.paywallWebViewCreated = { webView in
+      NativeIslandsHost.attach(to: webView)
+    }
+    Superwall.configure(apiKey: "pk_...")
+    return true
+  }
+}
+```
+
+- Register before the first paywall web view is created, as anywhere else:
+  SuperwallKit preloads paywalls soon after `configure`.
+- The paywall is a page like any other: it installs `native-islands` and wraps
+  its controls in islands. Its web versions are what every other app, and the
+  paywall editor's preview, show.
+- When only some paywalls use `native-islands`, attach with
+  `reveal: .immediately`, or the others stay covered until the timeout.
+- Without a SuperwallKit release that has `paywallWebViewCreated`, there is no
+  way in: the paywall's web view is internal to the SDK.
 
 ## Revealing the page
 

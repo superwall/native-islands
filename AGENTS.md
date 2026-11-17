@@ -53,7 +53,9 @@ packages/web/           native-islands (page side)
   test/                 mirrors src/; shared helpers in test/support/
 packages/swift/         NativeIslands (host side); Package.swift is at the root
   Sources/NativeIslands/
-    Host/               NativeIslandsHost, IslandWebView, router, surface
+    Host/               NativeIslandsHost, IslandWebView, router, surface;
+                        WebViewForwarding adds hitTest and didMoveToWindow
+                        to the class of a web view attach(to:) is given
     Protocol/           contract models, decoding, replies, capability
     Islands/            the island manager and the island view
     Components/         registry, context, props, glass, accessibility
@@ -93,7 +95,11 @@ LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never
-hands touches to views in its scroll views, so `IslandWebView` routes them.
+hands touches to views in its scroll views, so `IslandWebView` routes them,
+and `NativeIslandsHost.attach(to:)` does the same for a web view the app
+doesn't subclass (an SDK's, such as Superwall's paywall web view) by adding
+the two overrides to its class at runtime. Nothing in the package names an SDK;
+the SDK only hands the app its web view.
 `tests/pages/src/router.tsx` renders every page at once and parks the ones
 not showing off to the side, each at its own spot, so their islands are drawn
 before they slide in. `?native=simulate` installs the JS reference host.
