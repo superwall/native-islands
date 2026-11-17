@@ -3,9 +3,13 @@ import WebKit
 
 /// Draws native islands in a `WKWebView` page that uses `native-islands`.
 ///
-/// Attach it before the web view loads its first page. A web view of your own
-/// must forward `hitTest(_:with:)` to ``hitTest(_:with:webHit:)``, as
-/// ``IslandWebView`` does, or islands in inner scrollers never receive touches.
+/// Attach it before the web view loads its first page. Use ``IslandWebView``,
+/// or ``attach(to:registry:reveal:)`` for a web view you don't subclass, such
+/// as one an SDK creates. A host made with ``init(webView:registry:reveal:)``
+/// needs the web view to forward `hitTest(_:with:)` to
+/// ``hitTest(_:with:webHit:)`` and `didMoveToWindow()` to
+/// ``webViewDidMoveToWindow()``, as ``IslandWebView`` does, or islands in inner
+/// scrollers never receive touches.
 @MainActor
 public final class NativeIslandsHost {
   public let registry: NativeComponentRegistry
@@ -39,6 +43,33 @@ public final class NativeIslandsHost {
   private var alignmentProbe: NativeAlignmentProbe?
 
   static let documentStartMarker = "native-islands-document-start"
+
+  /// Draws islands in a web view you don't subclass: a plain `WKWebView`, or
+  /// one an SDK creates, such as a paywall's. Call it before the web view
+  /// loads its first page.
+  ///
+  /// The web view's `hitTest(_:with:)` and `didMoveToWindow()` reach the host
+  /// without a subclass: they are added to its class at runtime and run as
+  /// before for every web view without an attached host. The web view keeps
+  /// the host alive until ``detach()``.
+  ///
+  /// - Returns: The host already drawing the web view's islands when it has
+  ///   one, such as an ``IslandWebView``'s; otherwise a new one.
+  @discardableResult
+  public static func attach(
+    to webView: WKWebView,
+    registry: NativeComponentRegistry? = nil,
+    reveal: NativeIslandsReveal = .whenIslandsReady(timeout: 2)
+  ) -> NativeIslandsHost {
+    if let existing = WebViewForwarding.host(of: webView)
+      ?? (webView as? IslandWebView)?.islands
+      ?? of(webView) {
+      return existing
+    }
+    let host = NativeIslandsHost(webView: webView, registry: registry, reveal: reveal)
+    WebViewForwarding.set(host, on: webView)
+    return host
+  }
 
   public convenience init(
     webView: WKWebView,
@@ -116,7 +147,7 @@ public final class NativeIslandsHost {
 
   /// Call when the web view moves to a window or to another view
   /// controller, so islands present from the controller that shows them.
-  /// `IslandWebView` calls it itself.
+  /// `IslandWebView` and ``attach(to:registry:reveal:)`` call it themselves.
   public func webViewDidMoveToWindow() {
     manager?.adoptIslands()
   }
@@ -128,6 +159,9 @@ public final class NativeIslandsHost {
     manager?.clear(notifyPage: false)
     router?.leave(self, webView: webView)
     router = nil
+    if let webView, WebViewForwarding.host(of: webView) === self {
+      WebViewForwarding.set(nil, on: webView)
+    }
   }
 
   /// Call from `webViewWebContentProcessDidTerminate(_:)`.
