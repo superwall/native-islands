@@ -102,9 +102,10 @@ the tag itself.
    ```
 
 `.github/workflows/release.yml` then checks that every version matches the tag,
-publishes to npm with provenance (a version with a `-` goes to the `next`
-dist-tag), pushes the pods in dependency order and creates the release with
-generated notes. Each step skips what is already published, so a failed run can
+lints all four pods, pushes them in dependency order, publishes to npm with
+provenance (a version with a `-` goes to the `next` dist-tag) and creates the
+release with generated notes. npm waits for the pods, so a pod that fails
+validation publishes nothing. Each step skips what is already published, so a failed run can
 be re-run on the same tag.
 
 It needs two repository secrets: `NPM_TOKEN`, an npm automation token that can

@@ -97,7 +97,8 @@ Then decide how the app shows pages:
 - **A web view an SDK creates, such as a Superwall paywall:** attach in the
   hook the SDK calls with each new web view, set before the SDK starts:
   `Superwall.paywallWebViewCreated = { NativeIslandsHost.attach(to: $0) }`
-  before `Superwall.configure`. The SDK itself needs no change; see
+  before `Superwall.configure`. The hook needs a SuperwallKit release that has
+  it; see
   [A web view an SDK creates](../references/host.md#a-web-view-an-sdk-creates).
 - **SwiftUI:** wrap the controller in a `UIViewControllerRepresentable`.
 - **Pages bundled in the app:** serve them from a `WKURLSchemeHandler` on a
