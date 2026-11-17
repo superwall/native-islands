@@ -61,11 +61,12 @@ The page still works unchanged in every browser. Decide here:
 
 Add `https://github.com/superwall/native-islands` with Swift Package Manager
 (`NativeIslands`, `NativeIslandsComponents`, and `NativeIslandsMaps` or
-`NativeIslandsCharts` only if pages use a map or a chart), or with CocoaPods:
+`NativeIslandsCharts` only if pages use a map or a chart), or with CocoaPods
+from the repository at a release tag (the pods are not on the trunk):
 
 ```ruby
-pod 'NativeIslands'
-pod 'NativeIslandsComponents'
+pod 'NativeIslands', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
+pod 'NativeIslandsComponents', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
 ```
 
 Register at launch, before any web view exists:

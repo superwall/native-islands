@@ -13,8 +13,6 @@ import WebKit
 enum WebViewForwarding {
   private static var hostKey: UInt8 = 0
   private static var installed: Set<ObjectIdentifier> = []
-  /// Web views inside a forwarded call. A subclass and its superclass can both
-  /// carry the overrides; only the outermost one forwards.
   private static var forwarding: Set<ObjectIdentifier> = []
 
   static func host(of webView: WKWebView) -> NativeIslandsHost? {

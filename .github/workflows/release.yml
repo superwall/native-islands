@@ -1,13 +1,14 @@
 name: Release
 
-# Pushing a tag like v0.1.0 publishes that version everywhere: the four pods in
-# dependency order, then the npm package, then the GitHub release. All four pods
-# are linted before the first push, and npm waits for them, so a pod that fails
-# validation publishes nothing. Each publish step skips what is already out, so
-# a failed run can be started again on the tag.
+# Pushing a tag like v0.1.0 releases that version: the npm package, then the
+# GitHub release. Swift Package Manager reads the tag itself, and CocoaPods
+# users point their Podfile at it, so there is nothing to push for the app side.
+# Each step skips what is already out, so a failed run can be started again on
+# the tag.
 #
-# Needs the NPM_TOKEN and COCOAPODS_TRUNK_TOKEN secrets, and a public
-# repository: SwiftPM, CocoaPods and npm provenance all read it.
+# npm publishes through trusted publishing: npm trusts this workflow file in
+# this repository, so there is no token to store. The package's settings on
+# npmjs.com name it under Trusted Publisher.
 on:
   push:
     tags: ["v*"]
@@ -28,63 +29,37 @@ jobs:
       - run: scripts/release-check.sh "$GITHUB_REF_NAME"
 
   npm:
-    needs: pods
+    needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
+      # The OIDC token npm exchanges for a short-lived publish token.
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install --global npm@11
       - run: bun install --frozen-lockfile
       - run: bunx publint packages/web --strict
       - name: Publish native-islands
         working-directory: packages/web
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           version="${GITHUB_REF_NAME#v}"
           if [[ "$(npm view "native-islands@$version" version 2>/dev/null)" == "$version" ]]; then
             echo "native-islands@$version is already on npm"
             exit 0
           fi
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > "$HOME/.npmrc"
           tag=latest
           if [[ "$version" == *-* ]]; then tag=next; fi
-          npm publish --provenance --tag "$tag"
-
-  pods:
-    needs: check
-    runs-on: macos-26
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      # Lint all four against the local podspecs first: trunk push validates
-      # each one too, but by then the pods before it are already out.
-      - name: Lint the pods
-        run: |
-          pod lib lint NativeIslands.podspec --platforms=ios --fail-fast
-          pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast
-          for pod in NativeIslandsMaps NativeIslandsCharts; do
-            pod lib lint "$pod.podspec" --include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec' --platforms=ios --fail-fast
-          done
-      # Each pod depends on the ones before it, and trunk only resolves a
-      # dependency once its push has finished, hence --synchronous and the order.
-      - name: Push the pods
-        env:
-          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          for pod in NativeIslands NativeIslandsComponents NativeIslandsMaps NativeIslandsCharts; do
-            if pod trunk info "$pod" 2>/dev/null | grep -qE "^ +- $version( |$)"; then
-              echo "$pod $version is already on trunk"
-              continue
-            fi
-            pod trunk push "$pod.podspec" --synchronous
-          done
+          npm publish --access public --tag "$tag"
 
   github-release:
     needs: npm

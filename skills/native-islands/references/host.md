@@ -34,14 +34,16 @@ pick only the libraries the app uses.
 | `NativeIslandsCharts`     | The chart (Swift Charts, drawn on iOS 16 and later)                 |
 
 CocoaPods, which React Native and Expo apps build through, has one pod per
-library:
+library. They are not on the CocoaPods trunk: the Podfile takes them from the
+repository at a release tag.
 
 ```ruby
-pod 'NativeIslands'
-pod 'NativeIslandsComponents'
+pod 'NativeIslands', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
+pod 'NativeIslandsComponents', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
 ```
 
-A pod of your own depends on it with `s.dependency 'NativeIslands'`.
+A pod of your own depends on it with `s.dependency 'NativeIslands'`; the app's
+Podfile still names the git source.
 
 ## Register components
 

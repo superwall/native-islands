@@ -130,8 +130,8 @@ There are two packages, one for each side:
 | Page (web) | `native-islands` (npm)               | [`packages/web/`](packages/web/)       |
 
 Each side also has an optional set of ready-made controls: the
-`NativeIslandsComponents` library in the same Swift package (and its own pod,
-`pod 'NativeIslandsComponents'`), and the `native-islands/components` entry in
+`NativeIslandsComponents` library in the same Swift package (and its own
+podspec), and the `native-islands/components` entry in
 the npm package.
 
 Install the page side from npm:
@@ -141,14 +141,17 @@ npm install native-islands
 ```
 
 Add the app side with Swift Package Manager, from
-`https://github.com/superwall/native-islands`, or with CocoaPods, which React
-Native and Expo apps build through:
+`https://github.com/superwall/native-islands`. React Native and Expo apps,
+which build through CocoaPods, take the pods from the same repository at a
+release tag. They are not on the CocoaPods trunk, which is going read-only:
 
 ```ruby
-pod 'NativeIslands'
+pod 'NativeIslands', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
+pod 'NativeIslandsComponents', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
 ```
 
-A pod of your own depends on it with `s.dependency 'NativeIslands'`.
+A pod of your own depends on it with `s.dependency 'NativeIslands'`; the app's
+Podfile still names the git source as above.
 
 ### With a coding agent
 

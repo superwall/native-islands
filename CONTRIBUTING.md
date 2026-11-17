@@ -83,10 +83,11 @@ coding agents follow here; they apply to people too.
 
 ## Releasing
 
-A tag releases everything at once: the `native-islands` npm package, the
-`NativeIslands`, `NativeIslandsComponents`, `NativeIslandsMaps` and
-`NativeIslandsCharts` pods, and the GitHub release. Swift Package Manager reads
-the tag itself.
+A tag releases everything at once. Swift Package Manager and CocoaPods read the
+tag from this repository; the workflow publishes the `native-islands` npm
+package and creates the GitHub release. The pods are not pushed to the
+CocoaPods trunk, which is going read-only: Podfiles name this repository and the
+tag instead.
 
 1. Bump `version` in `packages/web/package.json` and `s.version` in the four
    podspecs, then run `scripts/release-check.sh v<version>` and
@@ -102,17 +103,15 @@ the tag itself.
    ```
 
 `.github/workflows/release.yml` then checks that every version matches the tag,
-lints all four pods, pushes them in dependency order, publishes to npm with
-provenance (a version with a `-` goes to the `next` dist-tag) and creates the
-release with generated notes. npm waits for the pods, so a pod that fails
-validation publishes nothing. Each step skips what is already published, so a failed run can
-be re-run on the same tag.
+publishes to npm (a version with a `-` goes to the `next` dist-tag) and creates
+the release with generated notes. Each step skips what is already published, so
+a failed run can be re-run on the same tag.
 
-It needs two repository secrets: `NPM_TOKEN`, an npm automation token that can
-publish `native-islands`, and `COCOAPODS_TRUNK_TOKEN`, the token of a trunk
-session (`pod trunk register`, then the password for `trunk.cocoapods.org` in
-`~/.netrc`). The repository must be public: SwiftPM, CocoaPods and npm
-provenance all fetch from it.
+npm publishes through [trusted publishing](https://docs.npmjs.com/trusted-publishers):
+there is no token secret. On npmjs.com, the `native-islands` package's
+Settings → Trusted Publisher names GitHub Actions, the `superwall` organization,
+the `native-islands` repository and the `release.yml` workflow. npm only adds
+provenance while the repository is public.
 
 ## Licence
 
