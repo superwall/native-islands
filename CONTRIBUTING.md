@@ -94,12 +94,14 @@ tag instead.
    `scripts/pack-smoke.sh`. Check what npm will ship with
    `cd packages/web && npm pack --dry-run`: only `dist`, `README.md`, `LICENSE`
    and `package.json`.
-2. Merge that to `main`, then tag the merge commit and push the tag:
+2. Merge that to `main`, then tag the merge commit and push the tag. Use a new
+   version each time; `v0.1.0` is already out, so the next is at least
+   `v0.1.1`:
 
    ```bash
    git fetch origin
-   git tag v0.1.0 origin/main
-   git push origin v0.1.0
+   git tag v0.1.1 origin/main
+   git push origin v0.1.1
    ```
 
 `.github/workflows/release.yml` then checks that every version matches the tag,
