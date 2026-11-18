@@ -33,14 +33,12 @@ extension NativeBridgeTests {
       // The page grew by 96 pt; WebKit has not resized the scroll view yet.
       let grown = scroller("parked", frame: spot, contentSize: NativeSize(width: 400, height: 1016))
       harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: grown))))
-      withKnownIssue("SW-499: a parked island follows a same-size scroll view at any distance") {
-        #expect(harness.island("cta")?.view.superview === parked)
-        #expect(harness.island("cta")?.view.superview !== shown)
+      #expect(harness.island("cta")?.view.superview === parked)
+      #expect(harness.island("cta")?.view.superview !== shown)
 
-        parked.contentSize = CGSize(width: 400, height: 1016)
-        harness.runRetries()
-        #expect(harness.island("cta")?.view.superview === parked)
-      }
+      parked.contentSize = CGSize(width: 400, height: 1016)
+      harness.runRetries()
+      #expect(harness.island("cta")?.view.superview === parked)
     }
   }
 }

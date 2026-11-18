@@ -192,7 +192,7 @@ extension NativeBridgeTests {
       harness.surface.addScroller(frame: CGRect(x: 0, y: 0, width: 400, height: 800), contentSize: CGSize(width: 400, height: 1600))
       let landed = scroller("screen", frame: NativeFrame(x: 0, y: 0, width: 400, height: 800), contentSize: size)
       harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: landed))))
-      #expect(lines.last == "container cta followed, anywhere: scroller screen at (0, 0, 400×800) content 400×1600; "
+      #expect(lines.last == "container cta followed, near its spot: scroller screen at (0, 0, 400×800) content 400×1600; "
         + "chose (0, 0, 400×800) content 400×1600, 0 pt away")
     }
 

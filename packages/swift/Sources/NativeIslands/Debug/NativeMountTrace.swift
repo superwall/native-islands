@@ -25,10 +25,8 @@ final class NativeMountTrace {
     case anywhere = "anywhere"
     /// An update gave the island a new scroller, matched at any distance.
     case moved = "moved to a new scroller"
-    /// Followed its scroller while its scroll view was on screen.
+    /// Followed its scroller to a scroll view near the scroller's spot.
     case followedNearby = "followed, near its spot"
-    /// Followed its scroller after its scroll view left the viewport.
-    case followedAnywhere = "followed, anywhere"
   }
 
   private let now: () -> CFTimeInterval

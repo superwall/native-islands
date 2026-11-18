@@ -13,16 +13,18 @@ extension NativeIslandManager {
   // geometry when an island mounts, and it can land in the wrong one; once
   // their content sizes differ, it moves to its own.
   // The page measures before WebKit gives the scroll view its new content
-  // size, so an island found in the wrong one looks again a few times. While
-  // its scroll view is still on screen, only one near the scroller's spot
-  // counts: when content shrinks, a parked screen far off to the side can
-  // already have the new content size before the shown one does.
+  // size, so an island found in the wrong one looks again a few times. Only a
+  // scroll view near the scroller's spot counts, wherever the island's own
+  // one is: when content changes, another screen's scroll view far away can
+  // already have the new content size before the island's own does, such as
+  // the shown screen while a parked one grows. A screen sliding in reports
+  // its new spot, so WebKit's new scroll view there is still near it.
   func reanchor(_ island: NativeIsland, to anchor: NativeAnchor, attempt: Int = 0) {
     guard case .scroller(let scroller) = anchor, let surface else { return }
     let misplaced = !hasShape(island.container, of: scroller)
     let onScreen = isOnScreen(island.container, in: surface.viewport)
     guard misplaced || !onScreen else { return }
-    let within = onScreen ? NativeScrollerMatcher.reach(of: scroller) : .greatestFiniteMagnitude
+    let within = NativeScrollerMatcher.reach(of: scroller)
     guard let container = container(for: anchor, in: surface, within: within) else {
       if misplaced, attempt < Self.parkingAttempts {
         retry { [weak self, weak island] in
@@ -34,7 +36,7 @@ extension NativeIslandManager {
     }
     guard container !== island.container else { return }
     trace?.chose(
-      onScreen ? .followedNearby : .followedAnywhere,
+      .followedNearby,
       id: island.context.id,
       for: scroller,
       container: container,
