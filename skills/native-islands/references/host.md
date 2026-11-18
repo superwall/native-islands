@@ -258,7 +258,7 @@ islands. One host per web view; any number of web views can each have one.
 An SDK that shows pages in a web view of its own needs no dependency on Native
 Islands: it only has to hand the app each web view before it loads. The app
 links Native Islands and attaches. Superwall paywalls work this way, with
-`Superwall.paywallWebViewCreated`, which the app sets before
+`Superwall.addPaywallWebViewObserver`, which the app calls before
 `Superwall.configure`:
 
 ```swift
@@ -274,7 +274,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     NativeIslandsComponents.register()
-    Superwall.paywallWebViewCreated = { webView in
+    Superwall.addPaywallWebViewObserver { webView in
       NativeIslandsHost.attach(to: webView)
     }
     Superwall.configure(apiKey: "pk_...")
@@ -290,8 +290,16 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
   paywall editor's preview, show.
 - When only some paywalls use `native-islands`, attach with
   `reveal: .immediately`, or the others stay covered until the timeout.
-- Without a SuperwallKit release that has `paywallWebViewCreated`, there is no
-  way in: the paywall's web view is internal to the SDK.
+- Several observers run side by side, in the order they were added, so the app
+  never chains an earlier one. Each is called once per web view; a reload keeps
+  the web view, so it isn't called again. The call returns a
+  `PaywallWebViewObservation`; `remove()` stops it.
+- SuperwallKit puts back its navigation delegate and its
+  `paywallMessageHandler` script message handler if an observer replaces them.
+  `attach(to:)` replaces neither: it adds its own message handlers and forwards
+  touches, so never rely on replacing either in an observer.
+- Without a SuperwallKit release that has `addPaywallWebViewObserver`, there is
+  no way in: the paywall's web view is internal to the SDK.
 
 ## Revealing the page
 

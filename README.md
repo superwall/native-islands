@@ -287,20 +287,24 @@ import NativeIslandsComponents
 import SuperwallKit
 
 NativeIslandsComponents.register()
-Superwall.paywallWebViewCreated = { webView in
+Superwall.addPaywallWebViewObserver { webView in
   NativeIslandsHost.attach(to: webView)
 }
 Superwall.configure(apiKey: "pk_...")
 ```
 
-`Superwall.paywallWebViewCreated` hands the app each paywall's `WKWebView`
-before it loads anything; it needs a SuperwallKit release that has it. The
-paywall itself uses `native-islands` from npm like any other page. If only some
-of your paywalls use it, attach with `reveal: .immediately`, so the others
-don't stay covered until the two-second timeout:
+`Superwall.addPaywallWebViewObserver` hands the app each paywall's `WKWebView`
+before it loads anything; it needs a SuperwallKit release that has it. Several
+observers run side by side, in the order they were added, so another add-on's
+observer doesn't replace this one. SuperwallKit puts back its navigation
+delegate and `paywallMessageHandler` if an observer replaces them;
+`attach(to:)` replaces neither. The paywall itself uses `native-islands` from
+npm like any other page. If only some of your paywalls use it, attach with
+`reveal: .immediately`, so the others don't stay covered until the two-second
+timeout:
 
 ```swift
-Superwall.paywallWebViewCreated = { webView in
+Superwall.addPaywallWebViewObserver { webView in
   NativeIslandsHost.attach(to: webView, reveal: .immediately)
 }
 ```

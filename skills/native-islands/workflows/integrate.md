@@ -96,10 +96,10 @@ Then decide how the app shows pages:
   `NativeIslandsHost.attach(to: webView)` before its first load; see
   [Your own web view](../references/host.md#your-own-web-view).
 - **A web view an SDK creates, such as a Superwall paywall:** attach in the
-  hook the SDK calls with each new web view, set before the SDK starts:
-  `Superwall.paywallWebViewCreated = { NativeIslandsHost.attach(to: $0) }`
-  before `Superwall.configure`. The hook needs a SuperwallKit release that has
-  it; see
+  hook the SDK calls with each new web view, added before the SDK starts:
+  `Superwall.addPaywallWebViewObserver { NativeIslandsHost.attach(to: $0) }`
+  before `Superwall.configure`. Other observers run beside it. The hook needs a
+  SuperwallKit release that has it; see
   [A web view an SDK creates](../references/host.md#a-web-view-an-sdk-creates).
 - **SwiftUI:** wrap the controller in a `UIViewControllerRepresentable`.
 - **Pages bundled in the app:** serve them from a `WKURLSchemeHandler` on a
