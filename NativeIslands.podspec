@@ -16,5 +16,7 @@ Pod::Spec.new do |s|
   s.swift_versions = ['5.0']
 
   s.source_files = 'packages/swift/Sources/NativeIslands/**/*.swift'
+  # Shared helpers use `package` access, which needs a package name.
+  s.pod_target_xcconfig = { 'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name NativeIslands' }
   s.frameworks = 'UIKit', 'WebKit', 'SwiftUI', 'QuartzCore', 'CoreGraphics'
 end

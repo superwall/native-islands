@@ -9,7 +9,7 @@ and stay web everywhere else.
 - [ ] Page: `native-islands` installed, one `NativeIslandsProvider` at the root, `components.css` imported once
 - [ ] Page: the first controls wrapped in ready-made islands, each keeping its web version as children
 - [ ] App: the Swift libraries added, every component registered before the first web view
-- [ ] App: pages shown in an `IslandWebView`, or a web view of your own with a `NativeIslandsHost`
+- [ ] App: pages shown in an `IslandWebView`, or a host attached to the web view the app or an SDK already has
 - [ ] App: the web view's background set to the page's, in light and dark
 - [ ] App: Info.plist keys for the islands the pages use
 - [ ] Proven native in the app and web in a browser
@@ -61,11 +61,12 @@ The page still works unchanged in every browser. Decide here:
 
 Add `https://github.com/superwall/native-islands` with Swift Package Manager
 (`NativeIslands`, `NativeIslandsComponents`, and `NativeIslandsMaps` or
-`NativeIslandsCharts` only if pages use a map or a chart), or with CocoaPods:
+`NativeIslandsCharts` only if pages use a map or a chart), or with CocoaPods
+from the repository at a release tag (the pods are not on the trunk):
 
 ```ruby
-pod 'NativeIslands'
-pod 'NativeIslandsComponents'
+pod 'NativeIslands', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
+pod 'NativeIslandsComponents', git: 'https://github.com/superwall/native-islands.git', tag: 'v0.1.0'
 ```
 
 Register at launch, before any web view exists:
@@ -91,9 +92,15 @@ Then decide how the app shows pages:
 
 - **A new screen, or a web view you can replace:** use `IslandWebView`, made in
   code inside a view controller; see [Show the page](../references/host.md#show-the-page).
-- **An existing `WKWebView` subclass:** attach a `NativeIslandsHost`, keep it,
-  and forward `hitTest` and `didMoveToWindow`; see
+- **An existing `WKWebView`, or a subclass:** call
+  `NativeIslandsHost.attach(to: webView)` before its first load; see
   [Your own web view](../references/host.md#your-own-web-view).
+- **A web view an SDK creates, such as a Superwall paywall:** attach in the
+  hook the SDK calls with each new web view, set before the SDK starts:
+  `Superwall.paywallWebViewCreated = { NativeIslandsHost.attach(to: $0) }`
+  before `Superwall.configure`. The hook needs a SuperwallKit release that has
+  it; see
+  [A web view an SDK creates](../references/host.md#a-web-view-an-sdk-creates).
 - **SwiftUI:** wrap the controller in a `UIViewControllerRepresentable`.
 - **Pages bundled in the app:** serve them from a `WKURLSchemeHandler` on a
   scheme of your own (set it on the configuration before creating the web
@@ -123,6 +130,8 @@ Add the Info.plist keys of the islands your pages use, listed in
 
 - Registering in a view controller's `viewDidLoad` after creating the web view:
   the host offers nothing and every island stays web.
+- Attaching after the web view has started loading, such as in a navigation
+  delegate: the first page never hears which islands the app draws.
 - A web view in a bare window with no view controller: sheets, menus and
   pickers have nothing to present from.
 - Hiding the web versions with CSS to "force" native: they set each island's

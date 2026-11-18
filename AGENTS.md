@@ -53,7 +53,9 @@ packages/web/           native-islands (page side)
   test/                 mirrors src/; shared helpers in test/support/
 packages/swift/         NativeIslands (host side); Package.swift is at the root
   Sources/NativeIslands/
-    Host/               NativeIslandsHost, IslandWebView, router, surface
+    Host/               NativeIslandsHost, IslandWebView, router, surface;
+                        WebViewForwarding adds hitTest and didMoveToWindow
+                        to the class of a web view attach(to:) is given
     Protocol/           contract models, decoding, replies, capability
     Islands/            the island manager and the island view
     Components/         registry, context, props, glass, accessibility
@@ -80,7 +82,8 @@ examples/ios/           Islands' iOS host; Components/ has the app's own chrome
                         every ready-made island in ShowcaseComponents.swift
 performance/            run.sh, check.ts, compare.ts and baseline.json
 scripts/                simulator helpers, parallel UI test runs and the
-                        iOS runtime matrix with its WebKit view-tree diff
+                        iOS runtime matrix with its WebKit view-tree diff;
+                        release-check.sh, the versions a tag must match
 docs/                   compatibility.md, what each iOS was proven on;
                         performance.md, device numbers and how to measure
                         them; host-features.md, the feature names, reuse
@@ -93,7 +96,11 @@ LICENSE                 FSL-1.1-MIT; CONTRIBUTING.md is the guide for people
 ```
 
 The Swift host mirrors `packages/web/src/simulator/host.ts`. WebKit never
-hands touches to views in its scroll views, so `IslandWebView` routes them.
+hands touches to views in its scroll views, so `IslandWebView` routes them,
+and `NativeIslandsHost.attach(to:)` does the same for a web view the app
+doesn't subclass (an SDK's, such as Superwall's paywall web view) by adding
+the two overrides to its class at runtime. Nothing in the package names an SDK;
+the SDK only hands the app its web view.
 `tests/pages/src/router.tsx` renders every page at once and parks the ones
 not showing off to the side, each at its own spot, so their islands are drawn
 before they slide in. `?native=simulate` installs the JS reference host.
@@ -144,6 +151,7 @@ Run only what your change touches; never a whole suite by hand.
 - Swift build on Xcode 26: the package has to compile with the oldest Xcode 26 the runners can build with (26.2) as well as Xcode 27, which accepts some type conversions Xcode 26 rejects. The `swift-xcode26` job in `ci.yml` runs `xcodebuild build-for-testing -scheme NativeIslands-Package -destination 'generic/platform=iOS Simulator' -quiet` with Xcode 26.2 and 26.6 on every pull request
 - SwiftLint: `swiftlint lint --quiet --strict packages/swift tests/ios examples/ios`
 - Podspecs: `pod lib lint NativeIslands.podspec --platforms=ios --fail-fast` and `pod lib lint NativeIslandsComponents.podspec --include-podspecs=NativeIslands.podspec --platforms=ios --fail-fast`, then `NativeIslandsMaps` and `NativeIslandsCharts` with `--include-podspecs='{NativeIslands,NativeIslandsComponents}.podspec'`; they mirror the products in `Package.swift`, so change them together
+- Release: `scripts/release-check.sh v<version>` fails unless `packages/web/package.json` and the four podspecs carry that version. Pushing a `v*` tag runs `.github/workflows/release.yml`, which publishes npm through trusted publishing (no token) and creates the GitHub release; SwiftPM and CocoaPods (git source in the Podfile, not the trunk) read the tag. Never publish by hand. CONTRIBUTING.md has the steps.
 - Pages: `bun run --cwd tests/pages build`; in a browser `bun run --cwd tests/pages dev`
 - Test host app: `cd tests/ios && xcodegen -q && xcodebuild build -project TestHost.xcodeproj -scheme TestHost -destination 'generic/platform=iOS Simulator' -quiet`
 - Showcase: `bun run --cwd examples/showcase build`, its tests `cd examples/showcase && bun test --conditions source test`; in a browser `bun run --cwd examples/showcase dev`

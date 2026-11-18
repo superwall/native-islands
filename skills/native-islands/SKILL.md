@@ -1,6 +1,6 @@
 ---
 name: native-islands
-description: Put real SwiftUI and UIKit views inside a web page running in a WKWebView with Native Islands (the `native-islands` npm package and the `NativeIslands` Swift package). Use when a page or an iOS app imports `native-islands`, `native-islands/react`, `native-islands/components`, `NativeIslands` or `NativeIslandsComponents`; when adding a native control, Liquid Glass button, sheet, alert, tab bar, navigation bar, list, map, chart, video, camera or any custom native view to a web page shown in an iOS app; when wiring `IslandWebView` or `NativeIslandsHost` into an app; or when an island shows its web version, sits in the wrong place, flashes or does not update. NOT for React Native, Capacitor plugins or native views laid over a web view by hand.
+description: Put real SwiftUI and UIKit views inside a web page running in a WKWebView with Native Islands (the `native-islands` npm package and the `NativeIslands` Swift package). Use when a page or an iOS app imports `native-islands`, `native-islands/react`, `native-islands/components`, `NativeIslands` or `NativeIslandsComponents`; when adding a native control, Liquid Glass button, sheet, alert, tab bar, navigation bar, list, map, chart, video, camera or any custom native view to a web page shown in an iOS app; when wiring `IslandWebView` or `NativeIslandsHost` into an app, or attaching to a web view an SDK creates such as a Superwall paywall; or when an island shows its web version, sits in the wrong place, flashes or does not update. NOT for React Native, Capacitor plugins or native views laid over a web view by hand.
 ---
 
 # Native Islands
@@ -90,7 +90,8 @@ those names to every page that web view loads. A name registered later is
 never offered to that web view, and a host created over an empty registry
 does nothing at all, so every island stays web. Register in
 `application(_:didFinishLaunchingWithOptions:)`, or at least before the
-`IslandWebView(frame:)` or `NativeIslandsHost(webView:)` line.
+`IslandWebView(frame:)`, `NativeIslandsHost(webView:)` or
+`NativeIslandsHost.attach(to:)` line.
 
 **3. State for what the user owns, events for moments.** A switch, a slider
 or typed text is state: the page passes it as a prop and hears changes as
@@ -167,18 +168,18 @@ simulator tap never reaches WebKit, so drive the web view with physical taps
 
 Read only the file the job needs. For a whole job, follow its playbook.
 
-| Job                                                                           | Read                                                                                                              |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Add Native Islands to an app and its pages for the first time                 | [Integrate](workflows/integrate.md)                                                                               |
-| Turn one part of a page into a native view                                    | [Add an island](workflows/add-island.md)                                                                          |
-| An island is web, misplaced, flashing, missing touches or not updating        | [Debug an island](workflows/debug.md)                                                                             |
-| Which ready-made island fits a job, with its props and callbacks              | [Ready-made islands](references/components.md)                                                                    |
-| A sheet, cover, popover or alert, and the page it presents                    | [Presentations](references/components.md#presentations)                                                           |
-| Tabs, a navigation stack, a toolbar or a search field                         | [App chrome](references/components.md#app-chrome)                                                                 |
-| A native view of your own: both halves, sizing, glass, commands               | [Writing your own island](references/custom-island.md)                                                            |
-| The provider, defining a component, events, state, requests, commands, sizing | [Page side](references/page.md)                                                                                   |
-| Why an island stays web, or parking screens that are not showing yet          | [When an island stays web](references/page.md#when-an-island-stays-web)                                           |
-| A page without React, or testing in a browser with the simulator              | [Without React](references/page.md#without-react)                                                                 |
-| Adding the Swift package, registering, `IslandWebView`, your own web view     | [iOS host](references/host.md)                                                                                    |
-| The page shows late or flashes, Info.plist keys, debugging flags in the app   | [Revealing the page](references/host.md#revealing-the-page), [Debugging](references/host.md#debugging-in-the-app) |
-| Checking a change before calling it done                                      | [Pitfalls](references/pitfalls.md)                                                                                |
+| Job                                                                                            | Read                                                                                                              |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Add Native Islands to an app and its pages for the first time                                  | [Integrate](workflows/integrate.md)                                                                               |
+| Turn one part of a page into a native view                                                     | [Add an island](workflows/add-island.md)                                                                          |
+| An island is web, misplaced, flashing, missing touches or not updating                         | [Debug an island](workflows/debug.md)                                                                             |
+| Which ready-made island fits a job, with its props and callbacks                               | [Ready-made islands](references/components.md)                                                                    |
+| A sheet, cover, popover or alert, and the page it presents                                     | [Presentations](references/components.md#presentations)                                                           |
+| Tabs, a navigation stack, a toolbar or a search field                                          | [App chrome](references/components.md#app-chrome)                                                                 |
+| A native view of your own: both halves, sizing, glass, commands                                | [Writing your own island](references/custom-island.md)                                                            |
+| The provider, defining a component, events, state, requests, commands, sizing                  | [Page side](references/page.md)                                                                                   |
+| Why an island stays web, or parking screens that are not showing yet                           | [When an island stays web](references/page.md#when-an-island-stays-web)                                           |
+| A page without React, or testing in a browser with the simulator                               | [Without React](references/page.md#without-react)                                                                 |
+| Adding the Swift package, registering, `IslandWebView`, your own web view, a Superwall paywall | [iOS host](references/host.md)                                                                                    |
+| The page shows late or flashes, Info.plist keys, debugging flags in the app                    | [Revealing the page](references/host.md#revealing-the-page), [Debugging](references/host.md#debugging-in-the-app) |
+| Checking a change before calling it done                                                       | [Pitfalls](references/pitfalls.md)                                                                                |
