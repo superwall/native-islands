@@ -10,6 +10,8 @@ import SwiftUI
 /// - `-route perf -count 50` opens the performance page with 50 islands.
 /// - `-UITestReport YES` exposes a JSON summary of the page to the UI tests;
 ///   `-perf YES` also runs the performance measurements.
+/// - `-slideIn YES` slides the web view up while the page loads, as a paywall does.
+/// - `-NativeIslandsMountTrace YES` logs how each island's scroll view was found.
 /// - `-NativeIslandsAlignmentLog YES` logs every native frame beside its DOM rect (Debug builds).
 @main
 struct TestHostApp: App {

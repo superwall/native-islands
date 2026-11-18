@@ -51,6 +51,19 @@ final class PagesViewController: UIViewController, WKNavigationDelegate {
       report = TestReport(in: view, webView: webView, measuresPerformance: TestReport.isRequested("perf"))
     }
     webView.load(URLRequest(url: url))
+    if UserDefaults.standard.bool(forKey: "slideIn") {
+      slideIn(webView)
+    }
+  }
+
+  /// `-slideIn YES` starts the web view lower and slides it up while the page
+  /// loads, as a paywall presented over an app does.
+  private func slideIn(_ webView: UIView) {
+    let resting = view.bounds
+    webView.frame = resting.offsetBy(dx: 0, dy: resting.height / 3)
+    UIView.animate(withDuration: 0.6, delay: 0.2, options: [.curveEaseOut]) {
+      webView.frame = resting
+    }
   }
 
   func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {

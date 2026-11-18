@@ -33,6 +33,13 @@ extension NativeIslandManager {
       return
     }
     guard container !== island.container else { return }
+    trace?.chose(
+      onScreen ? .followedNearby : .followedAnywhere,
+      id: island.context.id,
+      for: scroller,
+      container: container,
+      in: surface.viewport
+    )
     let previous = island.container
     attach(island, to: container)
     pruneGroups(in: previous)
@@ -128,12 +135,27 @@ extension NativeIslandManager {
   func mountContainer(
     for anchor: NativeAnchor,
     in surface: NativeHostSurface,
-    besides extra: NativeIsland? = nil
+    besides extra: NativeIsland? = nil,
+    id: String = ""
   ) -> UIView? {
     guard case .scroller(let scroller) = anchor else { return container(for: anchor, in: surface) }
-    return container(for: anchor, in: surface, within: NativeScrollerMatcher.reach(of: scroller))
-      ?? knownContainer(for: anchor, in: surface, besides: extra)
-      ?? container(for: anchor, in: surface)
+    let picked: (UIView, NativeMountTrace.Choice)?
+    if let near = container(for: anchor, in: surface, within: NativeScrollerMatcher.reach(of: scroller)) {
+      picked = (near, .nearby)
+    } else if let known = knownContainer(for: anchor, in: surface, besides: extra) {
+      picked = (known, .known)
+    } else if let anywhere = container(for: anchor, in: surface) {
+      picked = (anywhere, .anywhere)
+    } else {
+      picked = nil
+    }
+    trace?.chose(picked?.1, id: id, for: scroller, container: picked?.0, in: surface.viewport)
+    return picked?.0
+  }
+
+  func traceMove(_ id: String, to anchor: NativeAnchor, container: UIView, in surface: NativeHostSurface) {
+    guard case .scroller(let scroller) = anchor else { return }
+    trace?.chose(.moved, id: id, for: scroller, container: container, in: surface.viewport)
   }
 
   /// The scroll view the scroller's islands live in, while it still sits at

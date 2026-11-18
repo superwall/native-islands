@@ -51,7 +51,7 @@ extension NativeIslandManager {
       island.sizing == mount.sizing,
       let registered = registry.entries[mount.component], registered.version >= mount.version,
       islands.count < NativeComponentLimits.maxIslands,
-      let surface, let container = mountContainer(for: mount.anchor, in: surface, besides: island)
+      let surface, let container = mountContainer(for: mount.anchor, in: surface, besides: island, id: mount.id)
     else {
       discard(island)
       return false
