@@ -94,18 +94,34 @@ tag instead.
    `scripts/pack-smoke.sh`. Check what npm will ship with
    `cd packages/web && npm pack --dry-run`: only `dist`, `README.md`, `LICENSE`
    and `package.json`.
-2. Merge that to `main`, then tag the merge commit and push the tag:
+2. Merge that to `main`, then tag the merge commit and push the tag. Use a new
+   version each time; `v0.1.0` is already out, so the next is at least
+   `v0.1.1`:
 
    ```bash
    git fetch origin
-   git tag v0.1.0 origin/main
-   git push origin v0.1.0
+   git tag v0.1.1 origin/main
+   git push origin v0.1.1
    ```
 
 `.github/workflows/release.yml` then checks that every version matches the tag,
 publishes to npm (a version with a `-` goes to the `next` dist-tag) and creates
-the release with generated notes. Each step skips what is already published, so
-a failed run can be re-run on the same tag.
+the release with generated notes. Each step skips what is already published.
+
+When a tag's run fails, do not re-run it and do not move the tag: a re-run uses
+`release.yml` as it was at the tag and fails the same way, and Swift Package
+Manager users may already have resolved the tag. Fix the workflow on `main`,
+then start it by hand for the existing tag:
+
+```bash
+gh workflow run release.yml --ref main -f tag=v0.1.0
+```
+
+Or open Actions → Release → Run workflow, keep `main` and type the tag. That run
+uses the workflow from `main`, builds and publishes the tag's own source, and
+skips the npm version or the release that is already out. A tag that does not
+exist, or is not shaped like `v1.2.3`, stops the run before anything is
+published.
 
 npm publishes through [trusted publishing](https://docs.npmjs.com/trusted-publishers):
 there is no token secret. On npmjs.com, the `native-islands` package's
