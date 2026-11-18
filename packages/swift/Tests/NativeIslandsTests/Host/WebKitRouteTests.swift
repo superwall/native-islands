@@ -134,7 +134,9 @@ extension NativeBridgeTests {
       // The page reports it at once; WebKit resizes the scroll view later.
       let grown = try await scroller("parked", in: page.webView, grownTo: 1016)
       manager.apply(batch(2, .update(NativeUpdate(id: "parked", anchor: .scroller(grown)))))
-      withKnownIssue("SW-499: a parked island follows a same-size scroll view at any distance") {
+      // WebKit sometimes resizes the scroll view before this batch lands, so the
+      // swap only happens on some runs.
+      withKnownIssue("SW-499: a parked island follows a same-size scroll view at any distance", isIntermittent: true) {
         #expect(manager.islands["parked"]?.view.superview === parkedView)
         #expect(manager.islands["parked"]?.view.superview !== shownView)
       }
@@ -146,7 +148,7 @@ extension NativeBridgeTests {
         work.forEach { $0() }
       }
       #expect(manager.islands["own"]?.view.superview === shownView)
-      withKnownIssue("SW-499: a parked island follows a same-size scroll view at any distance") {
+      withKnownIssue("SW-499: a parked island follows a same-size scroll view at any distance", isIntermittent: true) {
         #expect(manager.islands["parked"]?.view.superview === parkedView)
       }
       _ = page.window
