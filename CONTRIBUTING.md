@@ -124,10 +124,23 @@ exist, or is not shaped like `v1.2.3`, stops the run before anything is
 published.
 
 npm publishes through [trusted publishing](https://docs.npmjs.com/trusted-publishers):
-there is no token secret. On npmjs.com, the `native-islands` package's
-Settings → Trusted Publisher names GitHub Actions, the `superwall` organization,
-the `native-islands` repository and the `release.yml` workflow. npm only adds
-provenance while the repository is public.
+there is no token secret. The package owner sets it up once, on
+[the package's access settings](https://www.npmjs.com/package/native-islands/access)
+under Trusted Publisher → GitHub Actions, with exactly these values:
+
+- Organization or user: `superwall`
+- Repository: `native-islands`
+- Workflow filename: `release.yml`, with no path
+- Environment: empty, because the `npm` job has none
+
+npm matches those values, not the trigger, so a tag push and a run started by
+hand both sign in. When they don't match, npm publishes without credentials and
+the registry answers `E404 Not Found - PUT https://registry.npmjs.org/native-islands`,
+even though the package exists. The publish step runs with `--loglevel verbose`,
+so its log shows npm's `oidc` lines, and it ends with an error naming these
+values when the sign-in failed. Fix the setting, then re-run the failed run:
+a run started by hand can be re-run as is. npm only adds provenance while the
+repository is public.
 
 ## Licence
 
