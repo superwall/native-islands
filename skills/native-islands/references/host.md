@@ -295,7 +295,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
   the web view, so it isn't called again. The call returns a
   `PaywallWebViewObservation`; `remove()` stops it.
 - SuperwallKit puts back its navigation delegate and its
-  `paywallMessageHandler` script message handler if an observer replaces them.
+  `paywallMessageHandler` script message handler once the observers have run,
+  if one replaced them; it can't undo a change made later, outside an observer.
   `attach(to:)` replaces neither: it adds its own message handlers and forwards
   touches, so never rely on replacing either in an observer.
 - Without a SuperwallKit release that has `addPaywallWebViewObserver`, there is
