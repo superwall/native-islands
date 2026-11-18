@@ -3,8 +3,12 @@ name: Release
 # Pushing a tag like v0.1.0 releases that version: the npm package, then the
 # GitHub release. Swift Package Manager reads the tag itself, and CocoaPods
 # users point their Podfile at it, so there is nothing to push for the app side.
-# Each step skips what is already out, so a failed run can be started again on
-# the tag.
+# Each step skips what is already out.
+#
+# A re-run of a failed tag run uses this file as it was at the tag, so it hits
+# the same bug again. To publish a tag whose run failed, start this workflow by
+# hand from main (Actions > Release > Run workflow) with that tag: it uses this
+# file from main and checks out the tag's source, so the tag never moves.
 #
 # npm publishes through trusted publishing: npm trusts this workflow file in
 # this repository, so there is no token to store. The package's settings on
@@ -12,9 +16,21 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The existing tag to release, such as v0.1.0
+        required: true
+        type: string
+
+# The tag to release: the one typed in for a run started by hand, otherwise the
+# one pushed. Every step reads it from here, never from GITHUB_REF_NAME, which
+# is the branch on a run started by hand.
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -25,8 +41,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Refuse anything not shaped like a release tag before it reaches a ref.
+      - name: Check the tag's shape
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "error: give a release tag like v0.1.0, not '$TAG'" >&2
+            exit 1
+          fi
+      # Fails when the tag does not exist.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: scripts/release-check.sh "$GITHUB_REF_NAME"
+        with:
+          ref: refs/tags/${{ env.TAG }}
+      - run: scripts/release-check.sh "$TAG"
 
   npm:
     needs: check
@@ -38,6 +64,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.4
@@ -48,11 +76,14 @@ jobs:
       # Trusted publishing needs npm 11.5.1 or later.
       - run: npm install --global npm@11
       - run: bun install --frozen-lockfile
+      # dist is not in git, and publint packs without building, so build first
+      # as ci.yml does. npm publish builds again through prepack.
+      - run: bun run --cwd packages/web build
       - run: bunx publint packages/web --strict
       - name: Publish native-islands
         working-directory: packages/web
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           if [[ "$(npm view "native-islands@$version" version 2>/dev/null)" == "$version" ]]; then
             echo "native-islands@$version is already on npm"
             exit 0
@@ -73,10 +104,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            echo "$GITHUB_REF_NAME already has a release"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "$TAG already has a release"
             exit 0
           fi
           prerelease=()
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes "${prerelease[@]}"
+          if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$TAG" --verify-tag --generate-notes "${prerelease[@]}"
