@@ -143,7 +143,7 @@ final class NativeIslandManager: NativeIslandMessaging {
     guard islands.count < NativeComponentLimits.maxIslands else {
       return failure(.limitExceeded, "A page can show at most \(NativeComponentLimits.maxIslands) islands.")
     }
-    guard let surface, let container = mountContainer(for: mount.anchor, in: surface) else {
+    guard let surface, let container = mountContainer(for: mount.anchor, in: surface, id: mount.id) else {
       return failure(.anchorNotFound, "No scroll view matches this island's scroller.")
     }
     let context = NativeComponentContext(
@@ -194,6 +194,7 @@ final class NativeIslandManager: NativeIslandMessaging {
           sequence: sequence
         )
       }
+      traceMove(update.id, to: anchor, container: container, in: surface)
       island.move(to: anchor)
       attach(island, to: container)
     } else if let anchor = update.anchor {

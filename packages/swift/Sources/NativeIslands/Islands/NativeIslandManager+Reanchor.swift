@@ -13,16 +13,18 @@ extension NativeIslandManager {
   // geometry when an island mounts, and it can land in the wrong one; once
   // their content sizes differ, it moves to its own.
   // The page measures before WebKit gives the scroll view its new content
-  // size, so an island found in the wrong one looks again a few times. While
-  // its scroll view is still on screen, only one near the scroller's spot
-  // counts: when content shrinks, a parked screen far off to the side can
-  // already have the new content size before the shown one does.
+  // size, so an island found in the wrong one looks again a few times. Only a
+  // scroll view near the scroller's spot counts, wherever the island's own
+  // one is: when content changes, another screen's scroll view far away can
+  // already have the new content size before the island's own does, such as
+  // the shown screen while a parked one grows. A screen sliding in reports
+  // its new spot, so WebKit's new scroll view there is still near it.
   func reanchor(_ island: NativeIsland, to anchor: NativeAnchor, attempt: Int = 0) {
     guard case .scroller(let scroller) = anchor, let surface else { return }
     let misplaced = !hasShape(island.container, of: scroller)
     let onScreen = isOnScreen(island.container, in: surface.viewport)
     guard misplaced || !onScreen else { return }
-    let within = onScreen ? NativeScrollerMatcher.reach(of: scroller) : .greatestFiniteMagnitude
+    let within = NativeScrollerMatcher.reach(of: scroller)
     guard let container = container(for: anchor, in: surface, within: within) else {
       if misplaced, attempt < Self.parkingAttempts {
         retry { [weak self, weak island] in
@@ -33,6 +35,13 @@ extension NativeIslandManager {
       return
     }
     guard container !== island.container else { return }
+    trace?.chose(
+      .followedNearby,
+      id: island.context.id,
+      for: scroller,
+      container: container,
+      in: surface.viewport
+    )
     let previous = island.container
     attach(island, to: container)
     pruneGroups(in: previous)
@@ -128,12 +137,27 @@ extension NativeIslandManager {
   func mountContainer(
     for anchor: NativeAnchor,
     in surface: NativeHostSurface,
-    besides extra: NativeIsland? = nil
+    besides extra: NativeIsland? = nil,
+    id: String = ""
   ) -> UIView? {
     guard case .scroller(let scroller) = anchor else { return container(for: anchor, in: surface) }
-    return container(for: anchor, in: surface, within: NativeScrollerMatcher.reach(of: scroller))
-      ?? knownContainer(for: anchor, in: surface, besides: extra)
-      ?? container(for: anchor, in: surface)
+    let picked: (UIView, NativeMountTrace.Choice)?
+    if let near = container(for: anchor, in: surface, within: NativeScrollerMatcher.reach(of: scroller)) {
+      picked = (near, .nearby)
+    } else if let known = knownContainer(for: anchor, in: surface, besides: extra) {
+      picked = (known, .known)
+    } else if let anywhere = container(for: anchor, in: surface) {
+      picked = (anywhere, .anywhere)
+    } else {
+      picked = nil
+    }
+    trace?.chose(picked?.1, id: id, for: scroller, container: picked?.0, in: surface.viewport)
+    return picked?.0
+  }
+
+  func traceMove(_ id: String, to anchor: NativeAnchor, container: UIView, in surface: NativeHostSurface) {
+    guard case .scroller(let scroller) = anchor else { return }
+    trace?.chose(.moved, id: id, for: scroller, container: container, in: surface.viewport)
   }
 
   /// The scroll view the scroller's islands live in, while it still sits at

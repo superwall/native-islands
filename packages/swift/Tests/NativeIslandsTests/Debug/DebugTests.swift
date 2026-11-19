@@ -115,7 +115,8 @@ extension NativeBridgeTests {
         contentSize: CGSize(width: 400, height: 801)
       )
       harness.runRetries()
-      #expect(lines.last?.hasPrefix("parked waiting: found its scroll view after 1 checks, ") == true)
+      #expect(lines.dropLast().last?.hasPrefix("parked waiting: found its scroll view after 1 checks, ") == true)
+      #expect(lines.last?.hasPrefix("container waiting near its spot: scroller pushed") == true)
     }
 
     @Test
@@ -132,7 +133,67 @@ extension NativeBridgeTests {
       for _ in 0..<NativeIslandManager.parkingAttempts {
         harness.runRetries()
       }
-      #expect(lines.last?.hasPrefix("parked waiting: gave up waiting after \(NativeIslandManager.parkingAttempts) checks, ") == true)
+      let gaveUp = "parked waiting: gave up waiting after \(NativeIslandManager.parkingAttempts) checks, "
+      #expect(lines.contains { $0.hasPrefix(gaveUp) })
+      #expect(lines.last == "container waiting: no scroll view for scroller pushed at (400, 0, 400×800) content 400×801")
+    }
+
+    @Test("Logs which scroll view each scroller island took, where it is and how it was found")
+    func logsEachScrollerContainerChoice() {
+      let harness = NativeTestHarness()
+      var lines: [String] = []
+      harness.manager.trace = NativeMountTrace(write: { lines.append($0) }, onCommit: { _ in })
+      let frame = NativeFrame(x: 0, y: 0, width: 400, height: 800)
+      let size = NativeSize(width: 400, height: 1600)
+      harness.surface.addScroller(frame: CGRect(x: 0, y: 0, width: 400, height: 800), contentSize: CGSize(width: 400, height: 1600))
+      harness.manager.apply(batch(1, mountOp("near", anchor: scroller("screen", frame: frame, contentSize: size))))
+      #expect(lines.last == "container near near its spot: scroller screen at (0, 0, 400×800) content 400×1600; "
+        + "chose (0, 0, 400×800) content 400×1600, 0 pt away")
+
+      // Rows came back: the page's content is taller than WebKit's scroll view so far.
+      let taller = scroller("screen", frame: frame, contentSize: NativeSize(width: 400, height: 1900))
+      harness.manager.apply(batch(2, mountOp("known", anchor: taller)))
+      #expect(lines.last?.hasPrefix("container known beside its scroller's islands: scroller screen") == true)
+
+      let far = NativeFrame(x: 0, y: 900, width: 400, height: 800)
+      harness.manager.apply(batch(3, .update(NativeUpdate(id: "near", anchor: scroller("other", frame: far, contentSize: size)))))
+      #expect(lines.last == "container near moved to a new scroller: scroller other at (0, 900, 400×800) content 400×1600; "
+        + "chose (0, 0, 400×800) content 400×1600, 900 pt away")
+    }
+
+    @Test
+    func logsAMountThatTookAScrollViewAnywhere() {
+      let harness = NativeTestHarness()
+      var lines: [String] = []
+      harness.manager.trace = NativeMountTrace(write: { lines.append($0) }, onCommit: { _ in })
+      harness.surface.addScroller(frame: CGRect(x: 0, y: 0, width: 400, height: 800), contentSize: CGSize(width: 400, height: 1600))
+      let elsewhere = scroller(
+        "elsewhere",
+        frame: NativeFrame(x: 800, y: 0, width: 400, height: 800),
+        contentSize: NativeSize(width: 400, height: 1600)
+      )
+      harness.manager.apply(batch(1, mountOp("lost", anchor: elsewhere)))
+      for _ in 0..<NativeIslandManager.parkingAttempts {
+        harness.runRetries()
+      }
+      #expect(lines.last == "container lost anywhere: scroller elsewhere at (800, 0, 400×800) content 400×1600; "
+        + "chose (0, 0, 400×800) content 400×1600, 800 pt away")
+    }
+
+    @Test
+    func logsAnIslandFollowingItsScrollerToAnotherScrollView() {
+      let harness = NativeTestHarness()
+      var lines: [String] = []
+      harness.manager.trace = NativeMountTrace(write: { lines.append($0) }, onCommit: { _ in })
+      let size = NativeSize(width: 400, height: 1600)
+      harness.surface.addScroller(frame: CGRect(x: 800, y: 0, width: 400, height: 800), contentSize: CGSize(width: 400, height: 1600))
+      let parked = NativeFrame(x: 800, y: 0, width: 400, height: 800)
+      harness.manager.apply(batch(1, mountOp(anchor: scroller("screen", frame: parked, contentSize: size))))
+      harness.surface.addScroller(frame: CGRect(x: 0, y: 0, width: 400, height: 800), contentSize: CGSize(width: 400, height: 1600))
+      let landed = scroller("screen", frame: NativeFrame(x: 0, y: 0, width: 400, height: 800), contentSize: size)
+      harness.manager.apply(batch(2, .update(NativeUpdate(id: "cta", anchor: landed))))
+      #expect(lines.last == "container cta followed, near its spot: scroller screen at (0, 0, 400×800) content 400×1600; "
+        + "chose (0, 0, 400×800) content 400×1600, 0 pt away")
     }
 
     @Test
